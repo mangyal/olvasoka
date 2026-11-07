@@ -73,7 +73,10 @@ output{min-width:4.2em}
 .stepper button:hover{background:var(--paper-2)}
 .stepper input{font:inherit;width:46px;text-align:center;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);height:30px;background:var(--field);color:var(--ink);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
 .stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.keys{flex:1;color:var(--ink-2);font-size:13px;min-width:0}
+.keys{flex:1;color:var(--ink-2);font-size:13px;min-width:0;display:flex;flex-wrap:wrap;gap:4px 14px}
+.keys>span{white-space:nowrap}
+/* érintőképernyőn és keskeny nézetben nincs billentyűzet, a súgó csak helyet foglal */
+@media (max-width:599px),(hover:none) and (pointer:coarse){.keys{display:none}}
 .start-msg{font-size:13px;color:var(--ink-2)}
 .start-msg.wrn{color:var(--warn)}
 
