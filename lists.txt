@@ -240,3 +240,24 @@ vi-ki
 ki-ló
 me-se
 mi-si
+
+# Két szótagú szavak
+a-pa
+pa-pa
+pá-pa
+ta-ta
+ma-ci
+ci-ca
+pi-pa
+ka-pa
+li-la
+lá-ma
+ma-ki
+ki-vi
+pó-ló
+kó-la
+mó-ka
+fe-le
+vi-ta
+pa-ca
+i-ma
