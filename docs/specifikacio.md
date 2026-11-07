@@ -248,6 +248,9 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-R1** A kör végén a háttér 1,8 mp alatt papírszínről égkékre vált, a dekoráció elhalványul,
   utána a lufik alulról a helyükre emelkednek (1,2 mp, 80 ms eltolással).
 - **F-R2** 10–15 lufi, pasztell színekkel, 90–140 px szélességben, lassú lebegéssel (±6 px, ±2°), felszállva (F-R9).
+  Felszálló módban kis képernyőn a darabszám a terület arányában csökken (1366×768-nál teljes, min. 6),
+  a szélesség a rövidebb képernyőoldal 20–26%-a (legfeljebb 90–140 px). A lufi inkább a szél felőli
+  oldalon indul, hogy átsodródjon a képen.
 - **F-R3** Pukkasztás `pointerdown`-ra; a pukkanás 120 ms-os zsugorodás és 6–8 apró részecske. Hang nincs.
 - **F-R4** Nincs pontszám, időnyomás, felirat. A találati terület a lufinál ~20%-kal nagyobb;
   átfedésnél csak a legfelső pukkan. A ✕ környéke (120 × 120 px) szabadon marad.

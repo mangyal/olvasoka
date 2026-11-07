@@ -64,11 +64,14 @@ export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
   function spawnFlying() {
     if (!active) return;
     const { W, H } = env();
-    const n = 10 + Math.floor(Math.random() * 6);
+    // F-R9: kis képernyőn kevesebb és kisebb lufi, hogy ne takarják egymást
+    const fit = Math.min(1, (W * H) / (1366 * 768));
+    const n = Math.max(6, Math.round((10 + Math.random() * 5) * fit));
+    const minDim = Math.min(W, H);
+    const bwMax = Math.min(140, minDim * 0.26), bwMin = Math.min(90, minDim * 0.2);
     const palette = shuffledIdx(COLORS.length).map((i) => COLORS[i]);
-    const maxBw = Math.max(90, Math.min(140, W / 4));
     balloons = Array.from({ length: n }, (_, i) => {
-      const bw = 90 + Math.random() * (maxBw - 90), bh = bw / 0.82;
+      const bw = bwMin + Math.random() * (bwMax - bwMin), bh = bw / 0.82;
       const color = palette[i % palette.length];
       const node = document.createElement('div');
       node.className = 'balloon free';
@@ -76,7 +79,7 @@ export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
       node.innerHTML = balloonHTML(bw, bh, color, 4 + Math.random() * 3);
       balloonsEl.append(node);
       const b = { node, target: node.querySelector('.pop-target'), hit: node.querySelector('.hit'), color, popped: false,
-        bw, bh, wakeAt: (i / n) * ENTRY_MS / 1000, s: launch({ W, H, bw, bh }) };
+        bw, bh, wakeAt: (i / n) * ENTRY_MS / 1000, s: launch({ W, H, bw, bh, dir: wind.dir, spread: 0.35 }) };
       place(b);
       return b;
     });
@@ -89,7 +92,7 @@ export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
       for (const b of balloons) {
         if (b.popped || t < b.wakeAt) continue;
         b.s = stepBalloon(b.s, dt, t, e);
-        if (isOut(b.s, { W: e.W, bw: b.bw, bh: b.bh })) b.s = launch({ W: e.W, H: e.H, bw: b.bw, bh: b.bh });
+        if (isOut(b.s, { W: e.W, bw: b.bw, bh: b.bh })) b.s = launch({ W: e.W, H: e.H, bw: b.bw, bh: b.bh, dir: e.dir });
         place(b);
       }
       raf = requestAnimationFrame(frame);
