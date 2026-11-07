@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.3** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.4** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -47,6 +47,17 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
 
+### 2.4 (a 2.3-hoz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Listák forrása | Elsődleges forrás egy **Google táblázat** (oszloponként egy lista, első sor a név). A repó `lists.txt`-je **tartalék**. | 1., 3.1a, F-L8, F-L9 |
+| 2 | Tartalék jelzése | Ha a táblázat nem érhető el, a listák alatt diszkrét „Tartalék lista: lists.txt” jelzés, lenyitva az okkal. | F-L13 |
+| 3 | Feature toggle | Ideiglenes `?source=sheet` / `?source=txt` URL-paraméter, a böngésző megjegyzi. Alapérték: `sheet`. | F-L12, F-S3 |
+| 4 | Szerkesztés | Táblázat módban a szerkesztő link a táblázatra mutat (a hozzáférést a Google kezeli). | F-L11 |
+| 5 | `#`-es tétel | A vessző után álló, `#`-tel kezdődő tétel is kimarad, figyelmeztetéssel (#12). | F-L5 |
+| 6 | Frissülés | Táblázat módban a változás ~5 percen belül látszik (a Google gyorsítótára miatt). | 9.16 |
+
 ### 2.3 (a 2.2-höz képest)
 
 | # | Terület | Változás | Érintett pontok |
@@ -73,7 +84,7 @@ mellett ül.** A program nem hallgat, nem értékel, nem ad hangot.
 A cél a **betűalak rögzítése**, nem a szó–kép asszociáció. Ezért a gyerek képernyőjén soha nem jelenik meg
 a tételhez kapcsolódó kép. Ugyanezért a betűalak a kör alatt **nem változik** (azonos font, azonos méret).
 
-A tartalom gyakran változik. A szülő a listákat a GitHubon szerkeszti, telefonról is.
+A tartalom gyakran változik. A szülő a listákat egy Google táblázatban szerkeszti, telefonról is.
 
 ### Nem cél
 - Mikrofon, beszédfelismerés, kiejtés-értékelés
@@ -104,7 +115,7 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
 
 ## 3. Listák és beállítások
 
-### 3.1 A `lists.txt`
+### 3.1 A `lists.txt` (tartalék)
 - **F-L1** A listák a repó gyökerében lévő `lists.txt`-ben vannak, sima szövegként (UTF-8):
   ```
   # Magánhangzók
@@ -131,23 +142,53 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
      a teszt csak tájékoztatásként írja ki.
   5. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi a sorszámmal.
 
-  `#`-tel kezdődő tétel nem lehet, mert az a sor listanév.
+  `#`-tel kezdődő tétel nem lehet: a `#`-tel kezdődő sor listanév, a vessző után álló `#`-es tétel pedig
+  kimarad, figyelmeztetéssel a sorszámmal.
 - **F-L6** A tétel **pontosan úgy jelenik meg, ahogy le van írva**. Tilos a `text-transform` és
   bármilyen kis-/nagybetű konverzió.
 - **F-L7** A fájl nem lehet úgy hibás, hogy semmi ne jelenjen meg: a program mindig a helyes részeket
   használja, a többiről figyelmeztet.
 
+### 3.1a A Google táblázat (elsődleges forrás)
+- **F-L1a** A listák egy „Közzététel az interneten” CSV-ként publikált Google táblázat első fülén vannak:
+  minden oszlop egy lista, az **első sor a lista neve**, alatta cellánként a tételek.
+  ```
+  | 45. oldal | Á-A-E | 44. oldal |
+  | fa        | á     | pá-va     |
+  | ke-fe     | pá    | pu-li     |
+  ```
+  Az üres cellák nem számítanak; a cellán belüli vessző is elválaszt. A név elején álló `#` elhagyható.
+- **F-L1b** A szabályok ugyanazok, mint a `lists.txt`-nél (F-L2–F-L7): névsor, egyedi név, tisztítás,
+  hosszkorlát. A helymegjelölés a cella: „A táblázat B3 cellája: …”. A név és tétel nélküli oszlop csendben
+  kimarad; a név nélküli, de tételes oszlop figyelmeztetéssel.
+- **F-L1c** Címek: CSV `…/pub?output=csv`, szerkesztő `…/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit`
+  (`js/core/source.js`).
+
 ### 3.2 Betöltés és gyorsítótár
 - **F-L8** Induláskor a program azonnal megjeleníti a legutóbb letöltött listákat (ha vannak), és a háttérben
-  letölti a `lists.txt`-t `cache: 'no-cache'`-sel, 8 mp-es időkorláttal. Sikeres letöltés után a listák
-  frissülnek, és az új változat a helyi tárolóba kerül.
-- **F-L9** Ha a letöltés nem sikerül:
+  letölti a listákat `cache: 'no-cache'`-sel, forrásonként 8 mp-es időkorláttal. A sorrend:
+  1. a Google táblázat;
+  2. ha az nem érhető el (hálózat, HTTP-hiba, időtúllépés), nem CSV-t ad (pl. nincs közzétéve, bejelentkező
+     oldal), vagy nincs benne egyetlen lista sem → a repó `lists.txt`-je;
+  3. ha az sem → a legutóbb letöltött példány (bármelyik forrásból), F-L9.
+
+  Sikeres letöltés után a listák frissülnek, és az új változat a forrásával együtt a helyi tárolóba kerül.
+  A táblázat részleges hibái (egy-egy rossz cella) nem okoznak tartalékra váltást: a jó részek látszanak,
+  a többiről figyelmeztetés (F-L7).
+- **F-L9** Ha egyik forrásból sem sikerül a letöltés:
   - van korábbi változat → az látszik, mellette figyelmeztetés a hibával és azzal, hogy a legutóbbi listák látszanak;
   - nincs korábbi változat → üres állapot a hibaüzenettel; az „Indítás” inaktív.
-- **F-L10** A „Frissítés” gomb újra letölti a `lists.txt`-t. Mellette: „Frissítve: 20:49”, illetve
+- **F-L10** A „Frissítés” gomb újra letölti a listákat (F-L8 sorrendben). Mellette: „Frissítve: 20:49”, illetve
   kapcsolat nélkül „Nincs kapcsolat – a nov. 7. 20:49 állapot látszik”.
-- **F-L11** A „Listák szerkesztése a GitHubon ↗” link a `lists.txt` GitHub-szerkesztőjét nyitja új lapon.
-  Commit után kb. egy perccel a Frissítés már az új listát hozza.
+- **F-L11** A szerkesztő link új lapon nyílik. Táblázat módban: „Listák szerkesztése a táblázatban ↗”, a táblázat
+  szerkesztőjére mutat (a hozzáférést a Google kezeli); a változás kb. 5 percen belül jön le. `txt` módban:
+  „Listák szerkesztése a GitHubon ↗”, a `lists.txt` GitHub-szerkesztője; commit után kb. egy perc.
+- **F-L12 Forrás-kapcsoló (ideiglenes feature toggle):** `?source=sheet` (alapérték) vagy `?source=txt`
+  URL-paraméter. A választás a helyi tárolóba kerül (`listSource`), a paraméter eltűnik a címből;
+  érvénytelen értéknél a tárolt marad. `txt` módban a program a táblázathoz nem fordul (a 2.3-as működés).
+- **F-L13 Tartalék jelzése:** ha táblázat módban a látható listák a `lists.txt`-ből jöttek, a listák alatt,
+  a forrássor alatt halvány, összecsukott „Tartalék lista: lists.txt” sor; lenyitva a táblázat hibájának
+  oka. Nem figyelmeztető sáv, és a gyerek nézetében semmi nem jelzi.
 
 ### 3.3 Beállítások (a kör indítása előtt)
 
@@ -176,8 +217,10 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   `localStorage`-ban, `olvasoka` kulcs alatt:
   ```json
   { "v": 3, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
-    "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false, "cache": { "text": "# Magánhangzók\na\n…", "fetchedAt": 1794080000000 } }
+    "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false, "listSource": "sheet",
+    "cache": { "text": "45. oldal,Á-A-E\nfa,á\n…", "fetchedAt": 1794080000000, "kind": "sheet" } }
   ```
+  A `cache.kind` a szöveg forrása (`sheet` vagy `txt`); a `kind` nélküli régi cache `lists.txt`.
   A v2 állapot `lastList` neve betöltéskor a `lastLists` egyetlen eleme lesz.
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
   a program fut, figyelmeztetéssel: a beállítások nem maradnak meg, és hálózat nélkül nem lesz lista.
@@ -317,14 +360,15 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **N7 Tesztelhetőség:** a logika a `js/core/` modulokban van, DOM nélkül. Tesztek: `node --test`
   (Node 20+), minden pushnál és PR-nél GitHub Actionsben. A tesztek a repó `lists.txt`-jét is
   ellenőrzik (hibás sor, túl hosszú tétel, és hogy néhány mintatétel megvan-e), így egy hibás commit pirosra vált,
-  és a GitHub e-mailben jelzi, melyik sorral van baj.
+  és a GitHub e-mailben jelzi, melyik sorral van baj. A Google táblázat tartalmát a CI nem ellenőrzi;
+  annak hibáit a szülői felület figyelmeztetései mutatják (F-L1b), a tartalékra váltást pedig F-L13.
 - **N8 PWA:** telepíthető webalkalmazás (`manifest.webmanifest`, `sw.js`).
   - Megjelenés `fullscreen` (tartalék: `standalone`), tájolás nincs rögzítve. Ikon: a jutalom lufija
     égszínű háttéren (`img/icons/`: 192, 512, maskable 512, apple-touch 180, SVG).
   - A service worker telepítéskor eltárolja a program fájljait (HTML, JS, CSS, betű, képek), és hálózat
     először stratégiával szolgál ki: online mindig a friss fájl jön (`no-cache`, ETag-gel olcsó), 3 mp
     után vagy hálózat nélkül a tárolt példány. Így új verzióhoz nem kell semmit léptetni.
-  - A `lists.txt`-t és a külső címeket nem kezeli; a listák offline állapotát a program jelzi (F-L8, F-L9).
+  - A `lists.txt`-t és a külső címeket (a Google táblázatot) nem kezeli; a listák offline állapotát a program jelzi (F-L8, F-L9).
   - A tárolólistát (`ASSETS`) a `test/pwa.test.js` egyezteti a repó fájljaival.
 - **N9 Képernyőzár:** gyakorlás és jutalom alatt Screen Wake Lock, hogy a képernyő ne sötétüljön el;
   lap elrejtésekor a böngésző elengedi, visszatéréskor újrakéri. Ahol nincs ilyen API, nem jelez hibát.
@@ -335,7 +379,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 index.html          markup
 lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom
-js/core/            tiszta logika: sequence, round, items, lists, settings
+js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift
 js/data/            store (localStorage), remote (lists.txt letöltése)
 js/ui/              admin, practice, reward
 js/font.js          betűtípus-kapu
@@ -352,6 +396,9 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Eset | Elvárt viselkedés |
 |---|---|
 | Első megnyitás, a letöltés folyamatban | „Listák töltődnek…”, az „Indítás” inaktív |
+| A táblázat nem érhető el / nincs közzétéve / üres | `lists.txt`, a listák alatt „Tartalék lista: lists.txt” (F-L13) |
+| A táblázat egy-egy cellája hibás | A táblázat látszik, a hibás cella kimarad, figyelmeztetés a cellával |
+| Táblázat és `lists.txt` sem érhető el | A legutóbbi példány, figyelmeztetés mindkét hibával (F-L9) |
 | A `lists.txt` nem tölthető le, van korábbi változat | A korábbi listák, figyelmeztetéssel |
 | A `lists.txt` nem tölthető le, nincs korábbi | Üres állapot a hibaüzenettel, „Indítás” inaktív |
 | Sor az első listanév előtt / üres listanév | Kimarad, figyelmeztetés a sorszámmal |
@@ -403,7 +450,8 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 13. *(automata)* A `lists.txt` hibatűrő értelmezése; a repó `lists.txt`-je hiba nélkül értelmezhető, és a mintatételek megvannak benne.
 14. A betűteszt `ő`, `ű`, `Ő`, `Ű` karakterei dupla ékezettel, Arialban (vagy Arimóban) jelennek meg.
 15. A beállítások és a kijelölt lista újratöltés után megmaradnak; hálózat nélkül a legutóbbi listák látszanak.
-16. A `lists.txt` GitHubon módosítva, commit után a Frissítés legfeljebb ~2 percen belül az új listát mutatja.
+16. A táblázat módosítása után a Frissítés legfeljebb ~5 percen belül az új listát mutatja; `txt` módban a
+    `lists.txt` GitHubon módosítva, commit után ~2 percen belül.
 17. Sehol nincs hanglejátszás.
 
 ---
@@ -445,6 +493,17 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Ismétlődő tétel: az app csendben kihagyja, a teszt csak tájékoztat | Az ismétlés a forrásban szándékos lehet (oldal végi ismétlő sor); a gyakorláshoz elég egyszer. |
 | A repó tesztje mintatételeket keres | Ha egy lista véletlenül elveszik vagy csonkul, a commit pirosra vált. Szándékos átírásnál a mintát is frissíteni kell. |
 | Publikus repo | Ingyenes Pages; a listák tartalma nem érzékeny. |
+
+**Google táblázat forrás (2.4):**
+
+| Döntés | Indok |
+|---|---|
+| Elsődleges forrás a közzétett Google táblázat, oszloponként egy lista | Telefonról egyszerűbb szerkeszteni, mint a `lists.txt`-t a GitHubon. |
+| Tartalék a repó `lists.txt`-je, nem frissül automatikusan | A szülő kézzel frissíti, ha kell; a tartalék független a táblázattól. |
+| Sorrend: táblázat → `lists.txt` → legutóbbi példány | Kiszámítható; a tartalék akkor is a repóé, ha a tárolt táblázat frissebb volna. |
+| Diszkrét jelzés a listák alatt | A szülő lássa, de ne zavarja; a gyereknek nem szól. |
+| `?source=` URL-paraméter, angol kulcsokkal | Ideiglenes, a felületen nem látszik, telefonon is gyorsan váltható, könnyű kivenni. |
+| A táblázatot a CI nem ellenőrzi | A hibakezelés a programban van (kihagy és jelez, F-L7). |
 | Kör-logika tiszta reducerben, `node --test`, GitHub Actions | Az időzítés és a navigáció automatikusan tesztelhető; hibás lista már a commitnál kiderül. |
 
 ---
@@ -517,7 +576,8 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 - **U-A3** A kijelölt lista tételei vékony keretes címkékként, Arialban, a fájlbeli sorrendben. Több
   kijelölt listánál a fejléc „3 lista kijelölve · 47 különböző tétel”, alatta listánként csoportosítva
   a név, a tételszám és a címkék.
-- **U-A4** Forrássor: frissítési állapot, „Frissítés” gomb, GitHub-szerkesztő link.
+- **U-A4** Forrássor: frissítési állapot, „Frissítés” gomb, szerkesztő link (F-L11); alatta szükség esetén
+  a tartalék jelzése (F-L13), 13 px, `--ink-2`, `--warn` színű nyitójellel.
 - **U-A5** Figyelmeztető sáv a fejléc alatt, `--warn` bal szegéllyel, egyenként bezárható.
 - **U-A6** Kör-sáv alul, mindig látható; az „Indítás” az oldal egyetlen elsődleges gombja. Állapotai:
 
