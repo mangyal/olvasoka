@@ -3,7 +3,7 @@
 // Csökkentett mozgásnál a régi, helyben lebegő elrendezés marad.
 
 import { shuffledIdx } from '../core/sequence.js';
-import { launch, stepBalloon, isOut } from '../core/drift.js';
+import { launch, stepBalloon, isOut, nozzle } from '../core/drift.js';
 
 const COLORS = ['#F2B5A7', '#F5D58F', '#B5D5BB', '#A7C8E0', '#CBB8DE', '#EFC2D3'];
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -27,7 +27,7 @@ const balloonHTML = (bw, bh, color, period) =>
   `</div>`;
 
 export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }) {
-  let timers = [], balloons = [], active = false, raf = 0, cf = 0, blower = null, wind = null;
+  let timers = [], balloons = [], active = false, raf = 0, cf = 0, wf = 0, blower = null, wind = null, windCv = null;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
   const showCount = () => {
     if (countEl) countEl.textContent = balloons.length ? `${balloons.filter((b) => b.popped).length}/${balloons.length}` : '';
@@ -46,7 +46,9 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
     timers.forEach(clearTimeout); timers = [];
     cancelAnimationFrame(raf); raf = 0;
     cancelAnimationFrame(cf); cf = 0;
+    cancelAnimationFrame(wf); wf = 0;
     if (blower) { blower.remove(); blower = null; }
+    if (windCv) { windCv.remove(); windCv = null; }
     balloons = []; balloonsEl.replaceChildren(); particlesEl.replaceChildren();
     showCount();
   }
@@ -68,8 +70,53 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
   };
 
   // F-R9: alulról, elcsúsztatva úsznak be, felszállnak, a szél sodorja őket; kimenve alul visszajönnek
+  // F-R13: halvány szélcsíkok a fúvócsőből a szél irányába, a távolsággal elhalványulva.
+  // Csak díszítés: a lufik mozgását a drift.js szele adja, ugyanebbe az irányba.
+  function windStreaks() {
+    windCv = document.createElement('canvas');
+    windCv.className = 'wind';
+    stage.insertBefore(windCv, balloonsEl);
+    const g = windCv.getContext('2d');
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    let streaks = [], last = 0, acc = 0, W = 0, H = 0, dpr = 1;
+    const frame = (now) => {
+      if (!active || !windCv) return;
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now;
+      if (W !== innerWidth || H !== innerHeight) {
+        W = innerWidth; H = innerHeight; dpr = Math.min(2, devicePixelRatio || 1);
+        windCv.width = W * dpr; windCv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      const n = nozzle({ left: wind.dir > 0, x: blower.offsetLeft, y: blower.offsetTop, size: BLOWER, tilt: TILT });
+      const reach = W * 0.55;                        // eddig látszik a szél
+      for (acc += dt * 22; acc >= 1; acc--) {         // ~22 csík / mp
+        const spread = rnd(-0.22, 0.22);              // ±12° legyező
+        const c = Math.cos(spread), s = Math.sin(spread);
+        streaks.push({ x: n.x, y: n.y + rnd(-6, 6), dx: n.dx * c - n.dy * s, dy: n.dx * s + n.dy * c,
+          v: rnd(260, 380), len: rnd(18, 42), d: 0, ph: rnd(0, 6.3), w: rnd(1.5, 3) });
+      }
+      g.clearRect(0, 0, W, H);
+      g.lineCap = 'round';
+      streaks = streaks.filter((k) => {
+        k.v = Math.max(90, k.v * (1 - 0.9 * dt));       // lassul, ahogy távolodik
+        k.d += k.v * dt;
+        const f = k.d / reach;
+        if (f >= 1) return false;
+        const wob = Math.sin(k.ph + k.d * 0.025) * 6 * f;   // kis hullámzás
+        const x = k.x + k.dx * k.d - k.dy * wob, y = k.y + k.dy * k.d + k.dx * wob;
+        const a = Math.min(1, k.d / 40) * (1 - f) * 0.55;    // a cső előtt beúszik, távol elhalványul
+        g.strokeStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+        g.lineWidth = k.w;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x - k.dx * k.len, y - k.dy * k.len); g.stroke();
+        return true;
+      });
+      wf = requestAnimationFrame(frame);
+    };
+    wf = requestAnimationFrame(frame);
+  }
+
   function spawnFlying() {
     if (!active) return;
+    windStreaks();
     const { W, H } = env();
     // F-R9: kis képernyőn kevesebb és kisebb lufi, hogy ne takarják egymást
     const fit = Math.min(1, (W * H) / (1366 * 768));
@@ -185,6 +232,7 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
       confetti();                                     // F-R5: 3 mp konfettieső, majd vissza papírszínre
       later(CONFETTI_MS, () => {
         stage.classList.add('back'); stage.classList.remove('sky');
+        cancelAnimationFrame(wf); wf = 0; if (windCv) windCv.style.opacity = '0';
         later(reduced() ? 0 : 600, onDone);
       });
     }

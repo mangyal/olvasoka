@@ -57,3 +57,20 @@ export function stepBalloon(b, dt, t, env) {
 export function isOut(b, { W, bw, bh }) {
   return b.y < -bh * 1.2 || b.x < -bw || b.x > W + bw;
 }
+
+/**
+ * A fúvócső végének helye és a fújás iránya a képernyőn (F-R13, szélcsíkok).
+ * Az SVG (128×128) balra fúj, a cső vége a (17, 46) pontban van. Jobb oldalt `rotate(tilt)`,
+ * bal oldalt `scaleX(-1) rotate(tilt)` (a CSS jobbról balra alkalmazza: előbb forgat, aztán tükröz).
+ * @param {{left:boolean, x:number, y:number, size:number, tilt:number}} o
+ *   x, y: a kép bal felső sarka forgatás nélkül; tilt: fokban
+ * @returns {{x:number, y:number, dx:number, dy:number}} a cső vége és az egységnyi fújásirány
+ */
+export function nozzle({ left, x, y, size, tilt }) {
+  const k = size / 128, a = (tilt * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+  const rot = (px, py) => [px * c - py * s, px * s + py * c];
+  let [nx, ny] = rot((17 - 64) * k, (46 - 64) * k);
+  let [dx, dy] = rot(-1, 0);
+  if (left) { nx = -nx; dx = -dx; }
+  return { x: x + size / 2 + nx, y: y + size / 2 + ny, dx, dy };
+}

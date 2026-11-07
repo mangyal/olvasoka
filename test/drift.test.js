@@ -59,3 +59,15 @@ test('drift: kimenetel felül és oldalt', () => {
   assert.equal(isOut({ ...b, y: H / 2, x: W + bw + 1 }, { W, bw, bh }), true, 'jobbra ki');
   assert.equal(isOut({ ...b, y: H + 50 }, { W, bw, bh }), false, 'alul, még beúszik');
 });
+
+test('fúvócső: hely és irány mindkét oldalon', async () => {
+  const { nozzle } = await import('../js/core/drift.js');
+  const r = nozzle({ left: false, x: 1000, y: 500, size: 128, tilt: 12 });
+  assert.ok(r.dx < -0.9 && r.dy < -0.1, 'jobb oldalt balra-felfelé fúj');
+  assert.ok(r.x < 1000 + 30 && r.y < 500 + 64, 'a cső vége a kép bal felső részén');
+  const l = nozzle({ left: true, x: 0, y: 500, size: 128, tilt: 12 });
+  assert.ok(l.dx > 0.9 && l.dy < -0.1, 'bal oldalt tükrözve jobbra-felfelé fúj');
+  assert.ok(Math.abs((l.x - 64) + (r.x - 1064)) < 1e-9 && Math.abs(l.y - r.y) < 1e-9, 'tükörkép');
+  const z = nozzle({ left: false, x: 0, y: 0, size: 128, tilt: 0 });
+  assert.deepEqual([z.x, z.y, z.dx, z.dy], [17, 46, -1, 0]);
+});
