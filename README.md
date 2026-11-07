@@ -66,6 +66,10 @@ js/main.js          indítás
 test/               node --test
 ```
 
+## Specifikáció
+
+A követelmények, döntések és elfogadási kritériumok: [`docs/specifikacio.md`](docs/specifikacio.md).
+
 ## Fejlesztés
 
 ```sh
