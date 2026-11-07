@@ -33,7 +33,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | # | Terület | Változás | Érintett pontok |
 |---|---|---|---|
 | 1 | Listaformátum | `lists.txt` (sima szöveg: `# Lista neve`, alatta soronként egy tétel) a `lists.json` helyett. | 3.1, 3.2, 3.4, 8., 9.13 |
-| 2 | Ismétlődő tétel | Az app továbbra is csendben kihagyja, de a repó tesztje sorszámmal jelzi. | F-L5, N7 |
+| 2 | Ismétlődő tétel | Az app csendben kihagyja, a teszt csak tájékoztat. A teszt helyette mintatételeket keres a listákban. | F-L5, N7 |
 
 ### Korábbi változatok
 
@@ -107,7 +107,8 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   2. A két végén szóköz levágva.
   3. Üres tétel eldobva.
   4. **Ismétlődő tétel eldobva** a listán belül (pontos egyezés; az `a` és az `A` két külön tétel).
-     Az app ezt csendben teszi; a repó tesztje viszont hibát jelez a sorszámmal (N7).
+     Az ismétlés szándékos is lehet (oldal végi ismétlő sor), ezért nem hiba: az app csendben kihagyja,
+     a teszt csak tájékoztatásként írja ki.
   5. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi a sorszámmal.
 
   `#`-tel kezdődő tétel nem lehet, mert az a sor listanév.
@@ -268,7 +269,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **N6** Világos téma, explicit `body` háttérrel.
 - **N7 Tesztelhetőség:** a logika a `js/core/` modulokban van, DOM nélkül. Tesztek: `node --test`
   (Node 20+), minden pushnál és PR-nél GitHub Actionsben. A tesztek a repó `lists.txt`-jét is
-  ellenőrzik (hibás sor, túl hosszú vagy ismétlődő tétel), így egy hibás commit pirosra vált,
+  ellenőrzik (hibás sor, túl hosszú tétel, és hogy néhány mintatétel megvan-e), így egy hibás commit pirosra vált,
   és a GitHub e-mailben jelzi, melyik sorral van baj.
 
 ### 7.1 Felépítés
@@ -299,7 +300,7 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Sor az első listanév előtt / üres listanév | Kimarad, figyelmeztetés a sorszámmal |
 | Azonos nevű listák | A második kimarad, figyelmeztetés |
 | Túl hosszú tétel | Kimarad, a figyelmeztetés megnevezi |
-| Ismétlődő tétel | Az appban csendben kimarad; a repó tesztje pirosra vált |
+| Ismétlődő tétel egy listán belül | Csendben kimarad; a teszt tájékoztat, de nem bukik |
 | A legutóbb kijelölt lista már nincs a fájlban | Az első lista lesz kijelölve |
 | Üres lista kiválasztva | „Indítás” inaktív: „A listában nincs tétel.” |
 | Összes lista, mind üres | „Indítás” inaktív: „Egyik listában sincs tétel.” |
@@ -342,7 +343,7 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 11. Esc a gyakorlásból és a jutalomból is ADMIN-ba visz.
 12. *(automata)* A tisztítás NFC-normalizál, megtartja a kis-/nagybetűt, eldobja a `#`-es és ismétlődő
     tételt, jelzi a túl hosszút.
-13. *(automata)* A `lists.txt` hibatűrő értelmezése; a repó `lists.txt`-je hiba és ismétlődés nélkül értelmezhető.
+13. *(automata)* A `lists.txt` hibatűrő értelmezése; a repó `lists.txt`-je hiba nélkül értelmezhető, és a mintatételek megvannak benne.
 14. A betűteszt `ő`, `ű`, `Ő`, `Ű` karakterei dupla ékezettel, Arialban (vagy Arimóban) jelennek meg.
 15. A beállítások és a kijelölt lista újratöltés után megmaradnak; hálózat nélkül a legutóbbi listák látszanak.
 16. A `lists.txt` GitHubon módosítva, commit után a Frissítés legfeljebb ~2 percen belül az új listát mutatja.
@@ -381,7 +382,8 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | GitHub Pages, ES modulok, build nélkül | Hostolt listák; a claude.ai artifact nem tölthet be külső fájlt. |
 | Listák a repóban, az appban csak olvashatók (A változat) | Egy adatforrás, nincs bejelentkezés és token. Szerkesztés a GitHubon, telefonról is. A vegyes (B) és a visszaíró (C) változat elvetve. |
 | `lists.txt` a `lists.json` helyett | A JSON idézőjelei és vesszői telefonon könnyen elronthatók; a szöveges formátumban egy sor egy tétel. |
-| Ismétlődő tétel: az app csendben kihagyja, a teszt jelzi | A gyerek felületén nincs zaj; a javítás helye a fájl. |
+| Ismétlődő tétel: az app csendben kihagyja, a teszt csak tájékoztat | Az ismétlés a forrásban szándékos lehet (oldal végi ismétlő sor); a gyakorláshoz elég egyszer. |
+| A repó tesztje mintatételeket keres | Ha egy lista véletlenül elveszik vagy csonkul, a commit pirosra vált. Szándékos átírásnál a mintát is frissíteni kell. |
 | Publikus repo | Ingyenes Pages; a listák tartalma nem érzékeny. |
 | Kör-logika tiszta reducerben, `node --test`, GitHub Actions | Az időzítés és a navigáció automatikusan tesztelhető; hibás lista már a commitnál kiderül. |
 

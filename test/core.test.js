@@ -65,12 +65,26 @@ test('lists.txt: értelmezés', () => {
   assert.equal(parseListsText('\uFEFF# A\na').lists[0].name, 'A', 'BOM');
 });
 
-test('a repó lists.txt-je hibátlan, ismétlődés nélkül', () => {
+// A repó valódi lists.txt-je: betölthető-e, és megvannak-e benne a várt listák és tételek.
+// Ha a listákat szándékosan átírod, ezeket a mintákat is frissítsd.
+const SAMPLES = {
+  '45. oldal': ['fa', 'ke-fe', 'lu-fi'],
+  '44. oldal': ['pá-va', 'pu-li', 'ma-ma'],
+  'Á-A-E': ['á', 'pá', 'ke'],
+  '42. oldal': ['só', 'ci-pó', 'te-le'],
+  '40. oldal': ['á', 'te-ve', 'mi-si'],
+};
+
+test('a repó lists.txt-je betölthető, a várt tételek megvannak', (t) => {
   const r = parseListsText(readFileSync(new URL('../lists.txt', import.meta.url), 'utf8'));
   assert.deepEqual(r.problems, [], 'Javítsd a lists.txt-t:\n' + r.problems.join('\n'));
-  assert.deepEqual(r.duplicates, [], 'Ismétlődő tétel a lists.txt-ben:\n' +
-    r.duplicates.map((d) => `  ${d.line}. sor: „${d.item}” (${d.list})`).join('\n'));
-  assert.ok(r.lists.length > 0);
+  for (const [name, items] of Object.entries(SAMPLES)) {
+    const list = r.lists.find((l) => l.name === name);
+    assert.ok(list, `Hiányzik a „${name}” lista`);
+    for (const item of items) assert.ok(list.items.includes(item), `„${name}”: hiányzik a „${item}”`);
+  }
+  // Az ismétlődés nem hiba (pl. egy oldal végi ismétlő sor); az app kihagyja. Csak tájékoztatás.
+  for (const d of r.duplicates) t.diagnostic(`ismétlődik, kimarad: ${d.line}. sor „${d.item}” (${d.list})`);
 });
 
 test('beállítások és tárolt állapot', () => {
