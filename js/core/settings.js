@@ -19,14 +19,17 @@ export function clampSettings(s) {
 }
 
 /**
- * Helyi állapot: { v: 3, settings, lastLists: string[], hideHelp: boolean, cache: { text, fetchedAt } | null }.
+ * Helyi állapot: { v: 3, settings, lastLists: string[], hideHelp: boolean, listSource: 'sheet'|'txt',
+ *                  cache: { text, fetchedAt, kind: 'sheet'|'txt' } | null }.
  * hideHelp: a súgó ne jelenjen meg magától induláskor.
- * lastLists: a legutóbb kijelölt listák neve. A cache a legutóbb letöltött lists.txt szövege.
+ * listSource: a listák forrása (ideiglenes feature toggle, `?source=`); alapérték a táblázat.
+ * lastLists: a legutóbb kijelölt listák neve. A cache a legutóbb letöltött lista szövege
+ * (táblázat CSV vagy lists.txt, `kind` szerint; a kind nélküli régi cache lists.txt).
  * A v2 egyetlen lastList neve átkerül a lastLists tömbbe.
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 3, settings: clampSettings(null), lastLists: [], hideHelp: false, cache: null };
+  const base = { v: 3, settings: clampSettings(null), lastLists: [], hideHelp: false, listSource: 'sheet', cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -35,7 +38,8 @@ export function normalizeState(o) {
     settings: clampSettings(o.settings),
     lastLists,
     hideHelp: o.hideHelp === true,
+    listSource: o.listSource === 'txt' ? 'txt' : 'sheet',
     cache: o.cache && typeof o.cache === 'object' && typeof o.cache.text === 'string' && Number.isFinite(o.cache.fetchedAt)
-      ? { text: o.cache.text, fetchedAt: o.cache.fetchedAt } : null,
+      ? { text: o.cache.text, fetchedAt: o.cache.fetchedAt, kind: o.cache.kind === 'sheet' ? 'sheet' : 'txt' } : null,
   };
 }

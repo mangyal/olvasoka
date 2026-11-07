@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildSequence, mulberry32 } from '../js/core/sequence.js';
-import { analyzeItems } from '../js/core/items.js';
 import { parseListsText } from '../js/core/lists.js';
 import { clampSettings, normalizeState } from '../js/core/settings.js';
 
@@ -34,15 +33,13 @@ test('határesetek', () => {
   assert.deepEqual(buildSequence(6, 20, mulberry32(42)), buildSequence(6, 20, mulberry32(42)));
 });
 
-test('tételek tisztítása', () => {
-  const a = analyzeItems('ő, a ,\n\n#kimarad, a, A, ô, ' + 'x'.repeat(21));
-  assert.equal(a.items[0], 'ő');
-  assert.equal([...a.items[0]].length, 1, 'NFC: egy karakter');
-  assert.deepEqual(a.items.slice(1, 3), ['a', 'A'], 'kis-/nagybetű megmarad, külön tétel');
-  assert.ok(a.entries.some((e) => e.status === 'excl'));
-  assert.ok(a.entries.some((e) => e.status === 'dup' && e.text === 'a'));
-  assert.ok(a.entries.some((e) => e.warn?.includes('ô')));
-  assert.ok(a.invalid);
+test('9.12 tételek tisztítása', () => {
+  const r = parseListsText('# L\nő, a ,\n\nx, #kimarad, a, A, ' + 'x'.repeat(21));
+  assert.deepEqual(r.lists[0].items, ['ő', 'a', 'x', 'A'], 'NFC; kis-/nagybetű megmarad; a #-es és az ismétlődő kimarad');
+  assert.equal([...r.lists[0].items[0]].length, 1, 'NFC: egy karakter');
+  assert.ok(r.problems.some((p) => /„#kimarad” #-tel kezdődik/.test(p)), '#-es tétel: figyelmeztetés');
+  assert.ok(r.problems.some((p) => /túl hosszú \(21\/20/.test(p)), 'túl hosszú: figyelmeztetés');
+  assert.deepEqual(r.duplicates, [{ list: 'L', item: 'a', line: 4 }]);
 });
 
 test('lists.txt: értelmezés', () => {

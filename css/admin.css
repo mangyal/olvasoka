@@ -123,3 +123,7 @@ dialog p{margin:0 0 12px}
 .source{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px;margin-top:8px}
 .ext{color:var(--accent);text-decoration:none}
 .ext:hover{text-decoration:underline}
+.fallback{font-size:13px;margin-top:6px}
+.fallback summary{cursor:pointer;width:max-content;list-style-position:inside}
+.fallback summary::marker{color:var(--warn)}
+.fallback p{margin:4px 0 0;max-width:60ch}
