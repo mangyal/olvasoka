@@ -2,7 +2,7 @@
 
 import { createStore } from './data/store.js';
 import { fetchLists } from './data/remote.js';
-import { pickListSource, parseByKind, SHEET_EDIT_URL } from './core/source.js';
+import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
 import { clampSettings } from './core/settings.js';
 import { nameKey } from './core/items.js';
 import { clickSelect, reconcile, sourceFor, applySource } from './core/selection.js';
@@ -10,27 +10,17 @@ import { initFont, fontLooksRight } from './font.js';
 import { createAdmin } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
 
-const REPO = 'mangyal/olvasoka';
-
 const $ = (id) => document.getElementById(id);
 const el = new Proxy({}, { get: (c, k) => (c[k] ??= $(k)) });
 
 const store = createStore();
 const saved = store.read();
 
-// Ideiglenes feature toggle (F-L12): ?source=sheet | ?source=txt. A böngésző megjegyzi, a cím tiszta marad.
-const src = pickListSource(location.search, saved.listSource);
-if (src.fromUrl) {
-  const u = new URL(location.href); u.searchParams.delete('source');
-  history.replaceState(null, '', u.pathname + u.search + u.hash);
-}
-
 const app = {
   lists: [], problems: [], selected: [], anchor: null,
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
   settings: saved.settings, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
-  listSource: src.source,           // 'sheet' | 'txt'
   kind: saved.cache?.kind || null,  // amiből a látható listák jöttek
   fallback: '',                     // miért nem a táblázatból jöttek (F-L13)
   font: { state: 'loading', name: 'Arial' },
@@ -45,7 +35,7 @@ if (cache) {
 }
 
 function persist() {
-  store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, hideHelp: app.hideHelp, listSource: app.listSource, cache });
+  store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
 }
 const listKeys = () => app.lists.map((l) => nameKey(l.name));
 
@@ -103,7 +93,7 @@ const admin = createAdmin(el, app, {
 async function refresh() {
   app.listsState = 'loading'; admin.render();
   try {
-    const r = await fetchLists(app.listSource);
+    const r = await fetchLists();
     app.lists = r.lists; app.problems = r.problems; app.loadError = '';
     app.listsState = 'ok'; app.fetchedAt = Date.now();
     app.kind = r.kind; app.fallback = r.fallback;
@@ -131,10 +121,8 @@ document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListen
 function openHelp() { el.helpHide.checked = app.hideHelp; el.dlgHelp.showModal(); }
 el.helpBtn.addEventListener('click', openHelp);
 el.helpHide.addEventListener('change', () => { app.hideHelp = el.helpHide.checked; persist(); });
-// táblázat módban a táblázat szerkesztője (a hozzáférést a Google kezeli), különben a lists.txt a GitHubon
-el.editLink.href = app.listSource === 'sheet' ? SHEET_EDIT_URL : `https://github.com/${REPO}/edit/main/lists.txt`;
-el.editLink.textContent = app.listSource === 'sheet' ? 'Listák szerkesztése a táblázatban ↗' : 'Listák szerkesztése a GitHubon ↗';
-persist();
+// a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
+el.editLink.href = SHEET_EDIT_URL;
 
 /* ---------- indulás ---------- */
 pickSelected();

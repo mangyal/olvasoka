@@ -136,8 +136,8 @@ export function createAdmin(el, app, act) {
       : app.listsState === 'ok' ? `Frissítve: ${when}`
       : t ? `Nincs kapcsolat – a ${when} állapot látszik` : '';
     el.refreshBtn.disabled = app.listsState === 'loading';
-    // F-L13: diszkrét jelzés, ha táblázat módban a lists.txt-ből jöttek a listák
-    const fb = app.listSource === 'sheet' && app.kind === 'txt';
+    // F-L13: diszkrét jelzés, ha a listák a tartalék lists.txt-ből jöttek
+    const fb = app.kind === 'txt';
     el.fallbackInfo.hidden = !fb;
     if (fb) el.fallbackWhy.textContent = app.fallback || 'A táblázat a legutóbbi letöltéskor nem volt elérhető.';
   }
