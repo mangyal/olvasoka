@@ -55,6 +55,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 2 | Teljes képernyő | Telepített PWA-ként teljes képernyőn fut; ez elvárás, nem kizárt. | 1., N8 |
 | 3 | Jutalom | Az F-R1 (statikus „helyükre emelkedő” lufik) megszűnt; a háttérváltás az F-R9-be került. | F-R1, F-R9 |
 | 4 | Lufik száma | Minden képernyőn 10–15 lufi; a kis képernyős csökkentés (min. 6) megszűnt. | F-R2, 9.10 |
+| 5 | Kilépés érintéssel | Érintőképernyőn a ✕ végig látszik (egérmozgás nincs, az Esc nem érhető el). | F-P10, U-P5, 9.7 |
 
 ### Korábbi változatok
 
@@ -218,7 +219,10 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-P9** A képernyőn: a tétel, az időjelző (F-P14), a számláló (F-P15), a vezérlősor (F-P10),
   a dekoráció, pause alatt a pause-jelző. **Nincs** pontszám, hibajelölés, szöveges felirat.
 - **F-P10** **Vezérlősor** (◀ ⏸/▶ ▶) alul középen, **végig látszik**. A **✕ kilépés** a bal felső sarokban
-  csak egérmozgásra (≥ 8 px) jelenik meg, 2,5 mp mozdulatlanság után eltűnik. A ◀ az első tételen
+  egeres eszközön csak egérmozgásra (≥ 8 px) jelenik meg, 2,5 mp mozdulatlanság után eltűnik.
+  **Érintőképernyőn végig látszik** a gyakorlás és a jutalom alatt: érintőképernyőnek számít, ha
+  `(hover: none) and (pointer: coarse)`, vagy ha a nézetben már volt érintéses/tollas `pointerdown`.
+  A ✕-re koppintás csak kilép, nem lép tovább (F-P16). A ◀ az első tételen
   halványított; a ▶ mindig aktív. Az ikonok szöveg nélküliek, `aria-label`-lel, `tabindex="-1"`.
 - **F-P11** Mozdulatlanságnál a kurzor elrejtődik (a gombok fölött látszik), mozgásra visszajön.
 - **F-P12** **Pause-jelző:** pause alatt kis ⏸ jel a jobb felső sarokban, a számlálótól balra.
@@ -387,7 +391,7 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 5. *(automata)* Pause alatt ← és → lép és folytat. → és Space az utolsó tételen jutalomra vált.
 6. *(automata)* Felvillanás = 0 esetén nincs automatikus váltás.
 7. Gyakorlás közben egérmozgás nélkül a tétel, az időjelző, a számláló, a vezérlősor és a dekoráció
-   látszik (pause alatt + pause-jelző); a ✕ nem.
+   látszik (pause alatt + pause-jelző); a ✕ egeres eszközön nem, érintőképernyőn igen.
 8. Az időjelző a hátralévő idővel arányosan fogy, pause alatt áll.
 9. Egy körön belül minden tétel azonos betűmérettel és alapvonallal jelenik meg; a leghosszabb is egy
    sorban, levágás nélkül elfér, és nem fedi az időjelzőt vagy a vezérlősort.
@@ -540,7 +544,7 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
   max(16 px, a magasság 3,5%-a) távolságra, de legalább 110 px-re az alsó széltől.
 - **U-P4** Vezérlősor: ◀ ⏸/▶ ▶ alul középen, 24 px-re az aljától, 16 px közzel; 56 px kerek találati
   terület, 28 px ikon, `--ink` 55%; hoverre 8%-os kör háttér és 85%. Inaktív: 20%.
-- **U-P5** ✕: bal felső sarok, egérmozgásra, fade be 150 ms, ki 300 ms.
+- **U-P5** ✕: bal felső sarok; egeres eszközön egérmozgásra, fade be 150 ms, ki 300 ms; érintőképernyőn végig látszik (F-P10).
 - **U-P6** Számláló: jobb felső sarok, 24 px-re a szélektől, 20 px, `--ink-2`, `tabular-nums`.
 - **U-P7** Pause-jelző: a számlálótól balra, 28 px, két lekerekített sáv, `--ink` 35%, fade 300 ms.
 - **U-P8** Belépés animáció nélkül, az első tétel azonnal, teljes idővel. Kilépés azonnal.
