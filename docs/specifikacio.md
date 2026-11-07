@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.6** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.7** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,12 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.7 (a 2.6-hoz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Hőlégfúvó | Animált: a hőhullámok hullámzanak, a test enyhén rezeg, a csőből halvány szélcsíkok indulnak a szél irányába. | F-R8, F-R13 |
 
 ### 2.6 (a 2.5-höz képest)
 
@@ -323,12 +329,19 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
   Csökkentett mozgásnál álló, szétszórt konfetti, ugyanennyi ideig.
 - **F-R6** Esc vagy ✕ bármikor kilép, a konfettieső alatt is. A kurzor a jutalom alatt végig látható, 32 px-es nyíl.
 - **F-R7** A jutalom független a gyakorolt tételektől.
+- **F-R13** **Animált fúvó:**
+  - Az SVG-n belüli CSS-animációval (az `<img>`-ben is fut): a két hőhullám 0,7–0,9 mp-es ütemben
+    hullámzik és lüktet, a test (cső + ház) 140 ms-onként ~0,7 px-et rezeg; a fogantyú és a kábel áll.
+  - Szélcsíkok vásznon, a lufik mögött: a cső végéből (`nozzle()`, `js/core/drift.js`) ±12°-os
+    legyezőben, ~22 csík/mp, lassulva, a képernyő szélességének ~55%-áig, közben elhalványulva. Csak
+    díszítés, a lufik mozgását nem befolyásolja; iránya egyezik a szélével. A visszaváltáskor elhalványul.
+  - Csökkentett mozgásnál egyik sincs.
 - **F-R12** **Lufiszámláló:** a jobb felső sarokban `kipukkasztott/összes` (pl. `3/15`), a lufik
   megjelenésétől a jutalom végéig. 34 px-es, félkövér, a gyakorló számlálónál (20 px) nagyobb, hogy a
   gyerek is jól lássa; 600 px alatt 28 px. Minden pukkanásra frissül; a visszaváltáskor elhalványul.
 - **F-R8** **Hőlégfúvó:** a jutalom alatt egy 128 px-es hőlégfúvó ikon (`img/hoslegfuvo.svg`) áll
   véletlenszerűen a bal vagy a jobb szélen, az alsó harmad közepén, 12°-kal felfelé fordítva. Jobb
-  oldalt balra fúj; bal oldalt a függőleges tengelye körül tükrözve jobbra. Statikus, a jutalom végéig látszik.
+  oldalt balra fúj; bal oldalt a függőleges tengelye körül tükrözve jobbra. Helyben marad, a jutalom végéig látszik; animált (F-R13).
 - **F-R9** **Felszállás:** a kör végén a háttér 1,8 mp alatt papírszínről égkékre vált, a dekoráció
   elhalványul. Utána a lufik a képernyő alja alól úsznak be, 2,5 mp alatt elcsúsztatva, és
   felszállnak: egy lufi 8–12 mp alatt ér fel. A fúvó szele oldalra sodorja őket (átlagosan 20–40 px/s),

@@ -61,6 +61,7 @@
 .stage.back .reward-count{opacity:0}
 @media (max-width:599px){.reward-count{font-size:28px;right:calc(16px + env(safe-area-inset-right,0px))}}
 .confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.wind{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity 600ms ease-out}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:0s!important;animation:none!important}
