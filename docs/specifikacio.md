@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.4** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.5** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,13 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.5 (a 2.4-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Forrás-kapcsoló | A `?source=` feature toggle megszűnt: mindig a Google táblázat az elsődleges forrás, a tartalék (`lists.txt`, majd a legutóbbi példány) változatlan. A tárolt `listSource` érték figyelmen kívül marad. | F-L12, F-L11, F-L13, F-S3 |
+| 2 | Szerkesztő link | Mindig a táblázatra mutat; a GitHub-link megszűnt. | F-L11 |
 
 ### 2.4 (a 2.3-hoz képest)
 
@@ -180,13 +187,11 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   - nincs korábbi változat → üres állapot a hibaüzenettel; az „Indítás” inaktív.
 - **F-L10** A „Frissítés” gomb újra letölti a listákat (F-L8 sorrendben). Mellette: „Frissítve: 20:49”, illetve
   kapcsolat nélkül „Nincs kapcsolat – a nov. 7. 20:49 állapot látszik”.
-- **F-L11** A szerkesztő link új lapon nyílik. Táblázat módban: „Listák szerkesztése a táblázatban ↗”, a táblázat
-  szerkesztőjére mutat (a hozzáférést a Google kezeli); a változás kb. 5 percen belül jön le. `txt` módban:
-  „Listák szerkesztése a GitHubon ↗”, a `lists.txt` GitHub-szerkesztője; commit után kb. egy perc.
-- **F-L12 Forrás-kapcsoló (ideiglenes feature toggle):** `?source=sheet` (alapérték) vagy `?source=txt`
-  URL-paraméter. A választás a helyi tárolóba kerül (`listSource`), a paraméter eltűnik a címből;
-  érvénytelen értéknél a tárolt marad. `txt` módban a program a táblázathoz nem fordul (a 2.3-as működés).
-- **F-L13 Tartalék jelzése:** ha táblázat módban a látható listák a `lists.txt`-ből jöttek, a listák alatt,
+- **F-L11** „Listák szerkesztése a táblázatban ↗”: új lapon a táblázat szerkesztőjét nyitja (a hozzáférést a
+  Google kezeli); a változás kb. 5 percen belül jön le. A tartalék `lists.txt`-t a szülő kézzel szerkeszti a GitHubon,
+  ehhez az alkalmazásban nincs link.
+- **F-L12** *(2.5-ben megszűnt: a forrás-kapcsoló.)*
+- **F-L13 Tartalék jelzése:** ha a látható listák a `lists.txt`-ből jöttek, a listák alatt,
   a forrássor alatt halvány, összecsukott „Tartalék lista: lists.txt” sor; lenyitva a táblázat hibájának
   oka. Nem figyelmeztető sáv, és a gyerek nézetében semmi nem jelzi.
 
@@ -217,7 +222,7 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   `localStorage`-ban, `olvasoka` kulcs alatt:
   ```json
   { "v": 3, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
-    "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false, "listSource": "sheet",
+    "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false,
     "cache": { "text": "45. oldal,Á-A-E\nfa,á\n…", "fetchedAt": 1794080000000, "kind": "sheet" } }
   ```
   A `cache.kind` a szöveg forrása (`sheet` vagy `txt`); a `kind` nélküli régi cache `lists.txt`.
@@ -450,8 +455,7 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 13. *(automata)* A `lists.txt` hibatűrő értelmezése; a repó `lists.txt`-je hiba nélkül értelmezhető, és a mintatételek megvannak benne.
 14. A betűteszt `ő`, `ű`, `Ő`, `Ű` karakterei dupla ékezettel, Arialban (vagy Arimóban) jelennek meg.
 15. A beállítások és a kijelölt lista újratöltés után megmaradnak; hálózat nélkül a legutóbbi listák látszanak.
-16. A táblázat módosítása után a Frissítés legfeljebb ~5 percen belül az új listát mutatja; `txt` módban a
-    `lists.txt` GitHubon módosítva, commit után ~2 percen belül.
+16. A táblázat módosítása után a Frissítés legfeljebb ~5 percen belül az új listát mutatja.
 17. Sehol nincs hanglejátszás.
 
 ---
@@ -503,6 +507,7 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Sorrend: táblázat → `lists.txt` → legutóbbi példány | Kiszámítható; a tartalék akkor is a repóé, ha a tárolt táblázat frissebb volna. |
 | Diszkrét jelzés a listák alatt | A szülő lássa, de ne zavarja; a gyereknek nem szól. |
 | `?source=` URL-paraméter, angol kulcsokkal | Ideiglenes, a felületen nem látszik, telefonon is gyorsan váltható, könnyű kivenni. |
+| A kapcsoló kivéve (2.5) | A táblázat bevált; egy forrás, egy szerkesztő link. A tartalék megmarad. |
 | A táblázatot a CI nem ellenőrzi | A hibakezelés a programban van (kihagy és jelez, F-L7). |
 | Kör-logika tiszta reducerben, `node --test`, GitHub Actions | Az időzítés és a navigáció automatikusan tesztelhető; hibás lista már a commitnál kiderül. |
 

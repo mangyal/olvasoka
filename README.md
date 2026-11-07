@@ -16,9 +16,6 @@ minden oszlop egy lista, az első sorban a lista neve, alatta cellánként a té
 Ha a táblázat nem érhető el, a program a repó [`lists.txt`](lists.txt) fájlját használja tartalékként, és a
 listák alatt halványan jelzi: „Tartalék lista: lists.txt”. A `lists.txt` nem frissül magától a táblázatból.
 
-Ideiglenes kapcsoló a forráshoz: `?source=sheet` (alapérték) vagy `?source=txt` az oldal címe után.
-A böngésző megjegyzi.
-
 ### A `lists.txt` (tartalék)
 
 A GitHubon a fájlt megnyitva a ceruza ikonnal szerkeszthető (mobilon is), majd *Commit changes*.

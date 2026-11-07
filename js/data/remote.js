@@ -22,5 +22,4 @@ export async function get(url, timeoutMs = 8000) {
   }
 }
 
-/** @param {'sheet'|'txt'} mode */
-export const fetchLists = (mode) => loadLists(mode, (url) => get(url));
+export const fetchLists = () => loadLists((url) => get(url));

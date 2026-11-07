@@ -1,9 +1,9 @@
-// A Google táblázat forrás: CSV, oszlopos listák, tartalékra váltás, feature toggle.
+// A Google táblázat forrás: CSV, oszlopos listák, tartalékra váltás.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCsv, colName } from '../js/core/csv.js';
 import { parseSheetCsv } from '../js/core/lists.js';
-import { loadLists, pickListSource, parseByKind, SHEET_CSV_URL, TXT_URL } from '../js/core/source.js';
+import { loadLists, parseByKind, SHEET_CSV_URL, TXT_URL } from '../js/core/source.js';
 import { normalizeState } from '../js/core/settings.js';
 
 test('csv: idézőjel, vessző és sortörés a mezőben, CRLF, BOM', () => {
@@ -59,8 +59,8 @@ const net = (map) => async (url) => {
 const TXT = '# Txt lista\na\nb';
 const CSV = 'Táblázat lista\nx\ny';
 
-test('forrás: táblázat módban a táblázatból jön, tartalék nélkül', async () => {
-  const r = await loadLists('sheet', net({ [SHEET_CSV_URL]: CSV, [TXT_URL]: TXT }));
+test('forrás: a táblázatból jön, tartalék nélkül', async () => {
+  const r = await loadLists(net({ [SHEET_CSV_URL]: CSV, [TXT_URL]: TXT }));
   assert.equal(r.kind, 'sheet'); assert.equal(r.fallback, '');
   assert.deepEqual(r.lists, [{ name: 'Táblázat lista', items: ['x', 'y'] }]);
   assert.equal(r.text, CSV);
@@ -74,7 +74,7 @@ test('forrás: a táblázat hibájánál a lists.txt jön, az okkal', async () =
     [',,\n,,', /nincs lista/],
   ];
   for (const [sheet, why] of cases) {
-    const r = await loadLists('sheet', net({ [SHEET_CSV_URL]: sheet, [TXT_URL]: TXT }));
+    const r = await loadLists(net({ [SHEET_CSV_URL]: sheet, [TXT_URL]: TXT }));
     assert.equal(r.kind, 'txt');
     assert.deepEqual(r.lists.map((l) => l.name), ['Txt lista']);
     assert.match(r.fallback, why);
@@ -83,30 +83,22 @@ test('forrás: a táblázat hibájánál a lists.txt jön, az okkal', async () =
 
 test('forrás: ha egyik sem érhető el, hibát dob mindkét okkal', async () => {
   await assert.rejects(
-    loadLists('sheet', net({ [SHEET_CSV_URL]: new Error('Táblázat hiba.'), [TXT_URL]: new Error('Txt hiba.') })),
+    loadLists(net({ [SHEET_CSV_URL]: new Error('Táblázat hiba.'), [TXT_URL]: new Error('Txt hiba.') })),
     /Táblázat hiba\. A tartalék lists\.txt sem érhető el: Txt hiba\./,
   );
 });
 
-test('forrás: txt módban a táblázatot meg sem kérdezi', async () => {
+test('forrás: mindig a táblázattal kezd, a lists.txt-t csak tartaléknak kéri', async () => {
   const asked = [];
-  const r = await loadLists('txt', async (url) => { asked.push(url); return { text: TXT }; });
-  assert.deepEqual(asked, [TXT_URL]);
-  assert.equal(r.kind, 'txt'); assert.equal(r.fallback, '');
-  await assert.rejects(loadLists('txt', net({ [TXT_URL]: new Error('Txt hiba.') })), /^Error: Txt hiba\.$/);
+  await loadLists(async (url) => { asked.push(url); return { text: CSV, type: 'text/csv' }; });
+  assert.deepEqual(asked, [SHEET_CSV_URL]);
+  asked.length = 0;
+  await loadLists(async (url) => { asked.push(url); if (url === SHEET_CSV_URL) throw new Error('x'); return { text: TXT }; });
+  assert.deepEqual(asked, [SHEET_CSV_URL, TXT_URL]);
 });
 
-test('feature toggle: ?source=, tárolt érték, alapérték', () => {
-  assert.deepEqual(pickListSource('?source=txt', 'sheet'), { source: 'txt', fromUrl: true });
-  assert.deepEqual(pickListSource('?x=1&source=sheet', 'txt'), { source: 'sheet', fromUrl: true });
-  assert.deepEqual(pickListSource('?source=excel', 'txt'), { source: 'txt', fromUrl: false }, 'érvénytelen érték: a tárolt marad');
-  assert.deepEqual(pickListSource('', undefined), { source: 'sheet', fromUrl: false }, 'alapérték: táblázat');
-});
-
-test('tárolt állapot: forrás és a cache fajtája', () => {
-  assert.equal(normalizeState({}).listSource, 'sheet');
-  assert.equal(normalizeState({ listSource: 'txt' }).listSource, 'txt');
-  assert.equal(normalizeState({ listSource: 'excel' }).listSource, 'sheet');
+test('tárolt állapot: a cache fajtája; a régi forrás-kapcsoló értéke elvész', () => {
+  assert.equal('listSource' in normalizeState({ listSource: 'txt' }), false);
   assert.equal(normalizeState({ cache: { text: '# A', fetchedAt: 1 } }).cache.kind, 'txt', 'régi cache: lists.txt');
   assert.equal(normalizeState({ cache: { text: 'A', fetchedAt: 1, kind: 'sheet' } }).cache.kind, 'sheet');
   assert.deepEqual(parseByKind('sheet', 'A\nx').lists, [{ name: 'A', items: ['x'] }]);
