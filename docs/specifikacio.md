@@ -44,6 +44,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 3 | Forrás szinkron | Az „Összes lista” ⇔ minden lista kijelölve. Lásd F-S1b. | F-S1b |
 | 4 | Súgó | Üdvözlő/súgó ablak induláskor, „Ne jelenjen meg újra” jelölőnégyzettel; fejlécgomb. | U-A7a, F-S3 |
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
+| 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 
 ### Korábbi változatok
 
@@ -246,13 +247,24 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 
 - **F-R1** A kör végén a háttér 1,8 mp alatt papírszínről égkékre vált, a dekoráció elhalványul,
   utána a lufik alulról a helyükre emelkednek (1,2 mp, 80 ms eltolással).
-- **F-R2** 10–15 lufi, pasztell színekkel, 90–140 px szélességben, lassú lebegéssel (±6 px, ±2°).
+- **F-R2** 10–15 lufi, pasztell színekkel, 90–140 px szélességben, lassú lebegéssel (±6 px, ±2°), felszállva (F-R9).
 - **F-R3** Pukkasztás `pointerdown`-ra; a pukkanás 120 ms-os zsugorodás és 6–8 apró részecske. Hang nincs.
 - **F-R4** Nincs pontszám, időnyomás, felirat. A találati terület a lufinál ~20%-kal nagyobb;
   átfedésnél csak a legfelső pukkan. A ✕ környéke (120 × 120 px) szabadon marad.
 - **F-R5** Az utolsó pukkanás után 1,2 mp csend, a háttér 600 ms alatt vissza, majd ADMIN.
 - **F-R6** Esc vagy ✕ bármikor kilép. A kurzor a jutalom alatt végig látható, 32 px-es nyíl.
 - **F-R7** A jutalom független a gyakorolt tételektől.
+- **F-R8** **Hőlégfúvó:** a jutalom alatt egy 128 px-es hőlégfúvó ikon (`img/hoslegfuvo.svg`) áll
+  véletlenszerűen a bal vagy a jobb szélen, az alsó harmad közepén, 12°-kal felfelé fordítva. Jobb
+  oldalt balra fúj; bal oldalt a függőleges tengelye körül tükrözve jobbra. Statikus, a jutalom végéig látszik.
+- **F-R9** **Felszállás:** a lufik a képernyő alja alól úsznak be, 2,5 mp alatt elcsúsztatva, és
+  felszállnak: egy lufi 8–12 mp alatt ér fel. A fúvó szele oldalra sodorja őket (átlagosan 20–40 px/s),
+  a fúvótól távolodva gyengülve; ehhez kis véletlen lengés és a szél felé dőlés (max. 8°) jön.
+  Ütközés nincs. A mozgás modellje `js/core/drift.js`, Node-ban tesztelve.
+- **F-R10** A felül vagy oldalt kiment lufi alul, új helyen visszajön; a jutalom akkor ér véget,
+  ha mind kipukkadt (F-R5).
+- **F-R11** Érintés csak pukkaszt, a lufi mozgását nem befolyásolja. Csökkentett mozgásnál
+  (`prefers-reduced-motion`) a lufik helyben lebegnek (F-R2, U-R1), a fúvó ugyanúgy látszik.
 
 ---
 
@@ -516,7 +528,8 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 
 ### 12.5 Jutalomnézet
 - **U-R1** Lufi: tojásdad (sz/m ≈ 0,82), háromszög csomó, 1 px madzag (`--ink` 25%), egy fényfolt;
-  nincs arc, szöveg, minta. Rács alapú elhelyezés véletlen eltolással, max. 30% átfedés.
+  nincs arc, szöveg, minta. Csökkentett mozgásnál rács alapú elhelyezés véletlen eltolással, max. 30% átfedés;
+  egyébként szabadon szállnak (F-R9).
 - **U-R2** Kurzor: 32 px-es nyíl (`--ink` kitöltés, fehér körvonal), lufi fölött sem vált kézre.
 
 ### 12.6 Akadálymentesség
