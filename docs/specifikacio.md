@@ -42,6 +42,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 1 | Listasorrend | A listák névsorban jelennek meg (magyar ábécé, a számok számként). | F-L2, U-A1 |
 | 2 | Több lista | Ctrl/⌘+kattintással több lista, Shift+kattintással tartomány jelölhető ki; a kör ezek uniójából épül. Keskeny nézetben jelölőnégyzetek. | F-S1a, F-S3, U-A1–U-A3, U-A6 |
 | 3 | Forrás szinkron | Az „Összes lista” ⇔ minden lista kijelölve. Lásd F-S1b. | F-S1b |
+| 4 | Súgó | Üdvözlő/súgó ablak induláskor, „Ne jelenjen meg újra” jelölőnégyzettel; fejlécgomb. | U-A7a, F-S3 |
 
 ### Korábbi változatok
 
@@ -164,7 +165,7 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   `localStorage`-ban, `olvasoka` kulcs alatt:
   ```json
   { "v": 3, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
-    "lastLists": ["44. oldal", "45. oldal"], "cache": { "text": "# Magánhangzók\na\n…", "fetchedAt": 1794080000000 } }
+    "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false, "cache": { "text": "# Magánhangzók\na\n…", "fetchedAt": 1794080000000 } }
   ```
   A v2 állapot `lastList` neve betöltéskor a `lastLists` egyetlen eleme lesz.
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
@@ -491,6 +492,11 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
   | üres lista / mind üres | inaktív | „A listában nincs tétel.” / „Egyik listában sincs tétel.” |
 
 - **U-A7** Mikroszöveg: tegező, rövid, felkiáltójel nélkül; hibánál a teendőt mondja.
+- **U-A7a Súgó:** modális ablak a program céljáról és használatáról (5 lépés). Induláskor magától
+  megjelenik, amíg a „Ne jelenjen meg újra” jelölőnégyzet nincs bepipálva (`hideHelp` a helyi
+  állapotban); a fejléc „Súgó” gombja bármikor megnyitja. Billentyűs eszközön a billentyűket,
+  érintőképernyőn és 600 px alatt a jelölőnégyzeteket és a gombokat írja le. Telefonon szinte
+  teljes képernyős, a gomb teljes szélességű.
 
 ### 12.4 Gyakorlónézet
 - **U-P1** Háttér: sík `--paper`, enyhe vignetta, három statikus `--paper-2` folt a sarkokban.

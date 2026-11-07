@@ -19,13 +19,14 @@ export function clampSettings(s) {
 }
 
 /**
- * Helyi állapot: { v: 3, settings, lastLists: string[], cache: { text, fetchedAt } | null }.
+ * Helyi állapot: { v: 3, settings, lastLists: string[], hideHelp: boolean, cache: { text, fetchedAt } | null }.
+ * hideHelp: a súgó ne jelenjen meg magától induláskor.
  * lastLists: a legutóbb kijelölt listák neve. A cache a legutóbb letöltött lists.txt szövege.
  * A v2 egyetlen lastList neve átkerül a lastLists tömbbe.
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 3, settings: clampSettings(null), lastLists: [], cache: null };
+  const base = { v: 3, settings: clampSettings(null), lastLists: [], hideHelp: false, cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -33,6 +34,7 @@ export function normalizeState(o) {
     v: 3,
     settings: clampSettings(o.settings),
     lastLists,
+    hideHelp: o.hideHelp === true,
     cache: o.cache && typeof o.cache === 'object' && typeof o.cache.text === 'string' && Number.isFinite(o.cache.fetchedAt)
       ? { text: o.cache.text, fetchedAt: o.cache.fetchedAt } : null,
   };

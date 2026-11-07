@@ -22,7 +22,7 @@ const app = {
   lists: [], problems: [], selected: [], anchor: null,
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
-  settings: saved.settings, lastLists: saved.lastLists,
+  settings: saved.settings, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
   font: { state: 'loading', name: 'Arial' },
   storageOK: store.available,
 };
@@ -35,7 +35,7 @@ if (cache) {
 }
 
 function persist() {
-  store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, cache });
+  store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
 }
 const listKeys = () => app.lists.map((l) => nameKey(l.name));
 
@@ -116,11 +116,16 @@ document.addEventListener('keydown', (e) => {
 }, true);
 
 document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
+// súgó: induláskor magától, amíg a „Ne jelenjen meg újra” nincs bepipálva; a fejlécből bármikor
+function openHelp() { el.helpHide.checked = app.hideHelp; el.dlgHelp.showModal(); }
+el.helpBtn.addEventListener('click', openHelp);
+el.helpHide.addEventListener('change', () => { app.hideHelp = el.helpHide.checked; persist(); });
 el.editLink.href = `https://github.com/${REPO}/edit/main/lists.txt`;
 
 /* ---------- indulás ---------- */
 pickSelected();
 admin.render();
+if (!app.hideHelp) openHelp();
 initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();
