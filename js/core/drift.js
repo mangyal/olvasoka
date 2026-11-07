@@ -13,14 +13,18 @@ const lerp = (a, b, t) => a + (b - a) * t;
 /**
  * Egy lufi kiinduló adatai.
  * Mindig a képernyő alja alól indul: az első beúszáskor és amikor kiment (F-R10).
- * @param {{W:number, H:number, bw:number, bh:number, rng?:()=>number}} o
+ * dir: a szél iránya; a lufi inkább a szél felőli oldalon indul, hogy átsodródjon a képen.
+ * spread: a képernyő alatti indulási mélység a magasság arányában (szétszórja a beúszást).
+ * @param {{W:number, H:number, bw:number, bh:number, dir?:number, spread?:number, rng?:()=>number}} o
  */
-export function launch({ W, H, bw, bh, rng = Math.random }) {
+export function launch({ W, H, bw, bh, dir = 0, spread = 0.15, rng = Math.random }) {
   const m = bw / 2 + 8;
   const rise = H / lerp(RISE_S[0], RISE_S[1], rng()); // px/s
+  const u = dir ? rng() ** 1.6 : rng();             // 0 felé sűrűsödik
+  const frac = dir < 0 ? 1 - u : u;                 // balra fúj → inkább jobbról indul
   return {
-    x: m + rng() * Math.max(0, W - 2 * m),          // középpont
-    y: H + bh / 2 + rng() * H * 0.15,               // a képernyő alja alatt
+    x: m + frac * Math.max(0, W - 2 * m),           // középpont
+    y: H + bh / 2 + rng() * H * spread,             // a képernyő alja alatt
     vx: 0, vy: -rise,                               // már emelkedve jön be
     rise,
     drift: lerp(DRIFT[0], DRIFT[1], rng()),         // px/s

@@ -16,6 +16,13 @@ test('drift: alulról, a képernyő alól indul', () => {
   }
 });
 
+test('drift: inkább a szél felőli oldalon indul', () => {
+  const rng = seeded(11), xs = (dir) => Array.from({ length: 400 }, () => launch({ W, H, bw, bh, dir, rng }).x);
+  const avg = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+  assert.ok(avg(xs(-1)) > W * 0.55, 'balra fúj → jobbról');
+  assert.ok(avg(xs(1)) < W * 0.45, 'jobbra fúj → balról');
+});
+
 test('drift: felszáll, 8–12 mp alatt ér fel', () => {
   const env = { W, H, dir: -1, blowerY: H * 5 / 6 };
   for (const seed of [1, 2, 3, 4, 5]) {
