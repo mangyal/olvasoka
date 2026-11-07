@@ -65,6 +65,11 @@ test('lists.txt: értelmezés', () => {
   assert.equal(parseListsText('\uFEFF# A\na').lists[0].name, 'A', 'BOM');
 });
 
+test('lists.txt: a listák névsorban', () => {
+  const names = parseListsText(['# 45. oldal', '# Zebra', '# 10. oldal', '# Á-A-E', '# 2. oldal', '# Alma'].join('\n')).lists.map((l) => l.name);
+  assert.deepEqual(names, ['2. oldal', '10. oldal', '45. oldal', 'Á-A-E', 'Alma', 'Zebra']);
+});
+
 // A repó valódi lists.txt-je: betölthető-e, és megvannak-e benne a várt listák és tételek.
 // Ha a listákat szándékosan átírod, ezeket a mintákat is frissítsd.
 const SAMPLES = {

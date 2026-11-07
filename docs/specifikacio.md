@@ -97,7 +97,7 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   ```
   A `#`-tel kezdődő sor új lista neve, alatta soronként egy tétel. Az üres sorok nem számítanak.
   A vessző is elválaszt: az `a, á, e` sor három tétel.
-- **F-L2** A listák sorrendje a fájlbeli sorrend.
+- **F-L2** A listák névsorban jelennek meg: magyar ábécérend, a számok számként (2. oldal < 10. oldal). A fájlbeli sorrend nem számít.
 - **F-L3** A listanév **egyedi** (levágva, kis-/nagybetűre nem érzékenyen). A második azonos nevű lista
   kimarad, a szülői felület figyelmeztet a sorszámmal.
 - **F-L4** Üres név (`#` magában) esetén a lista a tételeivel együtt kimarad; az első fejléc előtti sorok
@@ -447,7 +447,7 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-- **U-A1** Listasáv: a fájlbeli sorrend, név mellett a tételszám. Kijelölt: `--paper-2` háttér +
+- **U-A1** Listasáv: névsorban (F-L2), név mellett a tételszám. Kijelölt: `--paper-2` háttér +
   3 px `--accent` bal szegély. 900 px alatt lenyíló választó a lista fölött.
 - **U-A2** Megnyitáskor a `lastList` szerinti lista, ha nincs, az első.
 - **U-A3** A kijelölt lista tételei vékony keretes címkékként, Arialban, a fájlbeli sorrendben.
