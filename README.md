@@ -29,9 +29,15 @@ ke-fe
 - Egy tétel legfeljebb 20 karakter. A vessző elválaszt: az `a, á, e` sor három tétel.
 - A listanevek egyediek (kis-/nagybetűtől függetlenül).
 
-**Ha valami nem stimmel** (ismétlődő tétel egy listán belül, túl hosszú tétel, sor a lista neve előtt),
+- Ha egy tétel egy listán belül többször szerepel (pl. egy oldal végi ismétlő sor), a program csak
+  egyszer veszi be.
+
+**Ha valami nem stimmel** (túl hosszú tétel, sor a lista neve előtt, üres vagy ismétlődő listanév),
 a commit után a GitHub *Actions* fülén piros ✕ jelenik meg, és a GitHub e-mailben elküldi, melyik
 sorral van baj. Az oldal közben működik: a hibás részt kihagyja, a többit használja.
+
+A teszt néhány konkrét tételt is keres a listákban (`test/core.test.js`, `SAMPLES`). Ha egy listát
+szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd át.
 
 ## Használat
 
