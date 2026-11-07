@@ -41,7 +41,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 |---|---|---|---|
 | 1 | Listasorrend | A listák névsorban jelennek meg (magyar ábécé, a számok számként). | F-L2, U-A1 |
 | 2 | Több lista | Ctrl/⌘+kattintással több lista, Shift+kattintással tartomány jelölhető ki; a kör ezek uniójából épül. Keskeny nézetben jelölőnégyzetek. | F-S1a, F-S3, U-A1–U-A3, U-A6 |
-| 3 | Forrás szinkron| Az „Összes lista” ⇔ minden lista kijelölve. Lásd F-S1b. | F-S1b |
+| 3 | Forrás szinkron | Az „Összes lista” ⇔ minden lista kijelölve. Lásd F-S1b. | F-S1b |
 
 ### Korábbi változatok
 
