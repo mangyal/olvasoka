@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.5** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.6** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,13 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.6 (a 2.5-höz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Lufiszámláló | A jutalom alatt a jobb felső sarokban `3/15` mutatja a kipukkasztott és az összes lufit, a gyakorló számlálónál nagyobban. | F-R4, F-R12 |
+| 2 | Konfetti | Az utolsó pukkanás után 3 mp konfettieső, majd vissza a szülői felületre; Esc és ✕ közben is kilép. | F-R5, F-R6 |
 
 ### 2.5 (a 2.4-hez képest)
 
@@ -309,11 +316,16 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
   Kis képernyőn a szélesség a rövidebb képernyőoldal 20–26%-a (legfeljebb 90–140 px). A lufi inkább a szél felőli
   oldalon indul, hogy átsodródjon a képen.
 - **F-R3** Pukkasztás `pointerdown`-ra; a pukkanás 120 ms-os zsugorodás és 6–8 apró részecske. Hang nincs.
-- **F-R4** Nincs pontszám, időnyomás, felirat. A találati terület a lufinál ~20%-kal nagyobb;
+- **F-R4** Nincs pontszám, időnyomás, felirat (a lufiszámlálón kívül, F-R12). A találati terület a lufinál ~20%-kal nagyobb;
   átfedésnél csak a legfelső pukkan. A ✕ környéke (120 × 120 px) szabadon marad.
-- **F-R5** Az utolsó pukkanás után 1,2 mp csend, a háttér 600 ms alatt vissza, majd ADMIN.
-- **F-R6** Esc vagy ✕ bármikor kilép. A kurzor a jutalom alatt végig látható, 32 px-es nyíl.
+- **F-R5** Az utolsó pukkanás után **3 mp konfettieső**: színes papírdarabok hullanak a képernyő teteje
+  fölül, lengve és forogva, az utolsó fél mp-ben elhalványulva. Utána a háttér 600 ms alatt vissza, majd ADMIN.
+  Csökkentett mozgásnál álló, szétszórt konfetti, ugyanennyi ideig.
+- **F-R6** Esc vagy ✕ bármikor kilép, a konfettieső alatt is. A kurzor a jutalom alatt végig látható, 32 px-es nyíl.
 - **F-R7** A jutalom független a gyakorolt tételektől.
+- **F-R12** **Lufiszámláló:** a jobb felső sarokban `kipukkasztott/összes` (pl. `3/15`), a lufik
+  megjelenésétől a jutalom végéig. 34 px-es, félkövér, a gyakorló számlálónál (20 px) nagyobb, hogy a
+  gyerek is jól lássa; 600 px alatt 28 px. Minden pukkanásra frissül; a visszaváltáskor elhalványul.
 - **F-R8** **Hőlégfúvó:** a jutalom alatt egy 128 px-es hőlégfúvó ikon (`img/hoslegfuvo.svg`) áll
   véletlenszerűen a bal vagy a jobb szélen, az alsó harmad közepén, 12°-kal felfelé fordítva. Jobb
   oldalt balra fúj; bal oldalt a függőleges tengelye körül tükrözve jobbra. Statikus, a jutalom végéig látszik.
