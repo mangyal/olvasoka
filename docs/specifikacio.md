@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.1** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.2** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -34,6 +34,13 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 |---|---|---|---|
 | 1 | Listaformátum | `lists.txt` (sima szöveg: `# Lista neve`, alatta soronként egy tétel) a `lists.json` helyett. | 3.1, 3.2, 3.4, 8., 9.13 |
 | 2 | Ismétlődő tétel | Az app csendben kihagyja, a teszt csak tájékoztat. A teszt helyette mintatételeket keres a listákban. | F-L5, N7 |
+
+### 2.2 (a 2.1-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Listasorrend | A listák névsorban jelennek meg (magyar ábécé, a számok számként). | F-L2, U-A1 |
+| 2 | Több lista | Ctrl/⌘+kattintással több lista, Shift+kattintással tartomány jelölhető ki; a kör ezek uniójából épül. Keskeny nézetben jelölőnégyzetek. | F-S1a, F-S3, U-A1–U-A3, U-A6 |
 
 ### Korábbi változatok
 
@@ -133,23 +140,27 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
 
 | Beállítás | Tartomány | Alapérték |
 |---|---|---|
-| Tételek forrása | Kijelölt lista / Összes lista | **Kijelölt lista** |
+| Tételek forrása | Kijelölt listák / Összes lista | **Kijelölt listák** |
 | Felvillanási idő | 0–25 mp, 0,5 mp lépés; **0 = kézi** | **10 mp** |
 | Szünet a tételek között | 0–3 mp, 0,5 mp lépés | **0 mp** |
 | Tételszám a körben | 1–50 | **10** |
 
+- **F-S1a Kijelölt listák:** egy vagy több lista jelölhető ki (U-A1). A kör a kijelölt listák
+  tételeinek uniójából épül, ismétlődés nélkül, kiegyenlítés nélkül (a nagyobb lista több tételt ad).
+  Több kijelölt listánál az „Indítás” mellett: „3 lista, 47 különböző tétel”.
 - **F-S1 Összes lista:** a kör az összes lista tételeinek uniójából épül, ismétlődés nélkül.
   Az „Indítás” mellett: „4 lista, 98 különböző tétel”.
 - **F-S2 Kézi léptetés (0 mp):** a tétel addig látszik, amíg Space-t vagy →-t nem nyomnak.
   A csúszka mellett „kézi”, a becsült hossz helyén „kézi léptetés” áll.
 
 ### 3.4 Helyi tárolás
-- **F-S3** A beállítások, a legutóbb kijelölt lista neve és a legutóbb letöltött `lists.txt` szövege a
+- **F-S3** A beállítások, a legutóbb kijelölt listák neve és a legutóbb letöltött `lists.txt` szövege a
   `localStorage`-ban, `olvasoka` kulcs alatt:
   ```json
-  { "v": 2, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
-    "lastList": "45. oldal", "cache": { "text": "# Magánhangzók\na\n…", "fetchedAt": 1794080000000 } }
+  { "v": 3, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
+    "lastLists": ["44. oldal", "45. oldal"], "cache": { "text": "# Magánhangzók\na\n…", "fetchedAt": 1794080000000 } }
   ```
+  A v2 állapot `lastList` neve betöltéskor a `lastLists` egyetlen eleme lesz.
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
   a program fut, figyelmeztetéssel: a beállítások nem maradnak meg, és hálózat nélkül nem lesz lista.
 - **F-S5** A tárolás böngészőnként és címenként külön él. A listák a repóból jönnek, ezért nem vesznek el.
@@ -301,8 +312,8 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Azonos nevű listák | A második kimarad, figyelmeztetés |
 | Túl hosszú tétel | Kimarad, a figyelmeztetés megnevezi |
 | Ismétlődő tétel egy listán belül | Csendben kimarad; a teszt tájékoztat, de nem bukik |
-| A legutóbb kijelölt lista már nincs a fájlban | Az első lista lesz kijelölve |
-| Üres lista kiválasztva | „Indítás” inaktív: „A listában nincs tétel.” |
+| A legutóbb kijelölt listák egy része már nincs a fájlban | Az a rész kimarad; ha egy sem marad, az első lista lesz kijelölve |
+| Üres lista kiválasztva | „Indítás” inaktív: „A listában nincs tétel.” (több listánál: „A kijelölt listákban nincs tétel.”) |
 | Összes lista, mind üres | „Indítás” inaktív: „Egyik listában sincs tétel.” |
 | Font még töltődik (nincs Arial) | „Indítás” inaktív, max. 5 mp |
 | Tételszám > tételek száma | Több keverés egymás után |
@@ -378,6 +389,8 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | → az utolsón jutalomra vált | Az 1.1-es tiltás használatban zavaró volt: a → „nem működött”. |
 | Ismétlődő tétel kimarad | Két egyforma tétel egymás után zavaró volt; egy listán belül az ismétlésnek nincs értelme. |
 | Összes lista mód | Vegyes ismétlés több leckéből. |
+| Több lista kijelölése (Ctrl/Shift, keskeny nézetben jelölőnégyzet) | Vegyes ismétlés néhány kiválasztott leckéből; a listák száma nőni fog, ezért a Shift-tartomány is. |
+| Több listánál nincs kiegyenlítés | Egyszerű, és egyezik az „Összes lista” működésével; később bevezethető. |
 | Név: Olvasóka | A szülő választása. |
 | GitHub Pages, ES modulok, build nélkül | Hostolt listák; a claude.ai artifact nem tölthet be külső fájlt. |
 | Listák a repóban, az appban csak olvashatók (A változat) | Egy adatforrás, nincs bejelentkezés és token. Szerkesztés a GitHubon, telefonról is. A vegyes (B) és a visszaíró (C) változat elvetve. |
@@ -448,16 +461,22 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 ```
 
 - **U-A1** Listasáv: névsorban (F-L2), név mellett a tételszám. Kijelölt: `--paper-2` háttér +
-  3 px `--accent` bal szegély. 900 px alatt lenyíló választó a lista fölött.
-- **U-A2** Megnyitáskor a `lastList` szerinti lista, ha nincs, az első.
-- **U-A3** A kijelölt lista tételei vékony keretes címkékként, Arialban, a fájlbeli sorrendben.
+  3 px `--accent` bal szegély, `aria-pressed`. Kattintás: csak az a lista. Ctrl/⌘+kattintás: hozzáad vagy
+  kivesz; az utolsó kijelölt nem vehető ki. Shift+kattintás: tartomány a legutóbb kattintott listától
+  (Ctrl/⌘+Shift: a tartomány hozzáadódik). A sáv alján halvány súgósor, ha legalább két lista van.
+  900 px alatt a lista fölött jelölőnégyzetes címkék (érintőképernyőn nincs Ctrl); a négyzet hozzáad
+  vagy kivesz, az utolsó itt sem vehető ki.
+- **U-A2** Megnyitáskor a `lastLists` szerinti listák, amelyik megvan; ha egy sem, az első.
+- **U-A3** A kijelölt lista tételei vékony keretes címkékként, Arialban, a fájlbeli sorrendben. Több
+  kijelölt listánál a fejléc „3 lista kijelölve · 47 különböző tétel”, alatta listánként csoportosítva
+  a név, a tételszám és a címkék.
 - **U-A4** Forrássor: frissítési állapot, „Frissítés” gomb, GitHub-szerkesztő link.
 - **U-A5** Figyelmeztető sáv a fejléc alatt, `--warn` bal szegéllyel, egyenként bezárható.
 - **U-A6** Kör-sáv alul, mindig látható; az „Indítás” az oldal egyetlen elsődleges gombja. Állapotai:
 
   | Állapot | Gomb | Szöveg mellette |
   |---|---|---|
-  | kész | aktív | – (Összes listánál: „4 lista, 98 különböző tétel”) |
+  | kész | aktív | – (több listánál: „4 lista, 98 különböző tétel”) |
   | listák töltődnek, nincs korábbi | inaktív, „Listák töltődnek…” | – |
   | font töltődik | inaktív, „Betűtípus töltődik…” | – |
   | font nem töltődött be | aktív | `--warn`: „A betűk alakja eltérhet.” |

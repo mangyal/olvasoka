@@ -27,12 +27,22 @@ kbd{font:12px/1.4 var(--f-ui);border:1px solid var(--line);border-bottom-width:2
 .label{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:0 16px 4px max(16px,env(safe-area-inset-left,0px))}
 .nav{list-style:none;margin:0;padding:0}
 .nav-item{display:block;width:100%;font:inherit;color:var(--ink);text-align:left;background:none;border:0;border-left:3px solid transparent;padding:7px 16px 7px max(13px,env(safe-area-inset-left,0px));cursor:pointer;overflow-wrap:anywhere}
+.nav-item{user-select:none}
 .nav-item:hover{background:var(--paper-2)}
 .nav-item.sel{background:var(--paper-2);border-left-color:var(--accent);font-weight:600}
 
 .editor{overflow:auto;padding-block:20px 24px;min-width:0}
 .ed-inner{max-width:760px;display:grid;gap:12px}
-.narrow-pick{display:none;gap:8px;align-items:center;flex-wrap:wrap}
+.narrow-pick{display:none;border:0;margin:0;padding:0;gap:6px;flex-direction:column}
+.narrow-pick legend{padding:0;margin-bottom:6px}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+.pick{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--r-ctl);padding:4px 10px 4px 6px;cursor:pointer;user-select:none}
+.pick input{accent-color:var(--accent);margin:0;width:18px;height:18px}
+.pick:has(input:checked){background:var(--paper-2);border-color:var(--accent);font-weight:600}
+.nav-hint{font-size:12px;margin:8px 0 0;padding:0 16px 0 max(16px,env(safe-area-inset-left,0px))}
+.list-body{display:grid;gap:16px}
+.group{display:grid;gap:8px}
+.group h3{margin:0;font-size:17px;font-weight:600;flex:1;min-width:0}
 .ed-head{display:flex;align-items:center;gap:8px;min-width:0}
 .ed-head h2{margin:0;font-size:24px;font-weight:600;flex:1;min-width:0;text-wrap:balance}
 .field-msg{font-size:13px;color:var(--error);min-height:0}
@@ -72,7 +82,7 @@ output{min-width:4.2em}
   .work{grid-template-columns:minmax(0,1fr)}
   .sidebar{display:none}
   .narrow-pick{display:flex}
-  .narrow-pick select{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--field);color:var(--ink);max-width:100%}
+  .narrow-pick[hidden]{display:none}
 }
 
 /* ---------- dialógusok ---------- */

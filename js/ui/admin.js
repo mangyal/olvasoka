@@ -2,6 +2,9 @@
 
 import { GAPS } from '../core/settings.js';
 import { nameKey } from '../core/items.js';
+import { itemsOf } from '../core/selection.js';
+
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 
 const fmtNum = (x) => String(x).replace('.', ',');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
@@ -10,12 +13,12 @@ export function createAdmin(el, app, act) {
   const dismissed = new Set();
 
   /* ---------- segédek ---------- */
-  const selected = () => app.lists.find((l) => nameKey(l.name) === app.selected) || null;
+  const isSel = (l) => app.selected.includes(nameKey(l.name));
+  const selected = () => app.lists.filter(isSel);
 
   function roundItems() {
     if (app.settings.source === 'all') return [...new Set(app.lists.flatMap((l) => l.items))];
-    const l = selected();
-    return l ? l.items.slice() : [];
+    return itemsOf(app.lists, app.selected, nameKey);
   }
 
   function startState() {
@@ -26,11 +29,14 @@ export function createAdmin(el, app, act) {
         : { enabled: false, msg: 'Nincs elérhető lista.' };
     }
     const all = app.settings.source === 'all';
+    const k = all ? app.lists.length : selected().length;
     const n = roundItems().length;
-    if (!n) return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : 'A listában nincs tétel.' };
+    if (!n) {
+      return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
+    }
     const fontWarn = app.font.state === 'failed';
     const parts = [];
-    if (all) parts.push(`${app.lists.length} lista, ${n} különböző tétel`);
+    if (k > 1) parts.push(`${k} lista, ${n} különböző tétel`);
     if (fontWarn) parts.push('A betűk alakja eltérhet.');
     return { enabled: true, msg: parts.join(' · '), warn: fontWarn };
   }
@@ -56,21 +62,41 @@ export function createAdmin(el, app, act) {
     el.listNav.replaceChildren(...app.lists.map((l) => {
       const li = document.createElement('li');
       const b = document.createElement('button'); b.type = 'button';
-      const sel = nameKey(l.name) === app.selected;
+      const sel = isSel(l);
       b.className = 'nav-item' + (sel ? ' sel' : '');
-      if (sel) b.setAttribute('aria-current', 'true');
+      b.setAttribute('aria-pressed', String(sel));
       const name = document.createElement('span'); name.textContent = l.name;
       const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
       b.append(name, cnt);
-      b.addEventListener('click', () => act.select(l.name));
+      b.addEventListener('click', (e) => act.select(l.name, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey }));
       li.append(b); return li;
     }));
-    el.listSelect.replaceChildren(...app.lists.map((l) => new Option(l.name, l.name, false, nameKey(l.name) === app.selected)));
-    el.listSelect.hidden = !app.lists.length;
+    el.navHint.textContent = `${MOD}+kattintás: több lista · Shift+kattintás: tartomány`;
+    el.navHint.hidden = app.lists.length < 2;
+
+    // keskeny nézet: jelölőnégyzetek (érintőképernyőn nincs Ctrl)
+    el.listChecks.replaceChildren(...app.lists.map((l) => {
+      const lab = document.createElement('label'); lab.className = 'pick';
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = isSel(l);
+      const name = document.createElement('span'); name.textContent = l.name;
+      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
+      c.addEventListener('change', () => act.select(l.name, { toggle: true }));
+      lab.append(c, name, cnt); return lab;
+    }));
+    el.listPick.hidden = !app.lists.length;
   }
 
+  const chipBox = (items) => {
+    const d = document.createElement('div'); d.className = 'chips';
+    d.append(...items.map((t) => {
+      const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; return c;
+    }));
+    return d;
+  };
+
   function renderList() {
-    const l = selected();
+    const sel = selected();
+    const l = sel[0];
     el.listView.hidden = !l;
     el.listEmpty.hidden = !!l;
     if (!l) {
@@ -79,10 +105,22 @@ export function createAdmin(el, app, act) {
         : (app.loadError || 'A lists.txt-ben még nincs lista.');
       return;
     }
-    el.listName.textContent = l.name;
-    el.listCount.textContent = `${l.items.length} tétel`;
-    el.chips.replaceChildren(...l.items.map((t) => {
-      const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; return c;
+    if (sel.length === 1) {
+      el.listName.textContent = l.name;
+      el.listCount.textContent = `${l.items.length} tétel`;
+      el.listBody.replaceChildren(chipBox(l.items));
+      return;
+    }
+    el.listName.textContent = `${sel.length} lista kijelölve`;
+    el.listCount.textContent = `${itemsOf(app.lists, app.selected, nameKey).length} különböző tétel`;
+    el.listBody.replaceChildren(...sel.map((x) => {
+      const g = document.createElement('section'); g.className = 'group';
+      const h = document.createElement('div'); h.className = 'ed-head';
+      const h3 = document.createElement('h3'); h3.textContent = x.name;
+      const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${x.items.length} tétel`;
+      h.append(h3, n);
+      g.append(h, chipBox(x.items));
+      return g;
     }));
   }
 
@@ -151,7 +189,6 @@ export function createAdmin(el, app, act) {
   el.countIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setCount(el.countIn.value); } });
   el.countDec.addEventListener('click', () => setCount(app.settings.count - 1));
   el.countInc.addEventListener('click', () => setCount(app.settings.count + 1));
-  el.listSelect.addEventListener('change', () => act.select(el.listSelect.value));
   el.refreshBtn.addEventListener('click', act.refresh);
   el.startBtn.addEventListener('click', (e) => act.start(e));
   el.fontBtn.addEventListener('click', act.fontTest);
