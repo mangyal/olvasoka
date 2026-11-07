@@ -1,28 +1,108 @@
-// Jutalomnézet (spec 5., 12.6): lufipukkasztás, hang nélkül.
+// Jutalomnézet (spec 5., 12.5): lufipukkasztás, hang nélkül.
+// A lufik felszállnak, a hőlégfúvó szele oldalra sodorja őket (F-R8–F-R11, core/drift.js).
+// Csökkentett mozgásnál a régi, helyben lebegő elrendezés marad.
 
 import { shuffledIdx } from '../core/sequence.js';
+import { launch, stepBalloon, isOut } from '../core/drift.js';
 
 const COLORS = ['#F2B5A7', '#F5D58F', '#B5D5BB', '#A7C8E0', '#CBB8DE', '#EFC2D3'];
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BLOWER = 128;                                   // px
+const ENTRY_MS = 2500;                                // ennyi idő alatt jön be az összes lufi
+const TILT = 12;                                      // a fúvó ennyi fokkal fordul felfelé
+
+const balloonHTML = (bw, bh, color, period) =>
+  `<div class="bob" style="--dur:${(period / 2).toFixed(2)}s;--delay:-${(Math.random() * period).toFixed(2)}s">` +
+    `<div class="pop-target">` +
+      `<svg viewBox="0 0 100 190" width="${bw.toFixed(1)}" height="${(bw * 1.9).toFixed(1)}" aria-hidden="true">` +
+        `<path d="M50 129c-6 16 6 30-1 58" fill="none" stroke="var(--ink)" stroke-opacity=".25" stroke-width="1" vector-effect="non-scaling-stroke"/>` +
+        `<path d="M44 131L50 120L56 131Z" fill="${color}"/>` +
+        `<ellipse cx="50" cy="61" rx="50" ry="61" fill="${color}"/>` +
+        `<ellipse cx="30" cy="34" rx="9" ry="15" fill="#ffffff" fill-opacity=".25" transform="rotate(-28 30 34)"/>` +
+      `</svg>` +
+      `<div class="hit" style="height:${bh.toFixed(1)}px"></div>` +
+    `</div>` +
+  `</div>`;
 
 export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
-  let timers = [], balloons = [], active = false;
+  let timers = [], balloons = [], active = false, raf = 0, blower = null, wind = null;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
 
   function start() {
     active = true;
     void stage.offsetWidth;
     stage.classList.add('sky');                       // U-R1: háttér papír → ég, 1,8 s
-    later(reduced() ? 0 : 1800, spawn);
+    placeBlower();
+    later(reduced() ? 0 : 1800, reduced() ? spawnStatic : spawnFlying);
   }
 
   function stop() {
     active = false;
     timers.forEach(clearTimeout); timers = [];
+    cancelAnimationFrame(raf); raf = 0;
+    if (blower) { blower.remove(); blower = null; }
     balloons = []; balloonsEl.replaceChildren(); particlesEl.replaceChildren();
   }
 
-  function spawn() {
+  // F-R8: hőlégfúvó véletlenül bal vagy jobb oldalt, az alsó harmadban, kicsit felfelé fordítva.
+  // Az SVG balra fúj; bal oldalon tükrözve jobbra.
+  function placeBlower() {
+    const left = Math.random() < 0.5;
+    blower = document.createElement('img');
+    blower.src = 'img/hoslegfuvo.svg'; blower.alt = ''; blower.className = 'blower ' + (left ? 'left' : 'right');
+    blower.width = blower.height = BLOWER; blower.draggable = false;
+    blower.style.setProperty('--tilt', `${TILT}deg`);
+    stage.insertBefore(blower, balloonsEl);
+    wind = { dir: left ? 1 : -1 };
+  }
+  const env = () => {
+    const W = innerWidth, H = innerHeight;
+    return { W, H, dir: wind.dir, blowerY: H * (5 / 6) };
+  };
+
+  // F-R9: alulról, elcsúsztatva úsznak be, felszállnak, a szél sodorja őket; kimenve alul visszajönnek
+  function spawnFlying() {
+    if (!active) return;
+    const { W, H } = env();
+    const n = 10 + Math.floor(Math.random() * 6);
+    const palette = shuffledIdx(COLORS.length).map((i) => COLORS[i]);
+    const maxBw = Math.max(90, Math.min(140, W / 4));
+    balloons = Array.from({ length: n }, (_, i) => {
+      const bw = 90 + Math.random() * (maxBw - 90), bh = bw / 0.82;
+      const color = palette[i % palette.length];
+      const node = document.createElement('div');
+      node.className = 'balloon free';
+      node.style.width = `${bw.toFixed(1)}px`;
+      node.innerHTML = balloonHTML(bw, bh, color, 4 + Math.random() * 3);
+      balloonsEl.append(node);
+      const b = { node, target: node.querySelector('.pop-target'), hit: node.querySelector('.hit'), color, popped: false,
+        bw, bh, wakeAt: (i / n) * ENTRY_MS / 1000, s: launch({ W, H, bw, bh }) };
+      place(b);
+      return b;
+    });
+    let t0 = 0, last = 0;
+    const frame = (now) => {
+      if (!active) return;
+      if (!t0) { t0 = last = now; }
+      const dt = Math.min(0.05, (now - last) / 1000), t = (now - t0) / 1000; last = now;
+      const e = env();
+      for (const b of balloons) {
+        if (b.popped || t < b.wakeAt) continue;
+        b.s = stepBalloon(b.s, dt, t, e);
+        if (isOut(b.s, { W: e.W, bw: b.bw, bh: b.bh })) b.s = launch({ W: e.W, H: e.H, bw: b.bw, bh: b.bh });
+        place(b);
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+  }
+  function place(b) {
+    const { x, y, vx } = b.s;
+    const lean = Math.max(-8, Math.min(8, vx / 6));   // a szél kicsit megdönti
+    b.node.style.transform = `translate(${(x - b.bw / 2).toFixed(1)}px,${(y - b.bh / 2).toFixed(1)}px) rotate(${lean.toFixed(1)}deg)`;
+  }
+
+  function spawnStatic() {
     if (!active) return;
     const W = innerWidth, H = innerHeight, m = 24;
     let n = 10 + Math.floor(Math.random() * 6);       // F-R2: 10–15 lufi
@@ -48,18 +128,7 @@ export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
       const node = document.createElement('div');
       node.className = 'balloon';
       node.style.cssText = `left:${(cx - bw / 2).toFixed(1)}px;top:${(cy - bh / 2).toFixed(1)}px;width:${bw.toFixed(1)}px;animation-delay:${i * 80}ms`;
-      node.innerHTML =
-        `<div class="bob" style="--dur:${(period / 2).toFixed(2)}s;--delay:-${(Math.random() * period).toFixed(2)}s">` +
-          `<div class="pop-target">` +
-            `<svg viewBox="0 0 100 190" width="${bw.toFixed(1)}" height="${(bw * 1.9).toFixed(1)}" aria-hidden="true">` +
-              `<path d="M50 129c-6 16 6 30-1 58" fill="none" stroke="var(--ink)" stroke-opacity=".25" stroke-width="1" vector-effect="non-scaling-stroke"/>` +
-              `<path d="M44 131L50 120L56 131Z" fill="${color}"/>` +
-              `<ellipse cx="50" cy="61" rx="50" ry="61" fill="${color}"/>` +
-              `<ellipse cx="30" cy="34" rx="9" ry="15" fill="#ffffff" fill-opacity=".25" transform="rotate(-28 30 34)"/>` +
-            `</svg>` +
-            `<div class="hit" style="height:${bh.toFixed(1)}px"></div>` +
-          `</div>` +
-        `</div>`;
+      node.innerHTML = balloonHTML(bw, bh, color, period);
       balloonsEl.append(node);
       return { node, target: node.querySelector('.pop-target'), hit: node.querySelector('.hit'), color, popped: false };
     });
@@ -67,7 +136,7 @@ export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
 
   // F-R3/F-R4: pointerdown, ~20%-kal nagyobb ellipszis, csak a legfelső lufi pukkan
   function pointerDown(e) {
-    if (!active) return;
+    if (!active || e.target.closest('.cbtn')) return;
     e.preventDefault();
     for (let i = balloons.length - 1; i >= 0; i--) {
       const b = balloons[i]; if (b.popped) continue;
@@ -99,6 +168,7 @@ export function createReward({ stage, balloonsEl, particlesEl, onDone }) {
       }
     }
     if (balloons.every((x) => x.popped)) {
+      cancelAnimationFrame(raf); raf = 0;
       later(1200, () => {                             // U-R5: csend, majd vissza papírszínre
         stage.classList.add('back'); stage.classList.remove('sky');
         later(reduced() ? 0 : 600, onDone);

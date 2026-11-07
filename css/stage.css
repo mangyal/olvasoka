@@ -35,6 +35,12 @@
 .pause-ind.on{opacity:.35}
 .balloons,.particles{position:absolute;inset:0;pointer-events:none}
 .balloon{position:absolute;animation:rise 1200ms cubic-bezier(.2,.7,.3,1) both}
+.balloon.free{left:0;top:0;animation:none;transform-origin:50% 32%;will-change:transform}
+.blower{position:absolute;bottom:calc(100% / 6 - 64px);pointer-events:none;opacity:0;transition:opacity 600ms ease-out var(--d-sky)}
+.blower.right{right:16px;transform:rotate(var(--tilt))}
+.blower.left{left:16px;transform:scaleX(-1) rotate(var(--tilt))}
+.stage.sky .blower{opacity:1}
+.stage.back .blower{opacity:0;transition-delay:0s}
 @keyframes rise{from{transform:translateY(115vh)}to{transform:none}}
 .bob{animation:bob var(--dur,5s) ease-in-out var(--delay,0s) infinite alternate;transform-origin:50% 32%}
 @keyframes bob{from{transform:translateY(-6px) rotate(-2deg)}to{transform:translateY(6px) rotate(2deg)}}
