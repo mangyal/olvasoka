@@ -8,9 +8,20 @@ Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
 
 ## Listák szerkesztése
 
-A listák a [`lists.txt`](lists.txt) fájlban vannak. A GitHubon a fájlt megnyitva a ceruza ikonnal
-szerkeszthető (mobilon is), majd *Commit changes*. Kb. egy perc múlva az oldalon a **Frissítés** gomb
-vagy egy újratöltés után már az új lista látszik.
+A listák egy [Google táblázatban](https://docs.google.com/spreadsheets/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit) vannak:
+minden oszlop egy lista, az első sorban a lista neve, alatta cellánként a tételek. A táblázat
+„Közzététel az interneten” CSV-ként van publikálva; a változás kb. 5 percen belül látszik az oldalon
+(**Frissítés** gomb vagy újratöltés).
+
+Ha a táblázat nem érhető el, a program a repó [`lists.txt`](lists.txt) fájlját használja tartalékként, és a
+listák alatt halványan jelzi: „Tartalék lista: lists.txt”. A `lists.txt` nem frissül magától a táblázatból.
+
+Ideiglenes kapcsoló a forráshoz: `?source=sheet` (alapérték) vagy `?source=txt` az oldal címe után.
+A böngésző megjegyzi.
+
+### A `lists.txt` (tartalék)
+
+A GitHubon a fájlt megnyitva a ceruza ikonnal szerkeszthető (mobilon is), majd *Commit changes*.
 
 ```
 # Magánhangzók
@@ -64,9 +75,13 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   sequence.js         sorozat-generátor („húzózsák”)
   round.js            a gyakorlókör állapotgépe (időzítés, szünet, navigáció)
   items.js            tételek tisztítása
-  lists.js            a lists.txt értelmezése
+  lists.js            a lists.txt és a táblázat értelmezése
+  csv.js              CSV-olvasó
+  source.js           forrás: táblázat, tartalékként lists.txt
+  selection.js        listák kijelölése
+  drift.js            a jutalom lufijainak mozgása
   settings.js         beállítások és a helyi tárolás sémája
-js/data/            localStorage és a lists.txt letöltése
+js/data/            localStorage és a listák letöltése
 js/ui/              szülői felület, gyakorlás, jutalom
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás

@@ -1,8 +1,8 @@
-// Service worker (spec 11.3): a program offline is induljon.
+// Service worker (spec N8): a program offline is induljon.
 //
 // Stratégia: hálózat először, 3 mp után vagy hálózat nélkül a tárolt példány. Így online mindig
 // a friss verzió fut (nem kell verziót léptetni), offline pedig a legutóbbi. Csak a saját
-// fájlokat kezeli; a külső címek (pl. egy Google-táblázat) érintetlenül mennek a hálózatra.
+// fájlokat kezeli; a külső címek (a Google táblázat is) érintetlenül mennek a hálózatra.
 // A lists.txt-t sem kezeli: annak offline állapotát a program maga jelzi (F-L8, F-L9).
 //
 // Az ASSETS listát a test/pwa.test.js egyezteti a repó fájljaival.
@@ -24,6 +24,7 @@ const ASSETS = [
   'img/icons/icon-192.png',
   'js/main.js',
   'js/font.js',
+  'js/core/csv.js',
   'js/core/drift.js',
   'js/core/items.js',
   'js/core/lists.js',
@@ -31,6 +32,7 @@ const ASSETS = [
   'js/core/selection.js',
   'js/core/sequence.js',
   'js/core/settings.js',
+  'js/core/source.js',
   'js/data/remote.js',
   'js/data/store.js',
   'js/ui/admin.js',

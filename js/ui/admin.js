@@ -1,4 +1,4 @@
-// Szülői felület (A változat): a listák csak olvashatók, a forrásuk a lists.txt a GitHubon.
+// Szülői felület: a listák csak olvashatók; forrásuk a Google táblázat, tartalékként a repó lists.txt-je.
 
 import { GAPS } from '../core/settings.js';
 import { nameKey } from '../core/items.js';
@@ -102,7 +102,7 @@ export function createAdmin(el, app, act) {
     if (!l) {
       el.listEmptyText.textContent = app.listsState === 'loading'
         ? 'Listák töltődnek…'
-        : (app.loadError || 'A lists.txt-ben még nincs lista.');
+        : (app.loadError || 'Még nincs lista.');
       return;
     }
     if (sel.length === 1) {
@@ -136,6 +136,10 @@ export function createAdmin(el, app, act) {
       : app.listsState === 'ok' ? `Frissítve: ${when}`
       : t ? `Nincs kapcsolat – a ${when} állapot látszik` : '';
     el.refreshBtn.disabled = app.listsState === 'loading';
+    // F-L13: diszkrét jelzés, ha táblázat módban a lists.txt-ből jöttek a listák
+    const fb = app.listSource === 'sheet' && app.kind === 'txt';
+    el.fallbackInfo.hidden = !fb;
+    if (fb) el.fallbackWhy.textContent = app.fallback || 'A táblázat a legutóbbi letöltéskor nem volt elérhető.';
   }
 
   function renderSettings() {
