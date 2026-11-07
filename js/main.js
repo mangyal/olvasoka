@@ -5,7 +5,7 @@ import { fetchLists } from './data/remote.js';
 import { parseListsText } from './core/lists.js';
 import { clampSettings } from './core/settings.js';
 import { nameKey } from './core/items.js';
-import { clickSelect, reconcile } from './core/selection.js';
+import { clickSelect, reconcile, sourceFor, applySource } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
 import { createAdmin } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
@@ -37,11 +37,24 @@ if (cache) {
 function persist() {
   store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, cache });
 }
-function pickSelected() {
-  const keys = app.lists.map((l) => nameKey(l.name));
-  const want = app.selected.length ? app.selected : app.lastLists.map(nameKey);
-  app.selected = reconcile(want, keys);
+const listKeys = () => app.lists.map((l) => nameKey(l.name));
+
+// A kijelölés és a tételforrás mindig együtt változik: minden lista kijelölve ⇔ „Összes lista”.
+function setSelection(sel) {
+  const keys = listKeys();
+  app.selected = sel;
   if (!app.selected.includes(app.anchor)) app.anchor = app.selected[0] || null;
+  const set = new Set(sel);
+  app.lastLists = app.lists.filter((l) => set.has(nameKey(l.name))).map((l) => l.name);
+  if (keys.length) app.settings = { ...app.settings, source: sourceFor(sel, keys) };
+}
+
+function pickSelected() {
+  const keys = listKeys();
+  // „Összes lista” módban egy újonnan megjelent lista is bekerül
+  const want = app.settings.source === 'all' ? keys
+    : app.selected.length ? app.selected : app.lastLists.map(nameKey);
+  setSelection(reconcile(want, keys));
 }
 
 const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); } });
@@ -49,15 +62,15 @@ const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; a
 const admin = createAdmin(el, app, {
   // mod: { toggle, range } – Ctrl/Cmd, illetve Shift kattintás
   select(name, mod = {}) {
-    const keys = app.lists.map((l) => nameKey(l.name));
-    const r = clickSelect(app.selected, nameKey(name), { ...mod, anchor: app.anchor, keys });
-    app.selected = r.sel; app.anchor = r.anchor;
-    const set = new Set(r.sel);
-    app.lastLists = app.lists.filter((l) => set.has(nameKey(l.name))).map((l) => l.name);
+    const r = clickSelect(app.selected, nameKey(name), { ...mod, anchor: app.anchor, keys: listKeys() });
+    app.anchor = r.anchor;
+    setSelection(r.sel);
     persist(); admin.render();
   },
   setting(patch) {
-    app.settings = clampSettings({ ...app.settings, ...patch }); persist(); admin.render();
+    app.settings = clampSettings({ ...app.settings, ...patch });
+    if ('source' in patch && app.lists.length) setSelection(applySource(app.settings.source, app.selected, listKeys()));
+    persist(); admin.render();
   },
   refresh,
   start(ev) {

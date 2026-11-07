@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clickSelect, reconcile, itemsOf } from '../js/core/selection.js';
+import { clickSelect, reconcile, itemsOf, sourceFor, applySource } from '../js/core/selection.js';
 import { normalizeState } from '../js/core/settings.js';
 
 const keys = ['a', 'b', 'c', 'd', 'e'];
@@ -41,4 +41,14 @@ test('tárolt állapot: v2 → v3', () => {
   assert.deepEqual(normalizeState({ v: 2, lastList: '45. oldal' }).lastLists, ['45. oldal']);
   assert.deepEqual(normalizeState({ v: 3, lastLists: ['A', 3, 'B'] }).lastLists, ['A', 'B']);
   assert.deepEqual(normalizeState(null), { v: 3, settings: normalizeState(null).settings, lastLists: [], cache: null });
+});
+
+test('forrás: szinkronban a kijelöléssel', () => {
+  assert.equal(sourceFor(keys, keys), 'all');
+  assert.equal(sourceFor(['e', 'a', 'b', 'c', 'd'], keys), 'all', 'sorrendtől független');
+  assert.equal(sourceFor(['a', 'b'], keys), 'list');
+  assert.equal(sourceFor([], []), 'list', 'nincs lista');
+  assert.deepEqual(applySource('all', ['b'], keys), keys);
+  assert.deepEqual(applySource('list', keys, keys), ['a'], 'mind kijelölve → csak az első');
+  assert.deepEqual(applySource('list', ['b', 'd'], keys), ['b', 'd'], 'részleges kijelölés marad');
 });

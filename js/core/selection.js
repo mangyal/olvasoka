@@ -50,3 +50,17 @@ export function itemsOf(lists, sel, keyOf) {
   const set = new Set(sel);
   return [...new Set(lists.filter((l) => set.has(keyOf(l.name))).flatMap((l) => l.items))];
 }
+
+/** A tételforrás a kijelölésből: ha minden lista ki van jelölve, 'all', különben 'list'. */
+export function sourceFor(sel, keys) {
+  return keys.length > 0 && keys.every((k) => sel.includes(k)) ? 'all' : 'list';
+}
+
+/**
+ * A forrásválasztó megnyomása után a kijelölés.
+ * 'all': minden lista. 'list': ha minden ki volt jelölve, csak az első; különben marad.
+ */
+export function applySource(source, sel, keys) {
+  if (source === 'all') return keys.slice();
+  return sourceFor(sel, keys) === 'all' ? keys.slice(0, 1) : reconcile(sel, keys);
+}
