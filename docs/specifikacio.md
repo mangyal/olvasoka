@@ -41,6 +41,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 |---|---|---|---|
 | 1 | Listasorrend | A listák névsorban jelennek meg (magyar ábécé, a számok számként). | F-L2, U-A1 |
 | 2 | Több lista | Ctrl/⌘+kattintással több lista, Shift+kattintással tartomány jelölhető ki; a kör ezek uniójából épül. Keskeny nézetben jelölőnégyzetek. | F-S1a, F-S3, U-A1–U-A3, U-A6 |
+| 3 | Forrás szinkron | Az „Összes lista” ⇔ minden lista kijelölve. Lásd F-S1b. | F-S1b |
 
 ### Korábbi változatok
 
@@ -148,6 +149,11 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
 - **F-S1a Kijelölt listák:** egy vagy több lista jelölhető ki (U-A1). A kör a kijelölt listák
   tételeinek uniójából épül, ismétlődés nélkül, kiegyenlítés nélkül (a nagyobb lista több tételt ad).
   Több kijelölt listánál az „Indítás” mellett: „3 lista, 47 különböző tétel”.
+- **F-S1b A forrásválasztó követi a kijelölést, és fordítva.**
+  - Ha kézzel minden lista ki van jelölve, a választón az „Összes lista” aktív; ha legalább egy nincs, a „Kijelölt listák”.
+  - Az „Összes lista” megnyomása minden listát kijelöl.
+  - A „Kijelölt listák” megnyomása, amikor minden lista ki van jelölve, csak az első listát hagyja kijelölve.
+  - „Összes lista” módban frissítés után az újonnan megjelent lista is kijelölődik.
 - **F-S1 Összes lista:** a kör az összes lista tételeinek uniójából épül, ismétlődés nélkül.
   Az „Indítás” mellett: „4 lista, 98 különböző tétel”.
 - **F-S2 Kézi léptetés (0 mp):** a tétel addig látszik, amíg Space-t vagy →-t nem nyomnak.
@@ -390,6 +396,7 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Ismétlődő tétel kimarad | Két egyforma tétel egymás után zavaró volt; egy listán belül az ismétlésnek nincs értelme. |
 | Összes lista mód | Vegyes ismétlés több leckéből. |
 | Több lista kijelölése (Ctrl/Shift, keskeny nézetben jelölőnégyzet) | Vegyes ismétlés néhány kiválasztott leckéből; a listák száma nőni fog, ezért a Shift-tartomány is. |
+| Forrásválasztó és kijelölés szinkronban | Ne lehessen ellentmondó állapot (minden kijelölve, de „Kijelölt listák”); a választó gyorsgomb a kijelöléshez. |
 | Több listánál nincs kiegyenlítés | Egyszerű, és egyezik az „Összes lista” működésével; később bevezethető. |
 | Név: Olvasóka | A szülő választása. |
 | GitHub Pages, ES modulok, build nélkül | Hostolt listák; a claude.ai artifact nem tölthet be külső fájlt. |
