@@ -1,5 +1,5 @@
 /* ---------- gyerek nézetek ---------- */
-.stage{position:fixed;inset:0;overflow:hidden;background-color:var(--paper);transition:background-color var(--d-sky) ease-in-out;user-select:none;-webkit-user-select:none}
+.stage{position:fixed;inset:0;overflow:hidden;background-color:var(--paper);transition:background-color var(--d-sky) ease-in-out;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .stage.sky{background-color:var(--sky)}
 .stage.back,.stage.back .deco,.stage.back .vignette{transition-duration:600ms}
 .deco{position:absolute;fill:var(--paper-2);pointer-events:none;transition:opacity var(--d-sky) ease-in-out}

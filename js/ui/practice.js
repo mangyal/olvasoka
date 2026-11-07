@@ -117,7 +117,18 @@ export function createPractice(el, { onExit }) {
     if (Math.hypot(e.clientX - lastPt.x, e.clientY - lastPt.y) < 8) return;
     lastPt = { x: e.clientX, y: e.clientY }; showUI();
   });
-  el.stage.addEventListener('pointerdown', (e) => { if (mode === 'reward') reward.pointerDown(e); });
+  let tapPt = null;
+  el.stage.addEventListener('pointerdown', (e) => {
+    if (mode === 'reward') reward.pointerDown(e);
+    tapPt = mode === 'practice' && e.pointerType !== 'mouse' && !e.target.closest('.cbtn') ? { x: e.clientX, y: e.clientY } : null;
+  });
+  // F-P16: érintőképernyőn egy koppintás bárhol = következő (mint a ▶); húzásra nem lép
+  el.stage.addEventListener('pointerup', (e) => {
+    const p = tapPt; tapPt = null;
+    if (!p || mode !== 'practice' || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 12) return;
+    dispatch('NEXT');
+  });
+  el.stage.addEventListener('pointercancel', () => { tapPt = null; });
   const ctl = (btn, fn) => {
     btn.addEventListener('mousedown', (e) => e.preventDefault());
     btn.addEventListener('click', (e) => { e.stopPropagation(); btn.blur(); fn(); showUI(); });
