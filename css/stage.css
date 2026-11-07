@@ -54,6 +54,13 @@
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(0)}}
 .hit{position:absolute;left:0;top:0;width:100%}
 .particle{position:absolute;border-radius:50%}
+/* F-R12: kipukkasztott / összes lufi, nagyobb, mint a gyakorló számláló */
+.reward-count{position:absolute;right:calc(24px + env(safe-area-inset-right,0px));top:calc(20px + env(safe-area-inset-top,0px));display:none;font:600 34px/1 var(--f-ui);font-variant-numeric:tabular-nums;color:var(--ink);opacity:.7;pointer-events:none;transition:opacity 600ms ease-out}
+.stage[data-mode=reward] .reward-count{display:block}
+.reward-count:empty{opacity:0}
+.stage.back .reward-count{opacity:0}
+@media (max-width:599px){.reward-count{font-size:28px;right:calc(16px + env(safe-area-inset-right,0px))}}
+.confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:0s!important;animation:none!important}

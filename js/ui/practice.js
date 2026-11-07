@@ -22,7 +22,7 @@ export function createPractice(el, { onExit }) {
   let touch = false;                // F-P10: volt már érintés/toll → a ✕ végig látszik
   const lay = { barW: 0 };
   const measure = document.createElement('canvas').getContext('2d');
-  const reward = createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, onDone: exit });
+  const reward = createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit });
 
   /* ---------- kör ---------- */
   function start(roundItems, settings, ev) {
