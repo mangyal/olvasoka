@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Olvasóka</title>
+<meta name="description" content="Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232E6B66'/%3E%3Ctext x='16' y='23' font-family='Arial' font-size='20' text-anchor='middle' fill='white'%3Ea%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/stage.css">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<!-- ================= SZÜLŐI FELÜLET ================= -->
+<div id="admin" class="admin">
+  <header class="top pad">
+    <h1>Olvasóka</h1>
+    <button type="button" class="btn-text" id="fontBtn">Betűteszt</button>
+  </header>
+
+  <div id="warnings" class="warnings" aria-live="polite"></div>
+
+  <main class="work">
+    <nav class="sidebar" aria-label="Listák">
+      <div class="label">Listák</div>
+      <ul class="nav" id="listNav"></ul>
+    </nav>
+
+    <section class="editor pad">
+      <div class="ed-inner">
+        <div class="narrow-pick">
+          <label for="listSelect" class="muted">Lista</label>
+          <select id="listSelect"></select>
+        </div>
+
+        <div id="listView" class="ed-inner" hidden>
+          <div class="ed-head">
+            <h2 id="listName"></h2>
+            <span class="muted num" id="listCount"></span>
+          </div>
+          <div class="chips" id="chips" aria-label="A lista tételei"></div>
+        </div>
+        <div class="empty" id="listEmpty"><p id="listEmptyText">Listák töltődnek…</p></div>
+
+        <div class="source">
+          <span class="muted" id="sourceInfo" aria-live="polite"></span>
+          <button type="button" class="btn" id="refreshBtn">Frissítés</button>
+          <a id="editLink" class="ext" href="#" target="_blank" rel="noopener">Listák szerkesztése a GitHubon ↗</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="roundbar pad">
+    <div class="rb-row">
+      <fieldset class="seg">
+        <legend>Tételek</legend>
+        <span class="seg-opts">
+          <label><input type="radio" name="src" value="list" id="srcList"><span>Kijelölt lista</span></label>
+          <label><input type="radio" name="src" value="all" id="srcAll"><span>Összes lista</span></label>
+        </span>
+      </fieldset>
+      <div class="ctl">
+        <label for="flashIn">Felvillanás</label>
+        <input type="range" id="flashIn" min="0" max="25" step="0.5" title="0 = kézi léptetés: a tétel addig látszik, amíg Space-t vagy →-t nem nyomsz">
+        <output id="flashOut" for="flashIn" class="num"></output>
+      </div>
+      <fieldset class="seg">
+        <legend>Szünet</legend>
+        <span class="seg-opts" id="gapOpts"></span>
+        <span class="muted">mp</span>
+      </fieldset>
+      <div class="ctl">
+        <label for="countIn">Tétel</label>
+        <span class="stepper">
+          <button type="button" id="countDec" aria-label="Kevesebb tétel">−</button>
+          <input type="number" id="countIn" min="1" max="50" step="1" inputmode="numeric">
+          <button type="button" id="countInc" aria-label="Több tétel">+</button>
+        </span>
+      </div>
+    </div>
+    <div class="rb-row">
+      <span class="num" id="estimate"></span>
+      <span class="keys"><kbd>Space</kbd> tovább · <kbd>←</kbd> <kbd>→</kbd> lépés · <kbd>P</kbd> szünet · <kbd>Esc</kbd> kilép · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> indít</span>
+      <span class="start-msg" id="startMsg" aria-live="polite"></span>
+      <button type="button" class="btn btn-primary" id="startBtn" disabled>Indítás</button>
+    </div>
+  </footer>
+</div>
+
+<!-- ================= GYAKORLÓ + JUTALOM ================= -->
+<div id="stage" class="stage" hidden data-mode="practice">
+  <svg class="deco a" viewBox="0 0 200 200" aria-hidden="true"><path d="M138 18c34 14 58 48 54 86-4 40-34 72-74 82-42 10-86-8-104-46C-4 102 8 56 42 30c28-22 64-24 96-12z"/></svg>
+  <svg class="deco b" viewBox="0 0 200 200" aria-hidden="true"><path d="M120 10c40 6 72 40 74 80 2 44-28 84-70 98-40 12-88 2-108-34-20-38-6-90 28-118 22-18 48-30 76-26z"/></svg>
+  <svg class="deco c" viewBox="0 0 200 200" aria-hidden="true"><path d="M100 6c46 0 86 30 92 72 6 44-20 90-64 106-46 16-102 4-120-38C-10 104 6 50 40 26 58 12 78 6 100 6z"/></svg>
+  <div class="vignette"></div>
+
+  <svg class="item-svg"><text id="itemText" x="50%" text-anchor="middle"></text><g id="bar" visibility="hidden"><rect id="barTrack" height="6" rx="3"/><rect id="barFill" height="6" rx="3"/></g></svg>
+
+  <div class="balloons" id="balloons"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="counter" id="counter" aria-hidden="true"></div>
+  <svg class="pause-ind" id="pauseInd" viewBox="0 0 24 24" aria-hidden="true"><path class="icon" d="M9 6v12M15 6v12" stroke-width="3"/></svg>
+
+  <div class="controls">
+    <button type="button" class="cbtn close" id="cClose" tabindex="-1" aria-label="Kilépés"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="navbar">
+    <button type="button" class="cbtn" id="cPrev" tabindex="-1" aria-label="Előző"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button type="button" class="cbtn" id="cPlay" tabindex="-1" aria-label="Szünet"><svg class="icon" viewBox="0 0 24 24"><path id="cPlayPath" d="M9 6v12M15 6v12"/></svg></button>
+    <button type="button" class="cbtn" id="cNext" tabindex="-1" aria-label="Következő"><svg class="icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+</div>
+
+<dialog id="dlgFont" aria-labelledby="fontH">
+  <h2 id="fontH">Betűteszt</h2>
+  <p class="font-sample">a á e é i í o ó ö ő u ú ü ű<br>A Á E É I Í O Ó Ö Ő U Ú Ü Ű</p>
+  <p id="fontResult"></p>
+  <p class="muted">Nézd meg, hogy az ő és ű két hosszú, ferde ékezetet kap-e (nem ô vagy û).</p>
+  <div class="dlg-actions"><button type="button" class="btn btn-primary" data-close>Bezárás</button></div>
+</dialog>
+
+<noscript><p class="pad">Az Olvasókához JavaScript kell.</p></noscript>
+</body>
+</html>

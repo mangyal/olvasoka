@@ -1,0 +1,50 @@
+/* ---------- gyerek nézetek ---------- */
+.stage{position:fixed;inset:0;overflow:hidden;background-color:var(--paper);transition:background-color var(--d-sky) ease-in-out;user-select:none;-webkit-user-select:none}
+.stage.sky{background-color:var(--sky)}
+.stage.back,.stage.back .deco,.stage.back .vignette{transition-duration:600ms}
+.deco{position:absolute;fill:var(--paper-2);pointer-events:none;transition:opacity var(--d-sky) ease-in-out}
+.deco.a{width:52vmin;left:-20vmin;top:-22vmin}
+.deco.b{width:36vmin;right:-15vmin;top:-17vmin}
+.deco.c{width:54vmin;right:-21vmin;bottom:-23vmin}
+.vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 24vmin rgba(80,60,25,.075);transition:opacity var(--d-sky) ease-in-out}
+.stage.sky .deco,.stage.sky .vignette{opacity:0}
+.item-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.item-svg text{fill:var(--ink);font-family:var(--f-item);font-weight:400;white-space:pre}
+#barTrack{fill:var(--line)}
+#barFill{fill:var(--accent);opacity:.75}
+.stage[data-mode=practice]{cursor:none}
+.stage[data-mode=practice].ui{cursor:default}
+.stage[data-mode=reward]{cursor:var(--kid-cursor,default)}
+.stage[data-mode=reward] *{cursor:inherit}
+.controls{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity var(--d-fade) ease-out}
+.stage.ui .controls{opacity:1;transition-duration:var(--d-fast)}
+.stage.ui .controls .cbtn{pointer-events:auto}
+.cbtn{width:56px;height:56px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;cursor:pointer;transition:background-color var(--d-fast) ease-out}
+.cbtn svg{width:28px;height:28px;opacity:.55;transition:opacity var(--d-fast) ease-out}
+.cbtn:hover:not(:disabled){background:rgba(30,42,50,.08)}
+.cbtn:hover:not(:disabled) svg{opacity:.85}
+.cbtn:disabled{cursor:default}
+.cbtn:disabled svg{opacity:.2}
+.cbtn.close{position:absolute;left:calc(24px + env(safe-area-inset-left,0px) - 14px);top:calc(24px + env(safe-area-inset-top,0px) - 14px)}
+.navbar{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:16px}
+.stage[data-mode=reward] .navbar{display:none}
+.icon{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.counter{position:absolute;right:calc(24px + env(safe-area-inset-right,0px));top:calc(24px + env(safe-area-inset-top,0px));height:28px;display:flex;align-items:center;font:500 20px/1 var(--f-ui);font-variant-numeric:tabular-nums;color:var(--ink-2);pointer-events:none}
+.stage[data-mode=reward] .counter{display:none}
+.pause-ind{position:absolute;right:calc(24px + 92px + env(safe-area-inset-right,0px));top:calc(24px + env(safe-area-inset-top,0px));width:28px;height:28px;color:var(--ink);opacity:0;transition:opacity var(--d-fade) ease-out;pointer-events:none}
+.pause-ind.on{opacity:.35}
+.balloons,.particles{position:absolute;inset:0;pointer-events:none}
+.balloon{position:absolute;animation:rise 1200ms cubic-bezier(.2,.7,.3,1) both}
+@keyframes rise{from{transform:translateY(115vh)}to{transform:none}}
+.bob{animation:bob var(--dur,5s) ease-in-out var(--delay,0s) infinite alternate;transform-origin:50% 32%}
+@keyframes bob{from{transform:translateY(-6px) rotate(-2deg)}to{transform:translateY(6px) rotate(2deg)}}
+.pop-target{position:relative;transform-origin:50% 32%}
+.pop-target svg{display:block}
+.pop-target.popping{animation:pop 120ms ease-out forwards}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(0)}}
+.hit{position:absolute;left:0;top:0;width:100%}
+.particle{position:absolute;border-radius:50%}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:0s!important;animation:none!important}
+}

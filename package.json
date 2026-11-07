@@ -1,0 +1,11 @@
+{
+  "name": "olvasoka",
+  "private": true,
+  "type": "module",
+  "description": "Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak.",
+  "scripts": {
+    "test": "node --test",
+    "start": "python3 -m http.server 8000"
+  },
+  "engines": { "node": ">=20" }
+}

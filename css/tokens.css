@@ -1,0 +1,22 @@
+/* Layout: admin = fejléc / figyelmeztetések / listasáv + szerkesztő / mindig látható kör-sáv; gyerek nézet = teljes ablakos sík papír, egyetlen tétel. Világos, egytémás (spec N6).
+   Gyakorló betű: Arial, ha nincs, az azonos alakú Arimo. */
+:root{
+  --paper:#F5F0E6; --paper-2:#ECE5D6; --line:#D9CFBE; --field:#FBF8F2;
+  --ink:#1E2A32; --ink-2:#5A6670; --accent:#2E6B66; --on-accent:#FFFFFF;
+  --warn:#94560F; --error:#A23B2A; --sky:#DCE9EF;
+  --f-item:Arial,'Arimo',Helvetica,sans-serif;
+  --f-ui:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --gut:24px; --r-ctl:6px; --r-dlg:10px;
+  --d-fast:150ms; --d-fade:300ms; --d-sky:1800ms;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--f-ui);overflow:hidden}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)}
+.wrn{color:var(--warn)} .err{color:var(--error)}
