@@ -129,3 +129,8 @@ if (!app.hideHelp) openHelp();
 initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();
+
+// PWA: offline indulás (sw.js). Csak https-en vagy localhoston; hiba esetén a program ugyanúgy fut.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}

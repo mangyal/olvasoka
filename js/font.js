@@ -1,5 +1,5 @@
 // Betöltés-kapu (spec F-F1). A gyakorló betű Arial; ha a gépen nincs Arial (pl. Linux),
-// az Ariallal azonos betűalakú Arimo töltődik a Google Fontsról, legfeljebb 5 mp-ig várva.
+// az Ariallal azonos betűalakú Arimo töltődik a repóból (fonts/), legfeljebb 5 mp-ig várva.
 
 export const FONT_STACK = "Arial, 'Arimo', Helvetica, sans-serif";
 
