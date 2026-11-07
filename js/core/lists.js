@@ -9,8 +9,12 @@
 //   tétel
 //
 // Egy sor egy tétel (a vessző is elválaszt). Az üres sorok nem számítanak.
+// A listák névsorban (magyar ábécé, számok számként) kerülnek vissza, nem fájlbeli sorrendben.
 
 import { MAXLEN, nameKey, art } from './items.js';
+
+// Magyar ábécérend, a számokat számként kezeli (2. < 10. oldal).
+const byName = new Intl.Collator('hu', { numeric: true, sensitivity: 'base' }).compare;
 
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const where = (line) => `${cap(art(line))} ${line}. sor`;
@@ -69,5 +73,6 @@ export function parseListsText(text) {
     problems.unshift(`${r} az első lista neve előtt áll, ezért kimaradt. Írj elé egy # kezdetű sort a lista nevével.`);
   }
   if (!lists.length) problems.push('A lists.txt-ben nincs lista. Egy lista egy # kezdetű sorral indul, pl.: # Magánhangzók');
+  lists.sort((a, b) => byName(a.name, b.name));
   return { lists, problems, duplicates };
 }
