@@ -1,4 +1,4 @@
-// Szülői felület (A változat): a listák csak olvashatók, a forrásuk a lists.json a GitHubon.
+// Szülői felület (A változat): a listák csak olvashatók, a forrásuk a lists.txt a GitHubon.
 
 import { GAPS } from '../core/settings.js';
 import { nameKey } from '../core/items.js';
@@ -76,7 +76,7 @@ export function createAdmin(el, app, act) {
     if (!l) {
       el.listEmptyText.textContent = app.listsState === 'loading'
         ? 'Listák töltődnek…'
-        : (app.loadError || 'A lists.json-ban még nincs lista.');
+        : (app.loadError || 'A lists.txt-ben még nincs lista.');
       return;
     }
     el.listName.textContent = l.name;

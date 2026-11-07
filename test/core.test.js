@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildSequence, mulberry32 } from '../js/core/sequence.js';
 import { analyzeItems } from '../js/core/items.js';
-import { parseListsJson } from '../js/core/lists.js';
+import { parseListsText } from '../js/core/lists.js';
 import { clampSettings, normalizeState } from '../js/core/settings.js';
 
 const sorted = (a) => [...a].sort((x, y) => x - y).join();
@@ -45,25 +45,31 @@ test('tételek tisztítása', () => {
   assert.ok(a.invalid);
 });
 
-test('lists.json: hibatűrő értelmezés', () => {
-  const r = parseListsJson({ v: 1, lists: [
-    { name: ' Első ', items: ['a', 'a', ' b ', '#x', '', 'y'.repeat(21), 5] },
-    { name: 'első', items: ['c'] },
-    { name: '', items: [] },
-    { name: 'Üres' },
-  ] });
-  assert.ok(r.ok);
-  assert.deepEqual(r.lists, [{ name: 'Első', items: ['a', 'b', '5'] }, { name: 'Üres', items: [] }]);
+test('lists.txt: értelmezés', () => {
+  const r = parseListsText([
+    'árva sor', '',
+    '# Első ', 'a', 'a', ' b ', 'c, d', '', 'y'.repeat(21),
+    '# első', 'x',
+    '#', 'z',
+    '## Üres',
+  ].join('\r\n'));
+  assert.deepEqual(r.lists, [{ name: 'Első', items: ['a', 'b', 'c', 'd'] }, { name: 'Üres', items: [] }]);
+  assert.deepEqual(r.duplicates, [{ list: 'Első', item: 'a', line: 5 }]);
   assert.equal(r.problems.length, 4);
-  assert.match(r.problems[0], /túl hosszú/);
-  assert.equal(parseListsJson('{ nem json').ok, false);
-  assert.equal(parseListsJson({ lists: 'x' }).ok, false);
+  assert.match(r.problems[0], /^Az 1\. sor az első lista neve előtt áll/);
+  assert.match(r.problems[1], /9\. sor.*túl hosszú/);
+  assert.match(r.problems[2], /már szerepel/);
+  assert.match(r.problems[3], /hiányzik a lista neve/);
+  assert.equal(parseListsText('o\u030B\n').lists.length, 0, 'fejléc nélkül nincs lista');
+  assert.equal(parseListsText('# A\no\u030B').lists[0].items[0], 'ő', 'NFC');
+  assert.equal(parseListsText('\uFEFF# A\na').lists[0].name, 'A', 'BOM');
 });
 
-test('a repó lists.json-ja érvényes és hibátlan', () => {
-  const r = parseListsJson(readFileSync(new URL('../lists.json', import.meta.url), 'utf8'));
-  assert.ok(r.ok, r.error);
-  assert.deepEqual(r.problems, []);
+test('a repó lists.txt-je hibátlan, ismétlődés nélkül', () => {
+  const r = parseListsText(readFileSync(new URL('../lists.txt', import.meta.url), 'utf8'));
+  assert.deepEqual(r.problems, [], 'Javítsd a lists.txt-t:\n' + r.problems.join('\n'));
+  assert.deepEqual(r.duplicates, [], 'Ismétlődő tétel a lists.txt-ben:\n' +
+    r.duplicates.map((d) => `  ${d.line}. sor: „${d.item}” (${d.list})`).join('\n'));
   assert.ok(r.lists.length > 0);
 });
 
