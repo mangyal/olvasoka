@@ -94,6 +94,23 @@ dialog::backdrop{background:rgba(30,42,50,.28)}
 dialog h2{margin:0 0 8px;font-size:18px;font-weight:600}
 dialog p{margin:0 0 12px}
 .dlg-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}
+.top-actions{display:flex;gap:16px}
+
+/* ---------- súgó ---------- */
+.dlg-help{width:min(600px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;line-height:1.5}
+.dlg-help h3{margin:16px 0 6px;font-size:15px;font-weight:600}
+.help-steps{margin:0;padding-left:1.4em;display:grid;gap:6px}
+.help-steps kbd{font:inherit;font-size:13px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--field)}
+.help-actions{justify-content:space-between;align-items:center}
+.help-hide{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--ink-2)}
+.help-hide input{accent-color:var(--accent);width:18px;height:18px;margin:0}
+.only-touch{display:none}
+@media (max-width:599px),(hover:none) and (pointer:coarse){.only-keys{display:none}.only-touch{display:inline}}
+@media (max-width:599px){
+  .dlg-help{padding:20px 18px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
+  .help-actions{flex-direction:column-reverse;align-items:stretch;gap:12px}
+  .help-actions .btn{width:100%}
+}
 .font-sample{font:400 32px/1.5 var(--f-item);word-spacing:.15em;overflow-wrap:anywhere}
 
 

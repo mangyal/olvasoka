@@ -20,7 +20,10 @@
 <div id="admin" class="admin">
   <header class="top pad">
     <h1>Olvasóka</h1>
-    <button type="button" class="btn-text" id="fontBtn">Betűteszt</button>
+    <span class="top-actions">
+      <button type="button" class="btn-text" id="helpBtn">Súgó</button>
+      <button type="button" class="btn-text" id="fontBtn">Betűteszt</button>
+    </span>
   </header>
 
   <div id="warnings" class="warnings" aria-live="polite"></div>
@@ -118,6 +121,23 @@
     <button type="button" class="cbtn" id="cNext" tabindex="-1" aria-label="Következő"><svg class="icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
 </div>
+
+<dialog id="dlgHelp" class="dlg-help" aria-labelledby="helpH">
+  <h2 id="helpH">Olvasóka</h2>
+  <p>Hangtalan olvasásgyakorló kisiskolásoknak. A program felvillant egy betűt, szótagot vagy szót, a gyerek hangosan felolvassa, te pedig mellette figyeled a kiejtést.</p>
+  <h3>Így használd</h3>
+  <ol class="help-steps">
+    <li><span class="only-keys">Válassz listát bal oldalt. Ctrl+kattintással többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be, melyik listákból gyakoroltok.</span></li>
+    <li>Lent állítsd be, mennyi ideig látszódjon egy tétel (0 = te lépteted), és hány tétel legyen a körben.</li>
+    <li>Nyomd meg az Indítást, és üljetek le együtt a képernyő elé.</li>
+    <li><span class="only-keys">Gyakorlás közben: <kbd>Space</kbd> vagy <kbd>→</kbd> a következő, <kbd>←</kbd> az előző, <kbd>P</kbd> szünet, <kbd>Esc</kbd> kilépés.</span><span class="only-touch">Gyakorlás közben a lenti nyilakkal léptek, a középső gombbal álltok meg.</span></li>
+    <li>A kör végén lufipukkasztás a jutalom.</li>
+  </ol>
+  <div class="dlg-actions help-actions">
+    <label class="help-hide"><input type="checkbox" id="helpHide"> Ne jelenjen meg újra</label>
+    <button type="button" class="btn btn-primary" data-close autofocus>Kezdjük</button>
+  </div>
+</dialog>
 
 <dialog id="dlgFont" aria-labelledby="fontH">
   <h2 id="fontH">Betűteszt</h2>
