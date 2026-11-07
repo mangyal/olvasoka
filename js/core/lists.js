@@ -1,45 +1,73 @@
-// A lists.json értelmezése. Tiszta modul: hibás részeknél nem dob, hanem kihagy és jelez.
+// A lists.txt értelmezése. Tiszta modul: hibás részeknél nem dob, hanem kihagy és jelez.
+//
+// Formátum:
+//   # Lista neve
+//   tétel
+//   tétel
+//
+//   # Másik lista
+//   tétel
+//
+// Egy sor egy tétel (a vessző is elválaszt). Az üres sorok nem számítanak.
 
-import { analyzeItems, nameKey, art, MAXLEN } from './items.js';
-
-/**
- * @param {string|object} input  a lists.json szövege vagy már feldolgozott objektuma
- * @returns {{ok:true, lists:{name:string,items:string[]}[], problems:string[]} | {ok:false, error:string}}
- */
-export function parseListsJson(input) {
-  let o = input;
-  if (typeof o === 'string') {
-    try { o = JSON.parse(o); }
-    catch (e) { return { ok: false, error: `A lists.json nem érvényes JSON (${e.message}). Javítsd a GitHubon.` }; }
-  }
-  if (!o || typeof o !== 'object' || !Array.isArray(o.lists)) {
-    return { ok: false, error: 'A lists.json-ban nincs „lists” tömb. Nézd meg a README-ben a formátumot.' };
-  }
-  const lists = [], problems = [], seen = new Set();
-  o.lists.forEach((l, i) => {
-    const pos = `${i + 1}.`;
-    if (!l || typeof l.name !== 'string' || !l.name.trim()) {
-      problems.push(`${cap(art(i + 1))} ${pos} listának nincs neve, kimaradt.`);
-      return;
-    }
-    const name = l.name.normalize('NFC').trim();
-    const k = nameKey(name);
-    if (seen.has(k)) { problems.push(`A „${name}” lista kétszer szerepel, a második kimaradt.`); return; }
-    seen.add(k);
-    if (!Array.isArray(l.items)) {
-      problems.push(`A „${name}” listában nincs „items” tömb, ezért üres.`);
-      lists.push({ name, items: [] });
-      return;
-    }
-    const strs = l.items.filter((x) => typeof x === 'string' || typeof x === 'number').map(String);
-    const a = analyzeItems(strs.join('\n'));
-    const long = a.entries.filter((e) => e.status === 'long');
-    if (long.length) {
-      problems.push(`„${name}”: túl hosszú tétel kimaradt (max. ${MAXLEN} karakter): ${long.map((e) => `„${e.text}”`).join(', ')}.`);
-    }
-    lists.push({ name, items: a.items });
-  });
-  return { ok: true, lists, problems };
-}
+import { MAXLEN, nameKey, art } from './items.js';
 
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
+const where = (line) => `${cap(art(line))} ${line}. sor`;
+
+/**
+ * @param {string} text  a lists.txt tartalma
+ * @returns {{
+ *   lists: {name:string, items:string[]}[],
+ *   problems: string[],                              // a szülői felületen figyelmeztetésként jelenik meg
+ *   duplicates: {list:string, item:string, line:number}[] // csak a teszt jelzi, az app csendben kihagyja
+ * }}
+ */
+export function parseListsText(text) {
+  const lists = [], problems = [], duplicates = [];
+  const names = new Set();
+  const orphans = [];
+  let cur = null;        // az éppen töltött lista (null: még nincs fejléc, vagy kihagyott lista)
+  let skipping = false;  // a fejléce hibás volt, a tételeit eldobjuk
+  let seen = new Set();
+
+  String(text).replace(/^﻿/, '').split(/\r?\n/).forEach((raw, i) => {
+    const line = i + 1;
+    const t = raw.normalize('NFC').trim();
+    if (!t) return;
+
+    if (t.startsWith('#')) {
+      const name = t.replace(/^#+/, '').trim();
+      cur = null; skipping = true; seen = new Set();
+      if (!name) { problems.push(`${where(line)}: a # után hiányzik a lista neve, a lista kimaradt.`); return; }
+      const k = nameKey(name);
+      if (names.has(k)) { problems.push(`${where(line)}: a „${name}” lista már szerepel, a második kimaradt.`); return; }
+      names.add(k);
+      cur = { name, items: [] }; skipping = false;
+      lists.push(cur);
+      return;
+    }
+
+    if (!cur) { if (!skipping) orphans.push(line); return; }
+
+    for (const part of t.split(',')) {
+      const item = part.trim();
+      if (!item) continue;
+      if (seen.has(item)) { duplicates.push({ list: cur.name, item, line }); continue; }
+      seen.add(item);
+      const len = [...item].length;
+      if (len > MAXLEN) {
+        problems.push(`${where(line)}: a „${item}” túl hosszú (${len}/${MAXLEN} karakter), kimaradt.`);
+        continue;
+      }
+      cur.items.push(item);
+    }
+  });
+
+  if (orphans.length) {
+    const r = orphans.length === 1 ? `${where(orphans[0])}` : `${cap(art(orphans[0]))} ${orphans[0]}–${orphans.at(-1)}. sor`;
+    problems.unshift(`${r} az első lista neve előtt áll, ezért kimaradt. Írj elé egy # kezdetű sort a lista nevével.`);
+  }
+  if (!lists.length) problems.push('A lists.txt-ben nincs lista. Egy lista egy # kezdetű sorral indul, pl.: # Magánhangzók');
+  return { lists, problems, duplicates };
+}

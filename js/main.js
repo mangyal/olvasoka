@@ -2,7 +2,7 @@
 
 import { createStore } from './data/store.js';
 import { fetchLists } from './data/remote.js';
-import { parseListsJson } from './core/lists.js';
+import { parseListsText } from './core/lists.js';
 import { clampSettings } from './core/settings.js';
 import { nameKey } from './core/items.js';
 import { initFont, fontLooksRight } from './font.js';
@@ -29,8 +29,8 @@ let cache = saved.cache;
 
 // azonnali indulás a legutóbb letöltött listákkal, amíg a friss megjön
 if (cache) {
-  const p = parseListsJson(cache.data);
-  if (p.ok) { app.lists = p.lists; app.problems = p.problems; }
+  const p = parseListsText(cache.text);
+  app.lists = p.lists; app.problems = p.problems;
 }
 
 function persist() {
@@ -75,7 +75,7 @@ async function refresh() {
     const r = await fetchLists();
     app.lists = r.lists; app.problems = r.problems; app.loadError = '';
     app.listsState = 'ok'; app.fetchedAt = Date.now();
-    cache = { data: r.data, fetchedAt: app.fetchedAt };
+    cache = { text: r.text, fetchedAt: app.fetchedAt };
     persist();
   } catch (e) {
     app.loadError = e.message;
@@ -95,7 +95,7 @@ document.addEventListener('keydown', (e) => {
 }, true);
 
 document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
-el.editLink.href = `https://github.com/${REPO}/edit/main/lists.json`;
+el.editLink.href = `https://github.com/${REPO}/edit/main/lists.txt`;
 
 /* ---------- indulás ---------- */
 pickSelected();

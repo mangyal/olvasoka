@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.0** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.1** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -16,7 +16,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 |---|---|---|---|
 | 1 | Név | A program neve **Olvasóka** (korábban: Beszéd- és kiejtésgyakorló). | 1. |
 | 2 | Platform | Statikus oldal GitHub Pagesen, natív ES modulokra bontva, build lépés nélkül. Nem egyetlen fájl. | N2, 11. |
-| 3 | Listák forrása | A listák a repó `lists.json` fájljából jönnek, az alkalmazásban **csak olvashatók**. Szerkesztés a GitHubon. Megszűnt: listakezelés, mentés, export/import. | 3., F-A1–F-A10, U-A3–U-A13 |
+| 3 | Listák forrása | A listák a repó `lists.txt` fájljából jönnek, az alkalmazásban **csak olvashatók**. Szerkesztés a GitHubon. Megszűnt: listakezelés, mentés, export/import. | 3., F-A1–F-A10, U-A3–U-A13 |
 | 4 | Duplikátum | Az ismétlődő tétel **kimarad** (korábban: megengedett). | F-A3, 4.1 |
 | 5 | Tételforrás | Új beállítás: **Kijelölt lista / Összes lista**. | F-A5, 3.2 |
 | 6 | Felvillanás | **0–25 mp**, alapérték **10 mp**. A **0 kézi léptetést** jelent. | 3.2, F-P1 |
@@ -27,6 +27,13 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 11 | → az utolsón | A **→ az utolsó tételen is a jutalomra vált**. | F-P7, 8., 9.5 |
 | 12 | Betűméret | A tétel legfeljebb a magasság **62%**-át foglalja (korábban 70%), hogy a csík és a vezérlők elférjenek. | F-P13 |
 | 13 | Tesztek | Beépített önteszt helyett `node --test` és GitHub Actions. A kör logikája tiszta állapotgép. | N7 |
+
+### 2.1 (a 2.0-hoz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Listaformátum | `lists.txt` (sima szöveg: `# Lista neve`, alatta soronként egy tétel) a `lists.json` helyett. | 3.1, 3.2, 3.4, 8., 9.13 |
+| 2 | Ismétlődő tétel | Az app továbbra is csendben kihagyja, de a repó tesztje sorszámmal jelzi. | F-L5, N7 |
 
 ### Korábbi változatok
 
@@ -77,44 +84,48 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
 
 ## 3. Listák és beállítások
 
-### 3.1 A `lists.json`
-- **F-L1** A listák a repó gyökerében lévő `lists.json`-ban vannak:
-  ```json
-  {
-    "v": 1,
-    "lists": [
-      { "name": "Magánhangzók", "items": ["a", "á", "e", "é"] },
-      { "name": "45. oldal", "items": ["fa", "ke-fe"] }
-    ]
-  }
+### 3.1 A `lists.txt`
+- **F-L1** A listák a repó gyökerében lévő `lists.txt`-ben vannak, sima szövegként (UTF-8):
   ```
+  # Magánhangzók
+  a
+  á
+
+  # 45. oldal
+  fa
+  ke-fe
+  ```
+  A `#`-tel kezdődő sor új lista neve, alatta soronként egy tétel. Az üres sorok nem számítanak.
+  A vessző is elválaszt: az `a, á, e` sor három tétel.
 - **F-L2** A listák sorrendje a fájlbeli sorrend.
 - **F-L3** A listanév **egyedi** (levágva, kis-/nagybetűre nem érzékenyen). A második azonos nevű lista
-  kimarad, a szülői felület figyelmeztet.
-- **F-L4** Név nélküli lista kimarad; `items` nélküli lista üresként jelenik meg. Mindkettőről figyelmeztetés.
+  kimarad, a szülői felület figyelmeztet a sorszámmal.
+- **F-L4** Üres név (`#` magában) esetén a lista a tételeivel együtt kimarad; az első fejléc előtti sorok
+  kimaradnak. Mindkettőről figyelmeztetés a sorszámmal. Tétel nélküli lista érvényes, üresként jelenik meg.
 - **F-L5** Tételek tisztítása, ebben a sorrendben:
   1. Unicode NFC-normalizálás.
   2. A két végén szóköz levágva.
   3. Üres tétel eldobva.
-  4. `#`-tel kezdődő tétel eldobva.
-  5. **Ismétlődő tétel eldobva** (pontos egyezés; az `a` és az `A` két külön tétel).
-  6. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi.
+  4. **Ismétlődő tétel eldobva** a listán belül (pontos egyezés; az `a` és az `A` két külön tétel).
+     Az app ezt csendben teszi; a repó tesztje viszont hibát jelez a sorszámmal (N7).
+  5. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi a sorszámmal.
 
-  A vessző elválasztónak számít: egy `"a, b"` tétel két tétel lesz. Szám típusú tétel szöveggé alakul.
+  `#`-tel kezdődő tétel nem lehet, mert az a sor listanév.
 - **F-L6** A tétel **pontosan úgy jelenik meg, ahogy le van írva**. Tilos a `text-transform` és
   bármilyen kis-/nagybetű konverzió.
-- **F-L7** Hibás JSON vagy hiányzó `lists` tömb esetén a program nem omlik össze (F-L9).
+- **F-L7** A fájl nem lehet úgy hibás, hogy semmi ne jelenjen meg: a program mindig a helyes részeket
+  használja, a többiről figyelmeztet.
 
 ### 3.2 Betöltés és gyorsítótár
 - **F-L8** Induláskor a program azonnal megjeleníti a legutóbb letöltött listákat (ha vannak), és a háttérben
-  letölti a `lists.json`-t `cache: 'no-cache'`-sel, 8 mp-es időkorláttal. Sikeres letöltés után a listák
+  letölti a `lists.txt`-t `cache: 'no-cache'`-sel, 8 mp-es időkorláttal. Sikeres letöltés után a listák
   frissülnek, és az új változat a helyi tárolóba kerül.
-- **F-L9** Ha a letöltés vagy az értelmezés nem sikerül:
+- **F-L9** Ha a letöltés nem sikerül:
   - van korábbi változat → az látszik, mellette figyelmeztetés a hibával és azzal, hogy a legutóbbi listák látszanak;
   - nincs korábbi változat → üres állapot a hibaüzenettel; az „Indítás” inaktív.
-- **F-L10** A „Frissítés” gomb újra letölti a `lists.json`-t. Mellette: „Frissítve: 20:49”, illetve
+- **F-L10** A „Frissítés” gomb újra letölti a `lists.txt`-t. Mellette: „Frissítve: 20:49”, illetve
   kapcsolat nélkül „Nincs kapcsolat – a nov. 7. 20:49 állapot látszik”.
-- **F-L11** A „Listák szerkesztése a GitHubon ↗” link a `lists.json` GitHub-szerkesztőjét nyitja új lapon.
+- **F-L11** A „Listák szerkesztése a GitHubon ↗” link a `lists.txt` GitHub-szerkesztőjét nyitja új lapon.
   Commit után kb. egy perccel a Frissítés már az új listát hozza.
 
 ### 3.3 Beállítások (a kör indítása előtt)
@@ -132,11 +143,11 @@ A PRACTICE állapotot a `js/core/round.js` írja le:
   A csúszka mellett „kézi”, a becsült hossz helyén „kézi léptetés” áll.
 
 ### 3.4 Helyi tárolás
-- **F-S3** A beállítások, a legutóbb kijelölt lista neve és a legutóbb letöltött `lists.json` a
+- **F-S3** A beállítások, a legutóbb kijelölt lista neve és a legutóbb letöltött `lists.txt` szövege a
   `localStorage`-ban, `olvasoka` kulcs alatt:
   ```json
   { "v": 2, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
-    "lastList": "45. oldal", "cache": { "data": { "v": 1, "lists": [] }, "fetchedAt": 1794080000000 } }
+    "lastList": "45. oldal", "cache": { "text": "# Magánhangzók\na\n…", "fetchedAt": 1794080000000 } }
   ```
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
   a program fut, figyelmeztetéssel: a beállítások nem maradnak meg, és hálózat nélkül nem lesz lista.
@@ -252,21 +263,22 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
   `setTimeout` a határidőig. Pause-nál `remaining = deadline − now`, folytatáskor új határidő.
 - **N4** A gyakorlónézetben fade csak a ✕-en és a pause-jelzőn van. `prefers-reduced-motion: reduce`
   esetén minden fade és lebegés kikapcsol; az időjelző ekkor is frissül (információ, nem díszítés).
-- **N5** Hibatűrés: hibás vagy elérhetetlen `lists.json`, üres lista, hiányzó tárolás, be nem töltött
+- **N5** Hibatűrés: hibás vagy elérhetetlen `lists.txt`, üres lista, hiányzó tárolás, be nem töltött
   font nem okozhat összeomlást.
 - **N6** Világos téma, explicit `body` háttérrel.
 - **N7 Tesztelhetőség:** a logika a `js/core/` modulokban van, DOM nélkül. Tesztek: `node --test`
-  (Node 20+), minden pushnál és PR-nél GitHub Actionsben. A tesztek a repó `lists.json`-ját is
-  ellenőrzik, így egy hibás commit pirosra vált.
+  (Node 20+), minden pushnál és PR-nél GitHub Actionsben. A tesztek a repó `lists.txt`-jét is
+  ellenőrzik (hibás sor, túl hosszú vagy ismétlődő tétel), így egy hibás commit pirosra vált,
+  és a GitHub e-mailben jelzi, melyik sorral van baj.
 
 ### 7.1 Felépítés
 
 ```
 index.html          markup
-lists.json          a listák
+lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom
 js/core/            tiszta logika: sequence, round, items, lists, settings
-js/data/            store (localStorage), remote (lists.json letöltése)
+js/data/            store (localStorage), remote (lists.txt letöltése)
 js/ui/              admin, practice, reward
 js/font.js          betűtípus-kapu
 js/main.js          indítás, állapotváltás
@@ -282,12 +294,12 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Eset | Elvárt viselkedés |
 |---|---|
 | Első megnyitás, a letöltés folyamatban | „Listák töltődnek…”, az „Indítás” inaktív |
-| A `lists.json` nem tölthető le, van korábbi változat | A korábbi listák, figyelmeztetéssel |
-| A `lists.json` nem tölthető le, nincs korábbi | Üres állapot a hibaüzenettel, „Indítás” inaktív |
-| Hibás JSON | Mint az előző két sor; a teszt a repóban pirosra vált |
+| A `lists.txt` nem tölthető le, van korábbi változat | A korábbi listák, figyelmeztetéssel |
+| A `lists.txt` nem tölthető le, nincs korábbi | Üres állapot a hibaüzenettel, „Indítás” inaktív |
+| Sor az első listanév előtt / üres listanév | Kimarad, figyelmeztetés a sorszámmal |
 | Azonos nevű listák | A második kimarad, figyelmeztetés |
 | Túl hosszú tétel | Kimarad, a figyelmeztetés megnevezi |
-| Ismétlődő tétel | Kimarad, figyelmeztetés nélkül |
+| Ismétlődő tétel | Az appban csendben kimarad; a repó tesztje pirosra vált |
 | A legutóbb kijelölt lista már nincs a fájlban | Az első lista lesz kijelölve |
 | Üres lista kiválasztva | „Indítás” inaktív: „A listában nincs tétel.” |
 | Összes lista, mind üres | „Indítás” inaktív: „Egyik listában sincs tétel.” |
@@ -330,10 +342,10 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 11. Esc a gyakorlásból és a jutalomból is ADMIN-ba visz.
 12. *(automata)* A tisztítás NFC-normalizál, megtartja a kis-/nagybetűt, eldobja a `#`-es és ismétlődő
     tételt, jelzi a túl hosszút.
-13. *(automata)* A `lists.json` hibatűrő értelmezése; a repó `lists.json`-ja hiba nélkül értelmezhető.
+13. *(automata)* A `lists.txt` hibatűrő értelmezése; a repó `lists.txt`-je hiba és ismétlődés nélkül értelmezhető.
 14. A betűteszt `ő`, `ű`, `Ő`, `Ű` karakterei dupla ékezettel, Arialban (vagy Arimóban) jelennek meg.
 15. A beállítások és a kijelölt lista újratöltés után megmaradnak; hálózat nélkül a legutóbbi listák látszanak.
-16. A `lists.json` GitHubon módosítva, commit után a Frissítés legfeljebb ~2 percen belül az új listát mutatja.
+16. A `lists.txt` GitHubon módosítva, commit után a Frissítés legfeljebb ~2 percen belül az új listát mutatja.
 17. Sehol nincs hanglejátszás.
 
 ---
@@ -366,17 +378,17 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Ismétlődő tétel kimarad | Két egyforma tétel egymás után zavaró volt; egy listán belül az ismétlésnek nincs értelme. |
 | Összes lista mód | Vegyes ismétlés több leckéből. |
 | Név: Olvasóka | A szülő választása. |
-| GitHub Pages, ES modulok, build nélkül | Hostolt listák; a claude.ai artifact nem tölthet be külső JSON-t. |
-| Listák a `lists.json`-ban, az appban csak olvashatók (A változat) | Egy adatforrás, nincs bejelentkezés és token. Szerkesztés a GitHubon, telefonról is. A vegyes (B) és a visszaíró (C) változat elvetve. |
+| GitHub Pages, ES modulok, build nélkül | Hostolt listák; a claude.ai artifact nem tölthet be külső fájlt. |
+| Listák a repóban, az appban csak olvashatók (A változat) | Egy adatforrás, nincs bejelentkezés és token. Szerkesztés a GitHubon, telefonról is. A vegyes (B) és a visszaíró (C) változat elvetve. |
+| `lists.txt` a `lists.json` helyett | A JSON idézőjelei és vesszői telefonon könnyen elronthatók; a szöveges formátumban egy sor egy tétel. |
+| Ismétlődő tétel: az app csendben kihagyja, a teszt jelzi | A gyerek felületén nincs zaj; a javítás helye a fájl. |
 | Publikus repo | Ingyenes Pages; a listák tartalma nem érzékeny. |
-| Kör-logika tiszta reducerben, `node --test`, GitHub Actions | Az időzítés és a navigáció automatikusan tesztelhető; hibás `lists.json` már a commitnál kiderül. |
+| Kör-logika tiszta reducerben, `node --test`, GitHub Actions | Az időzítés és a navigáció automatikusan tesztelhető; hibás lista már a commitnál kiderül. |
 
 ---
 
 ## 11. Nyitott pontok
 
-- A `lists.json` szerkesztése telefonon hibalehetőséges (vessző, idézőjel). Ha gyakori lesz, egyszerűbb
-  szöveges formátum (`# Lista neve` + soronként egy tétel) jöhet a JSON mellé vagy helyette.
 - A „44. oldal” listában szereplő `sk` tétel valószínűleg elírás; a tartalomgazda ellenőrzi.
 - A 12. fejezet számértékeitől ±20%-on belül indoklás nélkül el lehet térni; a színektől csak a
   kontrasztkövetelmény (12.6) megtartásával.

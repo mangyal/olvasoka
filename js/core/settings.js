@@ -19,7 +19,8 @@ export function clampSettings(s) {
 }
 
 /**
- * Helyi állapot: { v: 2, settings, lastList, cache: { data, fetchedAt } | null }.
+ * Helyi állapot: { v: 2, settings, lastList, cache: { text, fetchedAt } | null }.
+ * A cache a legutóbb letöltött lists.txt szövege.
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
@@ -29,7 +30,7 @@ export function normalizeState(o) {
     v: 2,
     settings: clampSettings(o.settings),
     lastList: typeof o.lastList === 'string' ? o.lastList : null,
-    cache: o.cache && typeof o.cache === 'object' && o.cache.data && Number.isFinite(o.cache.fetchedAt)
-      ? { data: o.cache.data, fetchedAt: o.cache.fetchedAt } : null,
+    cache: o.cache && typeof o.cache === 'object' && typeof o.cache.text === 'string' && Number.isFinite(o.cache.fetchedAt)
+      ? { text: o.cache.text, fetchedAt: o.cache.fetchedAt } : null,
   };
 }
