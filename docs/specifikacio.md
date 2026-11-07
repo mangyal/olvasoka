@@ -43,6 +43,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 2 | Több lista | Ctrl/⌘+kattintással több lista, Shift+kattintással tartomány jelölhető ki; a kör ezek uniójából épül. Keskeny nézetben jelölőnégyzetek. | F-S1a, F-S3, U-A1–U-A3, U-A6 |
 | 3 | Forrás szinkron | Az „Összes lista” ⇔ minden lista kijelölve. Lásd F-S1b. | F-S1b |
 | 4 | Súgó | Üdvözlő/súgó ablak induláskor, „Ne jelenjen meg újra” jelölőnégyzettel; fejlécgomb. | U-A7a, F-S3 |
+| 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 
 ### Korábbi változatok
 
@@ -221,6 +222,9 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
   arányában. Pause alatt áll, ← és → után tele csíkkal indul újra. A szünetben és kézi léptetésnél nem látszik.
 - **F-P15** **Számláló:** a jobb felső sarokban `index/N` formában (pl. `3/10`), `--ink-2` színnel,
   egérmozgástól függetlenül. A szünetben a most lejárt tétel sorszámát mutatja. A jutalomnál nincs.
+- **F-P16** **Koppintás:** érintőképernyőn (és tollal) egy koppintás a gyakorlónézetben bárhol
+  ugyanaz, mint a ▶ (`NEXT`): szünetben is lép, az utolsón jutalomra vált. A vezérlőgombokra koppintás
+  csak a gombot működteti; 12 px-nél nagyobb húzás nem lép. Egérkattintásra nincs hatása.
 
 ### 4.4 Billentyűk
 
