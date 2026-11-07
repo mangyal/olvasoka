@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.2** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.3** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -47,6 +47,16 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
 
+### 2.3 (a 2.2-höz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Eszközök | Tablet és telefon is támogatott (érintés, álló és fekvő tájolás). | 1., 12.6 |
+| 2 | Teljes képernyő | Telepített PWA-ként teljes képernyőn fut; ez elvárás, nem kizárt. | 1., N8 |
+| 3 | Jutalom | Az F-R1 (statikus „helyükre emelkedő” lufik) megszűnt; a háttérváltás az F-R9-be került. | F-R1, F-R9 |
+| 4 | Lufik száma | Minden képernyőn 10–15 lufi; a kis képernyős csökkentés (min. 6) megszűnt. | F-R2, 9.10 |
+| 5 | Kilépés érintéssel | Érintőképernyőn a ✕ végig látszik (egérmozgás nincs, az Esc nem érhető el). | F-P10, U-P5, 9.7 |
+
 ### Korábbi változatok
 
 Az 1.0 (interjú), 1.1 (technikai review) és 1.2 (UX-terv) döntései a 10. fejezetben vannak.
@@ -73,8 +83,6 @@ A tartalom gyakran változik. A szülő a listákat a GitHubon szerkeszti, telef
 - Listaszerkesztés az alkalmazáson belül; visszaírás a repóba
 - Bejelentkezés, szerveroldali tárolás, több eszköz közötti szinkron (a listák a repóból mindenhol
   ugyanazok, a beállítások böngészőnként külön tárolódnak)
-- Tablet/telefon támogatás a gyakorláshoz (laptop/asztali gép, billentyűzet + egér)
-- Teljes képernyős mód
 
 ---
 
@@ -211,7 +219,10 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-P9** A képernyőn: a tétel, az időjelző (F-P14), a számláló (F-P15), a vezérlősor (F-P10),
   a dekoráció, pause alatt a pause-jelző. **Nincs** pontszám, hibajelölés, szöveges felirat.
 - **F-P10** **Vezérlősor** (◀ ⏸/▶ ▶) alul középen, **végig látszik**. A **✕ kilépés** a bal felső sarokban
-  csak egérmozgásra (≥ 8 px) jelenik meg, 2,5 mp mozdulatlanság után eltűnik. A ◀ az első tételen
+  egeres eszközön csak egérmozgásra (≥ 8 px) jelenik meg, 2,5 mp mozdulatlanság után eltűnik.
+  **Érintőképernyőn végig látszik** a gyakorlás és a jutalom alatt: érintőképernyőnek számít, ha
+  `(hover: none) and (pointer: coarse)`, vagy ha a nézetben már volt érintéses/tollas `pointerdown`.
+  A ✕-re koppintás csak kilép, nem lép tovább (F-P16). A ◀ az első tételen
   halványított; a ▶ mindig aktív. Az ikonok szöveg nélküliek, `aria-label`-lel, `tabindex="-1"`.
 - **F-P11** Mozdulatlanságnál a kurzor elrejtődik (a gombok fölött látszik), mozgásra visszajön.
 - **F-P12** **Pause-jelző:** pause alatt kis ⏸ jel a jobb felső sarokban, a számlálótól balra.
@@ -246,11 +257,8 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 
 ## 5. Jutalom (REWARD)
 
-- **F-R1** A kör végén a háttér 1,8 mp alatt papírszínről égkékre vált, a dekoráció elhalványul,
-  utána a lufik alulról a helyükre emelkednek (1,2 mp, 80 ms eltolással).
-- **F-R2** 10–15 lufi, pasztell színekkel, 90–140 px szélességben, lassú lebegéssel (±6 px, ±2°), felszállva (F-R9).
-  Felszálló módban kis képernyőn a darabszám a terület arányában csökken (1366×768-nál teljes, min. 6),
-  a szélesség a rövidebb képernyőoldal 20–26%-a (legfeljebb 90–140 px). A lufi inkább a szél felőli
+- **F-R2** Minden képernyőn 10–15 lufi, pasztell színekkel, 90–140 px szélességben, lassú lebegéssel (±6 px, ±2°), felszállva (F-R9).
+  Kis képernyőn a szélesség a rövidebb képernyőoldal 20–26%-a (legfeljebb 90–140 px). A lufi inkább a szél felőli
   oldalon indul, hogy átsodródjon a képen.
 - **F-R3** Pukkasztás `pointerdown`-ra; a pukkanás 120 ms-os zsugorodás és 6–8 apró részecske. Hang nincs.
 - **F-R4** Nincs pontszám, időnyomás, felirat. A találati terület a lufinál ~20%-kal nagyobb;
@@ -261,7 +269,8 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-R8** **Hőlégfúvó:** a jutalom alatt egy 128 px-es hőlégfúvó ikon (`img/hoslegfuvo.svg`) áll
   véletlenszerűen a bal vagy a jobb szélen, az alsó harmad közepén, 12°-kal felfelé fordítva. Jobb
   oldalt balra fúj; bal oldalt a függőleges tengelye körül tükrözve jobbra. Statikus, a jutalom végéig látszik.
-- **F-R9** **Felszállás:** a lufik a képernyő alja alól úsznak be, 2,5 mp alatt elcsúsztatva, és
+- **F-R9** **Felszállás:** a kör végén a háttér 1,8 mp alatt papírszínről égkékre vált, a dekoráció
+  elhalványul. Utána a lufik a képernyő alja alól úsznak be, 2,5 mp alatt elcsúsztatva, és
   felszállnak: egy lufi 8–12 mp alatt ér fel. A fúvó szele oldalra sodorja őket (átlagosan 20–40 px/s),
   a fúvótól távolodva gyengülve; ehhez kis véletlen lengés és a szél felé dőlés (max. 8°) jön.
   Ütközés nincs. A mozgás modellje `js/core/drift.js`, Node-ban tesztelve.
@@ -382,7 +391,7 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 5. *(automata)* Pause alatt ← és → lép és folytat. → és Space az utolsó tételen jutalomra vált.
 6. *(automata)* Felvillanás = 0 esetén nincs automatikus váltás.
 7. Gyakorlás közben egérmozgás nélkül a tétel, az időjelző, a számláló, a vezérlősor és a dekoráció
-   látszik (pause alatt + pause-jelző); a ✕ nem.
+   látszik (pause alatt + pause-jelző); a ✕ egeres eszközön nem, érintőképernyőn igen.
 8. Az időjelző a hátralévő idővel arányosan fogy, pause alatt áll.
 9. Egy körön belül minden tétel azonos betűmérettel és alapvonallal jelenik meg; a leghosszabb is egy
    sorban, levágás nélkül elfér, és nem fedi az időjelzőt vagy a vezérlősort.
@@ -535,7 +544,7 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
   max(16 px, a magasság 3,5%-a) távolságra, de legalább 110 px-re az alsó széltől.
 - **U-P4** Vezérlősor: ◀ ⏸/▶ ▶ alul középen, 24 px-re az aljától, 16 px közzel; 56 px kerek találati
   terület, 28 px ikon, `--ink` 55%; hoverre 8%-os kör háttér és 85%. Inaktív: 20%.
-- **U-P5** ✕: bal felső sarok, egérmozgásra, fade be 150 ms, ki 300 ms.
+- **U-P5** ✕: bal felső sarok; egeres eszközön egérmozgásra, fade be 150 ms, ki 300 ms; érintőképernyőn végig látszik (F-P10).
 - **U-P6** Számláló: jobb felső sarok, 24 px-re a szélektől, 20 px, `--ink-2`, `tabular-nums`.
 - **U-P7** Pause-jelző: a számlálótól balra, 28 px, két lekerekített sáv, `--ink` 35%, fade 300 ms.
 - **U-P8** Belépés animáció nélkül, az első tétel azonnal, teljes idővel. Kilépés azonnal.
@@ -550,4 +559,5 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 - Kontraszt: tétel ≥ 7:1, admin szöveg ≥ 4,5:1, ikonok és keretek ≥ 3:1.
 - Az admin minden funkciója billentyűzettel elérhető; fókuszgyűrű 2 px `--accent`, csak `:focus-visible`.
 - Az ikon gombok `aria-label`-t kapnak („Szünet”, „Folytatás”, „Előző”, „Következő”, „Kilépés”).
-- Elsődleges képernyő: 1366×768 és 1920×1080; támogatott minimum: 1024×600.
+- Elsődleges képernyő: 1366×768 és 1920×1080; támogatott minimum: 1024×600. Tablet és telefon
+  álló és fekvő tájolásban is támogatott; a 9.9-es kritérium ott is teljesül.
