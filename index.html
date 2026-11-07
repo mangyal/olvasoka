@@ -29,21 +29,22 @@
     <nav class="sidebar" aria-label="Listák">
       <div class="label">Listák</div>
       <ul class="nav" id="listNav"></ul>
+      <p class="nav-hint muted" id="navHint" hidden></p>
     </nav>
 
     <section class="editor pad">
       <div class="ed-inner">
-        <div class="narrow-pick">
-          <label for="listSelect" class="muted">Lista</label>
-          <select id="listSelect"></select>
-        </div>
+        <fieldset class="narrow-pick" id="listPick" hidden>
+          <legend class="muted">Listák</legend>
+          <div class="picks" id="listChecks"></div>
+        </fieldset>
 
         <div id="listView" class="ed-inner" hidden>
           <div class="ed-head">
             <h2 id="listName"></h2>
             <span class="muted num" id="listCount"></span>
           </div>
-          <div class="chips" id="chips" aria-label="A lista tételei"></div>
+          <div class="list-body" id="listBody" aria-label="A kijelölt listák tételei"></div>
         </div>
         <div class="empty" id="listEmpty"><p id="listEmptyText">Listák töltődnek…</p></div>
 
@@ -61,7 +62,7 @@
       <fieldset class="seg">
         <legend>Tételek</legend>
         <span class="seg-opts">
-          <label><input type="radio" name="src" value="list" id="srcList"><span>Kijelölt lista</span></label>
+          <label><input type="radio" name="src" value="list" id="srcList"><span>Kijelölt listák</span></label>
           <label><input type="radio" name="src" value="all" id="srcAll"><span>Összes lista</span></label>
         </span>
       </fieldset>
@@ -86,7 +87,7 @@
     </div>
     <div class="rb-row">
       <span class="num" id="estimate"></span>
-      <span class="keys"><kbd>Space</kbd> tovább · <kbd>←</kbd> <kbd>→</kbd> lépés · <kbd>P</kbd> szünet · <kbd>Esc</kbd> kilép · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> indít</span>
+      <span class="keys" aria-label="Billentyűk"><span><kbd>Space</kbd> tovább</span> <span><kbd>←</kbd> <kbd>→</kbd> lépés</span> <span><kbd>P</kbd> szünet</span> <span><kbd>Esc</kbd> kilép</span> <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> indít</span></span>
       <span class="start-msg" id="startMsg" aria-live="polite"></span>
       <button type="button" class="btn btn-primary" id="startBtn" disabled>Indítás</button>
     </div>

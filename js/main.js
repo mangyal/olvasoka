@@ -5,6 +5,7 @@ import { fetchLists } from './data/remote.js';
 import { parseListsText } from './core/lists.js';
 import { clampSettings } from './core/settings.js';
 import { nameKey } from './core/items.js';
+import { clickSelect, reconcile } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
 import { createAdmin } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
@@ -18,10 +19,10 @@ const store = createStore();
 const saved = store.read();
 
 const app = {
-  lists: [], problems: [], selected: null,
+  lists: [], problems: [], selected: [], anchor: null,
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
-  settings: saved.settings, lastList: saved.lastList,
+  settings: saved.settings, lastLists: saved.lastLists,
   font: { state: 'loading', name: 'Arial' },
   storageOK: store.available,
 };
@@ -34,19 +35,26 @@ if (cache) {
 }
 
 function persist() {
-  store.write({ v: 2, settings: app.settings, lastList: app.lastList, cache });
+  store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, cache });
 }
 function pickSelected() {
   const keys = app.lists.map((l) => nameKey(l.name));
-  for (const k of [app.selected, app.lastList && nameKey(app.lastList)]) if (k && keys.includes(k)) { app.selected = k; return; }
-  app.selected = keys[0] || null;
+  const want = app.selected.length ? app.selected : app.lastLists.map(nameKey);
+  app.selected = reconcile(want, keys);
+  if (!app.selected.includes(app.anchor)) app.anchor = app.selected[0] || null;
 }
 
 const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); } });
 
 const admin = createAdmin(el, app, {
-  select(name) {
-    app.selected = nameKey(name); app.lastList = name; persist(); admin.render();
+  // mod: { toggle, range } – Ctrl/Cmd, illetve Shift kattintás
+  select(name, mod = {}) {
+    const keys = app.lists.map((l) => nameKey(l.name));
+    const r = clickSelect(app.selected, nameKey(name), { ...mod, anchor: app.anchor, keys });
+    app.selected = r.sel; app.anchor = r.anchor;
+    const set = new Set(r.sel);
+    app.lastLists = app.lists.filter((l) => set.has(nameKey(l.name))).map((l) => l.name);
+    persist(); admin.render();
   },
   setting(patch) {
     app.settings = clampSettings({ ...app.settings, ...patch }); persist(); admin.render();
