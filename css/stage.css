@@ -19,6 +19,10 @@
 .controls{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity var(--d-fade) ease-out}
 .stage.ui .controls{opacity:1;transition-duration:var(--d-fast)}
 .stage.ui .controls .cbtn{pointer-events:auto}
+/* F-P10: érintőképernyőn a ✕ végig látszik (nincs egérmozgás, nincs Esc) */
+.stage.touch .controls{opacity:1}
+.stage.touch .controls .cbtn{pointer-events:auto}
+@media (hover:none) and (pointer:coarse){.stage .controls{opacity:1}.stage .controls .cbtn{pointer-events:auto}}
 .cbtn{width:56px;height:56px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;cursor:pointer;transition:background-color var(--d-fast) ease-out}
 .cbtn svg{width:28px;height:28px;opacity:.55;transition:opacity var(--d-fast) ease-out}
 .cbtn:hover:not(:disabled){background:rgba(30,42,50,.08)}

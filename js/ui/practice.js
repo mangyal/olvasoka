@@ -19,6 +19,7 @@ export function createPractice(el, { onExit }) {
   }
   function letSleep() { if (wake) { wake.release().catch(() => {}); wake = null; } }
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
+  let touch = false;                // F-P10: volt már érintés/toll → a ✕ végig látszik
   const lay = { barW: 0 };
   const measure = document.createElement('canvas').getContext('2d');
   const reward = createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, onDone: exit });
@@ -29,7 +30,8 @@ export function createPractice(el, { onExit }) {
     const seq = buildSequence(items.length, settings.count);
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     mode = 'practice';
-    el.stage.className = 'stage'; el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
+    if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
+    el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
     st = startRound(seq, settings.flashMs, settings.gapMs, performance.now());
     layout();
@@ -129,6 +131,7 @@ export function createPractice(el, { onExit }) {
   });
   let tapPt = null;
   el.stage.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' && !touch) { touch = true; el.stage.classList.add('touch'); }
     if (mode === 'reward') reward.pointerDown(e);
     tapPt = mode === 'practice' && e.pointerType !== 'mouse' && !e.target.closest('.cbtn') ? { x: e.clientX, y: e.clientY } : null;
   });
