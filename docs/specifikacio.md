@@ -45,6 +45,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 4 | Súgó | Üdvözlő/súgó ablak induláskor, „Ne jelenjen meg újra” jelölőnégyzettel; fejlécgomb. | U-A7a, F-S3 |
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
+| 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
 
 ### Korábbi változatok
 
@@ -282,7 +283,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-F1** A gyakorló betű **Arial** (`Arial, 'Arimo', Helvetica, sans-serif`). Ugyanez a tétel-előnézetben
   és a betűtesztben, hogy a szülő ugyanazt az alakot lássa, mint a gyerek.
 - **F-F2 Betöltés-kapu:** ha a gépen van Arial (canvas-méréssel felismerve), az „Indítás” azonnal aktív.
-  Ha nincs, az Ariallal azonos betűalakú **Arimo** töltődik a Google Fontsról; addig az „Indítás” inaktív,
+  Ha nincs, az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
   legfeljebb 5 mp-ig. Sikertelen betöltésnél aktív, figyelmeztetéssel: „A betűk alakja eltérhet.”
   Ha az Arimo később mégis megjön, a figyelmeztetés eltűnik.
 - **F-F3 Betűteszt** (fejléc, jobb oldal): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,
@@ -295,7 +296,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 
 - **N1** Hang semmilyen formában (nincs `Audio`, `AudioContext`, `speechSynthesis`, média).
 - **N2** Statikus oldal, natív ES modulok, **build lépés és futásidejű függőség nélkül**. Az egyetlen
-  külső kérés a Google Fonts (Arimo), és csak ha nincs Arial. Az oldal HTTP-n keresztül fut
+  külső kérés a listaforrás. Az oldal HTTP-n keresztül fut
   (GitHub Pages vagy `python3 -m http.server`); fájlként megnyitva nem.
 - **N3** Időzítés abszolút határidővel: tételváltáskor `deadline = now + időtartam`, egyetlen
   `setTimeout` a határidőig. Pause-nál `remaining = deadline − now`, folytatáskor új határidő.
@@ -308,6 +309,16 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
   (Node 20+), minden pushnál és PR-nél GitHub Actionsben. A tesztek a repó `lists.txt`-jét is
   ellenőrzik (hibás sor, túl hosszú tétel, és hogy néhány mintatétel megvan-e), így egy hibás commit pirosra vált,
   és a GitHub e-mailben jelzi, melyik sorral van baj.
+- **N8 PWA:** telepíthető webalkalmazás (`manifest.webmanifest`, `sw.js`).
+  - Megjelenés `fullscreen` (tartalék: `standalone`), tájolás nincs rögzítve. Ikon: a jutalom lufija
+    égszínű háttéren (`img/icons/`: 192, 512, maskable 512, apple-touch 180, SVG).
+  - A service worker telepítéskor eltárolja a program fájljait (HTML, JS, CSS, betű, képek), és hálózat
+    először stratégiával szolgál ki: online mindig a friss fájl jön (`no-cache`, ETag-gel olcsó), 3 mp
+    után vagy hálózat nélkül a tárolt példány. Így új verzióhoz nem kell semmit léptetni.
+  - A `lists.txt`-t és a külső címeket nem kezeli; a listák offline állapotát a program jelzi (F-L8, F-L9).
+  - A tárolólistát (`ASSETS`) a `test/pwa.test.js` egyezteti a repó fájljaival.
+- **N9 Képernyőzár:** gyakorlás és jutalom alatt Screen Wake Lock, hogy a képernyő ne sötétüljön el;
+  lap elrejtésekor a böngésző elengedi, visszatéréskor újrakéri. Ahol nincs ilyen API, nem jelez hibát.
 
 ### 7.1 Felépítés
 

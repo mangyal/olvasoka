@@ -10,6 +10,14 @@ const KID_KEYS = { Space: 'SPACE', ArrowRight: 'NEXT', ArrowLeft: 'PREV', KeyP: 
 
 export function createPractice(el, { onExit }) {
   let mode = 'off';                 // 'off' | 'practice' | 'reward'
+  let wake = null;                  // F-P17: a képernyő ne sötétüljön el gyakorlás közben
+
+  async function keepAwake() {
+    if (mode === 'off' || wake || !('wakeLock' in navigator) || document.hidden) return;
+    try { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    catch { wake = null; }
+  }
+  function letSleep() { if (wake) { wake.release().catch(() => {}); wake = null; } }
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
   const lay = { barW: 0 };
   const measure = document.createElement('canvas').getContext('2d');
@@ -27,6 +35,7 @@ export function createPractice(el, { onExit }) {
     layout();
     render(); arm();                // S1: azonnal az első tétel, teljes idővel
     requestAnimationFrame(barFrame);
+    keepAwake();
   }
 
   function dispatch(ev) {
@@ -55,6 +64,7 @@ export function createPractice(el, { onExit }) {
     clearTimeout(timer); clearTimeout(uiTimer);
     reward.stop();
     mode = 'off'; st = null;
+    letSleep();
     el.itemText.textContent = '';
     el.stage.hidden = true; el.stage.className = 'stage'; el.stage.dataset.mode = 'practice';
     onExit();
@@ -146,7 +156,7 @@ export function createPractice(el, { onExit }) {
     if (e.code === 'Escape') exit();
     else dispatch(KID_KEYS[e.code]);
   }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) dispatch('BLUR'); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) dispatch('BLUR'); else keepAwake(); });
   addEventListener('blur', () => dispatch('BLUR'));
   addEventListener('resize', () => { if (mode === 'practice') { layout(); render(); } });
 

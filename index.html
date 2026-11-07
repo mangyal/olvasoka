@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Olvasóka</title>
 <meta name="description" content="Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232E6B66'/%3E%3Ctext x='16' y='23' font-family='Arial' font-size='20' text-anchor='middle' fill='white'%3Ea%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo&display=swap">
+<meta name="theme-color" content="#2E6B66">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="img/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="img/icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Olvasóka">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/admin.css">
 <link rel="stylesheet" href="css/stage.css">
@@ -133,6 +138,7 @@
     <li><span class="only-keys">Gyakorlás közben: <kbd>Space</kbd> vagy <kbd>→</kbd> a következő, <kbd>←</kbd> az előző, <kbd>P</kbd> szünet, <kbd>Esc</kbd> kilépés.</span><span class="only-touch">Gyakorlás közben koppints bárhová a következő tételhez. A lenti gombokkal vissza is léphetsz, vagy megállíthatod a kört.</span></li>
     <li>A kör végén lufipukkasztás a jutalom.</li>
   </ol>
+  <p class="muted help-install">Telefonra vagy tabletre telepítve teljes képernyőn, hálózat nélkül is fut. iPhone-on és iPaden: Safari, Megosztás, Főképernyőhöz adás.</p>
   <div class="dlg-actions help-actions">
     <label class="help-hide"><input type="checkbox" id="helpHide"> Ne jelenjen meg újra</label>
     <button type="button" class="btn btn-primary" data-close autofocus>Kezdjük</button>
