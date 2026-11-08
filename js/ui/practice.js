@@ -3,10 +3,13 @@
 
 import { buildSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
+import { syllables } from '../core/cover.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
 
-const KID_KEYS = { Space: 'SPACE', ArrowRight: 'NEXT', ArrowLeft: 'PREV', KeyP: 'PAUSE' };
+const KID_KEYS = { Space: 'SPACE', ArrowRight: 'NEXT', ArrowLeft: 'PREV', KeyP: 'PAUSE', ArrowDown: 'COVER_DOWN' };
+const SVG = 'http://www.w3.org/2000/svg';
+const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem lép és nem takar
 
 export function createPractice(el, { onExit }) {
   let mode = 'off';                 // 'off' | 'practice' | 'reward'
@@ -20,7 +23,11 @@ export function createPractice(el, { onExit }) {
   function letSleep() { if (wake) { wake.release().catch(() => {}); wake = null; } }
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
   let touch = false;                // F-P10: volt már érintés/toll → a ✕ végig látszik
-  const lay = { barW: 0 };
+  const lay = { barW: 0, size: 0, top: 0, bottom: 0 };
+  let geo = null;                   // a látható tétel szótag-geometriája (F-P19, F-P22)
+  const coverG = document.createElementNS(SVG, 'g');
+  coverG.setAttribute('class', 'covers');
+  el.itemText.after(coverG);
   const measure = document.createElement('canvas').getContext('2d');
   const reward = createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit });
 
@@ -40,9 +47,10 @@ export function createPractice(el, { onExit }) {
     keepAwake();
   }
 
-  function dispatch(ev) {
+  function dispatch(ev, arg) {
     if (mode !== 'practice') return;
-    st = step(st, ev, performance.now());
+    if (ev === 'COVER_DOWN') arg = { n: curSyllables().length };
+    st = step(st, ev, performance.now(), arg);
     if (st.done) { toReward(); return; }
     render(); arm();
   }
@@ -67,7 +75,7 @@ export function createPractice(el, { onExit }) {
     reward.stop();
     mode = 'off'; st = null;
     letSleep();
-    el.itemText.textContent = '';
+    el.itemText.textContent = ''; coverG.replaceChildren(); geo = null;
     el.stage.hidden = true; el.stage.className = 'stage'; el.stage.dataset.mode = 'practice';
     onExit();
   }
@@ -89,6 +97,8 @@ export function createPractice(el, { onExit }) {
     const size = Math.max(8, Math.floor(k * 100)), s = size / 100;
     const baseline = vh * 0.46 + ((A - D) / 2) * s;
     el.itemText.setAttribute('font-size', size);
+    lay.size = size; lay.top = baseline - A * s; lay.bottom = baseline + D * s;
+    geo = null;
     el.itemText.setAttribute('y', baseline.toFixed(1));
     // időjelző a közös tinta-doboz alatt, a kör legszélesebb tételének szélességében
     lay.barW = Math.min(vw * 0.7, Math.max(160, maxW * s));
@@ -101,13 +111,78 @@ export function createPractice(el, { onExit }) {
   function render() {
     const practice = mode === 'practice';
     const showing = practice && st.phase === 'showing';
-    el.itemText.textContent = showing ? items[st.seq[st.index]] : '';
+    const text = showing ? items[st.seq[st.index]] : '';
+    if (el.itemText.textContent !== text) { el.itemText.textContent = text; geo = null; }
+    drawCovers();
     el.counter.textContent = practice ? `${st.index + 1}/${st.seq.length}` : '';
     el.pauseInd.classList.toggle('on', practice && st.paused);
     if (!practice) return;
     el.cPrev.disabled = !canPrev(st);
     el.cPlayPath.setAttribute('d', st.paused ? 'M8 5.5v13l10.5-6.5z' : 'M9 6v12M15 6v12');
     el.cPlay.setAttribute('aria-label', st.paused ? 'Folytatás' : 'Szünet');
+  }
+
+  /* ---------- szótag-takarás (spec 4.5) ---------- */
+  function curSyllables() {
+    return mode === 'practice' && st.phase === 'showing' ? syllables(items[st.seq[st.index]]) : [];
+  }
+
+  // Tinta-szélek a tényleges SVG-elrendezésből: a karakter kezdőpontja az SVG-ből, a tinta
+  // kiterjedése a canvas mérésből (ugyanaz a betű és méret).
+  function ink(text, start, len) {
+    const x = el.itemText.getStartPositionOfChar(start).x;
+    const m = measure.measureText(text.slice(start, start + len));
+    return { l: x - (m.actualBoundingBoxLeft || 0), r: x + (m.actualBoundingBoxRight || m.width) };
+  }
+
+  function geometry() {
+    if (geo) return geo;
+    const text = el.itemText.textContent, syl = syllables(text);
+    if (syl.length < 2) return (geo = { syl, slices: [], rects: [] });
+    measure.font = `400 ${lay.size}px ${FONT_STACK}`;
+    const em = lay.size;
+    const whole = ink(text, 0, text.length);
+    const hyph = (i) => (text[i] === '-' ? ink(text, i, 1) : null);
+    // F-P19: a közös tinta-doboz szeletei a szótagok közti kötőjel(ek) közepén
+    const cuts = [];
+    for (let k = 0; k < syl.length - 1; k++) {
+      const a = ink(text, syl[k].end, 1), b = ink(text, syl[k + 1].start - 1, 1);
+      cuts.push(((a.l + a.r) / 2 + (b.l + b.r) / 2) / 2);
+    }
+    const slices = syl.map((_, k) => ({ l: k ? cuts[k - 1] : whole.l, r: k < cuts.length ? cuts[k] : whole.r }));
+    // F-P22: szótag-tinta ± 0,06 em, a szomszédos kötőjel tintáját nem éri el; függőlegesen a kör tinta-doboza ± 0,08 em
+    const y = lay.top - 0.08 * em, h = lay.bottom - lay.top + 0.16 * em;
+    const rects = syl.map((sy) => {
+      const g = ink(text, sy.start, sy.end - sy.start);
+      let l = g.l - 0.06 * em, r = g.r + 0.06 * em;
+      const before = hyph(sy.start - 1), after = hyph(sy.end);
+      if (before) l = Math.max(l, before.r + 1);
+      if (after) r = Math.min(r, after.l - 1);
+      return { x: l, y, w: Math.max(0, r - l), h };
+    });
+    return (geo = { syl, slices, rects });
+  }
+
+  function drawCovers() {
+    const c = mode === 'practice' && st.phase === 'showing' ? st.covered : [];
+    if (!c.some(Boolean)) { coverG.replaceChildren(); return; }
+    const { rects } = geometry();
+    coverG.replaceChildren(...rects.flatMap((r, k) => {
+      if (!c[k]) return [];
+      const n = document.createElementNS(SVG, 'rect');
+      n.setAttribute('class', 'cover');
+      n.setAttribute('x', r.x.toFixed(1)); n.setAttribute('y', r.y.toFixed(1));
+      n.setAttribute('width', r.w.toFixed(1)); n.setAttribute('height', r.h.toFixed(1));
+      n.setAttribute('rx', 6);
+      return [n];
+    }));
+  }
+
+  /** Melyik szótag takarási területén van a pont (F-P19); -1, ha egyiken sem, vagy nincs mit takarni. */
+  function syllableAt(x, y) {
+    if (mode !== 'practice' || st.phase !== 'showing' || curSyllables().length < 2) return -1;
+    if (y < lay.top || y > lay.bottom) return -1;
+    return geometry().slices.findIndex((sl) => x >= sl.l && x <= sl.r);
   }
 
   function barFrame() {
@@ -133,13 +208,18 @@ export function createPractice(el, { onExit }) {
   el.stage.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse' && !touch) { touch = true; el.stage.classList.add('touch'); }
     if (mode === 'reward') reward.pointerDown(e);
-    tapPt = mode === 'practice' && e.pointerType !== 'mouse' && !e.target.closest('.cbtn') ? { x: e.clientX, y: e.clientY } : null;
+    const mouse = e.pointerType === 'mouse';
+    tapPt = mode === 'practice' && !e.target.closest('.cbtn') && (!mouse || e.button === 0)
+      ? { x: e.clientX, y: e.clientY, mouse } : null;
   });
-  // F-P16: érintőképernyőn egy koppintás bárhol = következő (mint a ▶); húzásra nem lép
+  // F-P16: érintőképernyőn egy koppintás bárhol = következő (mint a ▶); húzásra nem lép.
+  // F-P18/F-P19: többszótagú tételen a szótag területére kattintás/koppintás takar; egérrel máshol semmi.
   el.stage.addEventListener('pointerup', (e) => {
     const p = tapPt; tapPt = null;
-    if (!p || mode !== 'practice' || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 12) return;
-    dispatch('NEXT');
+    if (!p || mode !== 'practice' || Math.hypot(e.clientX - p.x, e.clientY - p.y) > DRAG) return;
+    const i = syllableAt(p.x, p.y);
+    if (i >= 0) dispatch('COVER', { i, n: curSyllables().length });
+    else if (!p.mouse) dispatch('NEXT');
   });
   el.stage.addEventListener('pointercancel', () => { tapPt = null; });
   const ctl = (btn, fn) => {

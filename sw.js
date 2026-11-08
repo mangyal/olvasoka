@@ -24,6 +24,7 @@ const ASSETS = [
   'img/icons/icon-192.png',
   'js/main.js',
   'js/font.js',
+  'js/core/cover.js',
   'js/core/csv.js',
   'js/core/drift.js',
   'js/core/items.js',
