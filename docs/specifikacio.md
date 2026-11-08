@@ -54,6 +54,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 1 | Szótag-takarás | A kötőjellel tagolt tétel szótagjai a szülő műveletére egyenként letakarhatók (kattintás/koppintás a szótagra, vagy `↓`). Alapból minden szótag látszik; a program magától soha nem takar. A takaró egy sárga műanyag vonalzó, a szótag szélességére nyújtva. | 2., 4.5, F-P17–F-P23, 4.4, U-P9 |
 | 2 | Koppintás | A tétel területén belüli koppintás többszótagú tételnél takar, nem léptet; azon kívül változatlanul NEXT. | F-P16 |
 | 3 | Auto-pause | A takarás megkezdése megállítja az időt. | F-P20 |
+| 4 | Betűméret | A tétel kb. 15%-kal kisebb: a legszélesebb tétel a szélesség 72%-án (85% helyett), a tinta-doboz és a betűméret a magasság 53%-án (62% helyett) fér el. | F-P13 |
 
 ### 2.7 (a 2.6-hoz képest)
 
@@ -297,8 +298,8 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-P11** Mozdulatlanságnál a kurzor elrejtődik (a gombok fölött látszik), mozgásra visszajön.
 - **F-P12** **Pause-jelző:** pause alatt kis ⏸ jel a jobb felső sarokban, a számlálótól balra.
 - **F-P13** **Betűméret:** a kör indulásakor egyetlen méret, amellyel a kör legszélesebb tétele elfér a
-  szélesség 85%-án, a tételek közös tinta-doboza a magasság 62%-án, és a betűméret legfeljebb a magasság
-  62%-a. Az alapvonal a körön belül állandó; a közös tinta-doboz közepe a magasság 46%-án van.
+  szélesség 72%-án, a tételek közös tinta-doboza a magasság 53%-án, és a betűméret legfeljebb a magasság
+  53%-a (2.8-ban 85%, 62%, 62%). Az alapvonal a körön belül állandó; a közös tinta-doboz közepe a magasság 46%-án van.
   Átméretezéskor újraszámolódik.
 - **F-P14** **Időjelző:** a tétel alatt 6 px magas, lekerekített csík a kör legszélesebb tételének
   szélességében (min. 160 px, max. a szélesség 70%-a). A kitöltés balról jobbra fogy a hátralévő idő
@@ -564,7 +565,7 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
     fut le a takarással együtt. Bármely tételváltás után `covered` üres.
 20. Egy szótagra kattintva/koppintva csak az takaródik le, vonalzóval; a kötőjel látszik; a takarás előtti és utáni
     képernyőképen a nem takart betűk pixelre egyeznek. Érintőképernyőn a tételen kívüli koppintás lép.
-21. Takarási művelet nélkül a gyakorlónézet pixelre ugyanaz, mint a 2.7-ben.
+21. Takarási művelet nélkül a gyakorlónézet pixelre ugyanaz, mint a 2.7-ben, a kisebb betűmérettől (F-P13) eltekintve.
 22. *(automata)* `rulerGeometry`: a vonások a vonalzón belül vannak (0,05 em-től a jobb vég − 0,03 em-ig),
     a lépésköz 0,045 em, a hosszminta 10/5/1 szerint 0,16 / 0,11 / 0,06 em; az alsó él az időjelző
     teteje − 4 px fölött van; a kötőjel felőli oldalon nincs ráhagyás.
