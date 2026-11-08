@@ -93,7 +93,7 @@ export function createPractice(el, { onExit }) {
       D = Math.max(D, m.actualBoundingBoxDescent || 0);
     }
     const vw = innerWidth, vh = innerHeight;
-    const k = Math.min(vw * 0.85 / maxW, vh * 0.62 / Math.max(1, A + D), vh * 0.62 / 100);
+    const k = Math.min(vw * 0.72 / maxW, vh * 0.53 / Math.max(1, A + D), vh * 0.53 / 100);
     const size = Math.max(8, Math.floor(k * 100)), s = size / 100;
     const baseline = vh * 0.46 + ((A - D) / 2) * s;
     el.itemText.setAttribute('font-size', size);
