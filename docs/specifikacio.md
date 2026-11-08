@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.7** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.8** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,14 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.8 (a 2.7-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Szótag-takarás | A kötőjellel tagolt tétel szótagjai a szülő műveletére egyenként letakarhatók (kattintás/koppintás a szótagra, vagy `↓`). Alapból minden szótag látszik; a program magától soha nem takar. | 2., 4.5, F-P17–F-P23, 4.4, U-P9 |
+| 2 | Koppintás | A tétel területén belüli koppintás többszótagú tételnél takar, nem léptet; azon kívül változatlanul NEXT. | F-P16 |
+| 3 | Auto-pause | A takarás megkezdése megállítja az időt. | F-P20 |
 
 ### 2.7 (a 2.6-hoz képest)
 
@@ -129,7 +137,8 @@ A tartalom gyakran változik. A szülő a listákat egy Google táblázatban sze
 visszavisz ADMIN-ba.
 
 A PRACTICE állapotot a `js/core/round.js` írja le:
-`{ seq, flash, gap, index, phase: 'showing' | 'gap', paused, deadline, remaining, done }`.
+`{ seq, flash, gap, index, phase: 'showing' | 'gap', paused, deadline, remaining, done, covered }`.
+A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 
 ---
 
@@ -299,6 +308,8 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-P16** **Koppintás:** érintőképernyőn (és tollal) egy koppintás a gyakorlónézetben bárhol
   ugyanaz, mint a ▶ (`NEXT`): szünetben is lép, az utolsón jutalomra vált. A vezérlőgombokra koppintás
   csak a gombot működteti; 12 px-nél nagyobb húzás nem lép. Egérkattintásra nincs hatása.
+  **Kivétel (2.8):** többszótagú tételnél a tétel takarási területén (F-P19) belüli koppintás nem lép,
+  hanem takar (F-P18). Egyszótagú tételnél és a szünetben (`gap`) a koppintás mindenhol NEXT.
 
 ### 4.4 Billentyűk
 
@@ -308,11 +319,51 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 | `ArrowRight` | következő tétel / utolsón: jutalom |
 | `ArrowLeft` | előző tétel (teljes idővel) |
 | `KeyP` | pause / folytatás |
+| `ArrowDown` | szótag-takarás léptetése (F-P18) |
 | `Escape` | kilépés ADMIN-ba |
 | `Ctrl`/`Cmd` + `Enter` | kör indítása (ADMIN) |
 
 - Azonosítás `e.code` alapján; `e.repeat` eseményeket eldobjuk; a Space és a nyilak görgetését
   `preventDefault` tiltja; induláskor a fókuszban lévő elem elveszíti a fókuszt.
+
+### 4.5 Szótag-takarás
+
+Az iskolai módszert követi: a gyerek előbb az első szótagot olvassa (a második letakarva), aztán a
+másodikat (az első letakarva), végül az egészet. A takarás a szülő eszköze, mint egy papírlap a
+könyvön: **alapból minden szótag látszik, és a program magától soha nem takar.**
+
+- **F-P17 Szótagok.** A tétel szótagjait a kötőjel (`-`, U+002D) választja el, ahogy a listában le van
+  írva (`ka-ta` → `ka`, `ta`). Az üres szakasz (kezdő, záró vagy dupla kötőjel) nem szótag. Legalább két
+  szótag kell; egyszótagú tételen a takarásnak nincs hatása. A kötőjel a tétel része marad és látszik
+  (F-L6), a takarás soha nem fedi.
+- **F-P18 Vezérlés.**
+  - **Kattintás vagy koppintás** egy szótag takarási területén (F-P19) az adott szótag takarását
+    váltja (letakar ↔ felfed). Bármely kombináció megengedett, az összes szótag letakarása is.
+  - **`↓` (`ArrowDown`)** a takarást lépteti ebben a sorrendben: *egész → csak az 1. szótag látszik →
+    csak a 2. → … → csak az utolsó → egész*. Ha az aktuális állapot nem e sorozat egy eleme (kézzel
+    kevert takarás), a `↓` a „csak az 1. szótag” állapotra ugrik.
+  - A szünetben (`gap`) és egyszótagú tételen egyik műveletnek sincs hatása; a koppintás ott F-P16
+    szerint NEXT, a kattintás semmi.
+- **F-P19 Takarási terület.** A tétel közös tinta-dobozát (F-P13) a kötőjelek közepén függőlegesen
+  szeletekre bontjuk; minden szelet egy szótag területe. A tinta-dobozon kívüli kattintásnak nincs
+  hatása, a koppintás NEXT (F-P16). 12 px-nél nagyobb húzás nem takar.
+- **F-P20 Időzítés.** Ha az idő fut (nem kézi léptetés, nincs pause), az első olyan művelet, amely
+  bármelyik szótagot letakarja, **pause-t vált ki** (F-P5), a pause-jelzővel (F-P12) és álló
+  időjelzővel. A felfedés nem indítja újra az időt. Folytatás P-vel vagy ⏸-lel; a takarás ekkor
+  megmarad, és a hátralévő idő fut le. Továbblépés pause alatt F-P7a szerint (→, ▶, koppintás a
+  tételen kívül).
+- **F-P21 Visszaállás.** Minden tételváltáskor (időlejárat, Space, →, ←, ▶, ◀, koppintás) a takarás
+  megszűnik: az új (vagy visszahozott) tétel mindig egészben jelenik meg. A takarás nem tárolódik.
+- **F-P22 Megjelenés.** A takaró egy papírlap a szótag fölött: `--paper-2` kitöltés, 1 px `--line` keret,
+  6 px sarok, árnyék és fade nélkül. Vízszintesen a szótag első betűjének bal szélétől az utolsó jobb
+  széléig tart, mindkét oldalon 0,06 em ráhagyással, de a szomszédos kötőjel tintáját nem érheti el;
+  függőlegesen a kör közös tinta-dobozát fedi, fent és lent 0,08 em ráhagyással. Így egy körön belül
+  minden takaró azonos magasságú, és a betűk alakja nem árulkodik kilógó ékezettel vagy szárral.
+- **F-P23 Stabil elrendezés.** A takarás a betűméretet, az alapvonalat, a tétel és a kötőjelek
+  helyzetét nem változtatja meg; a felfedett szótag pixelre ugyanott van, mint takarás előtt.
+  Átméretezéskor a takarók a tétellel együtt újraszámolódnak, az állapot megmarad.
+- A takarás logikája (szótagolás, `↓`-sorozat, váltás, visszaállás, auto-pause) a `js/core/cover.js`-ben
+  és a `round.js` reducerében van, DOM nélkül, `node --test`-tel tesztelve.
 
 ---
 
@@ -409,7 +460,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 index.html          markup
 lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom
-js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift
+js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, cover
 js/data/            store (localStorage), remote (lists.txt letöltése)
 js/ui/              admin, practice, reward
 js/font.js          betűtípus-kapu
@@ -452,6 +503,15 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Fül háttérbe / fókuszvesztés | Automatikus pause |
 | Ablak átméretezése | A betűméret és az időjelző újraszámolódik |
 | Tárolás nem elérhető | Működik, figyelmeztetéssel |
+| Takarás egyszótagú tételen (`↓`, kattintás) | Nincs hatása; koppintás: NEXT |
+| Takarás a szünetben (`gap`) | Nincs hatása |
+| Első takarás futó idő alatt | Pause, pause-jelzővel |
+| Takarás kézi léptetésnél / pause alatt | Takar, az idő állapota nem változik |
+| Minden szótag letakarva | Megengedett |
+| `↓` kézzel kevert takarásnál | „Csak az 1. szótag” állapot |
+| Tételváltás takarás közben | Az új tétel egészben látszik |
+| Átméretezés takarás közben | A takarók a tétellel együtt méreteződnek, az állapot marad |
+| `ka--ta`, `-ka`, `ka-` | Üres szakasz nem szótag: rendre 2, 1, 1 szótag |
 
 ---
 
@@ -482,6 +542,14 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 15. A beállítások és a kijelölt lista újratöltés után megmaradnak; hálózat nélkül a legutóbbi listák látszanak.
 16. A táblázat módosítása után a Frissítés legfeljebb ~5 percen belül az új listát mutatja.
 17. Sehol nincs hanglejátszás.
+18. *(automata)* `ka-ta` tételen a `↓` négyszer: egész → csak `ka` → csak `ta` → egész. Háromszótagúnál
+    öt lépés zárja a kört. Kevert takarásnál a `↓` a „csak az 1.” állapotra ugrik. Egyszótagú tételen
+    és `gap` fázisban nincs hatása.
+19. *(automata)* Futó időnél az első takarás pause-t ad; felfedés nem folytat; P után a hátralévő idő
+    fut le a takarással együtt. Bármely tételváltás után `covered` üres.
+20. Egy szótagra kattintva/koppintva csak az takaródik le; a kötőjel látszik; a takarás előtti és utáni
+    képernyőképen a nem takart betűk pixelre egyeznek. Érintőképernyőn a tételen kívüli koppintás lép.
+21. Takarási művelet nélkül a gyakorlónézet pixelre ugyanaz, mint a 2.7-ben.
 
 ---
 
@@ -536,9 +604,26 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | A táblázatot a CI nem ellenőrzi | A hibakezelés a programban van (kihagy és jelez, F-L7). |
 | Kör-logika tiszta reducerben, `node --test`, GitHub Actions | Az időzítés és a navigáció automatikusan tesztelhető; hibás lista már a commitnál kiderül. |
 
+**Szótag-takarás (2.8, 2026-11-08):**
+
+| Döntés | Indok |
+|---|---|
+| A szótagokat a listában már meglévő kötőjel jelöli | Nincs új adatformátum; a könyv és az iskola is így írja (`ka-ta`). |
+| A kötőjel marad, szótagív nincs | A szülő döntése; a gyerek a könyvben is kötőjellel látja. |
+| Alapból minden látszik, a program sosem takar magától | A takarás a szülő és a gyerek közös munkája, a szülő dönti el, mikor és mit. |
+| Kattintás/koppintás a szótagra + `↓` léptetés | Közvetlen, mint a papírlap; a `↓` a vakon vezérelhetőséget adja (U-E3), a sorrendje az iskolai módszert követi. |
+| Az első takarás pause-t ad | A takarásos olvasás nem fér bele a felvillanási időbe; a gyerek ne kapkodjon. |
+| Tételváltáskor visszaáll | Minden új tételnél ugyanaz a kiindulás; nincs rejtett állapot. |
+| A takaró a kör közös tinta-dobozát fedi | Ne lógjon ki ékezet vagy szár, ami elárulná a szótagot; minden takaró egyforma. |
+| A „Keresd meg!” módban egyelőre nincs takarás | Négy tételnél nem egyértelmű, melyik takarása a cél. |
+
 ---
 
 ## 11. Nyitott pontok
+
+- Pause alatt a Space nem léptet (F-P3). Takarás után a szülő pause-ban van, ezért a Space nem visz
+  tovább, csak a → / ▶ / koppintás. Használat után dönteni: kapjon-e a Space is F-P7a szerinti
+  léptetést pause alatt.
 
 - A „44. oldal” listában szereplő `sk` tétel valószínűleg elírás; a tartalomgazda ellenőrzi.
 - A 12. fejezet számértékeitől ±20%-on belül indoklás nélkül el lehet térni; a színektől csak a
@@ -592,7 +677,7 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 │  Á-A-E      27 │ Frissítve: 20:49  [Frissítés]  Listák szerk. ↗   │
 ├────────────────┴──────────────────────────────────────────────────┤
 │ Tételek [Kijelölt|Összes]  Felvillanás ──●── 10 mp  Szünet [0…3]  Tétel − 10 + │
-│ kb. 1 perc 40 mp   Space tovább · ← → lépés · P szünet · Esc kilép   [Indítás] │
+│ kb. 1 perc 40 mp   Space tovább · ← → lépés · ↓ takar · P szünet · Esc kilép   [Indítás] │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -625,7 +710,8 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
   megjelenik, amíg a „Ne jelenjen meg újra” jelölőnégyzet nincs bepipálva (`hideHelp` a helyi
   állapotban); a fejléc „Súgó” gombja bármikor megnyitja. Billentyűs eszközön a billentyűket,
   érintőképernyőn és 600 px alatt a jelölőnégyzeteket és a gombokat írja le. Telefonon szinte
-  teljes képernyős, a gomb teljes szélességű.
+  teljes képernyős, a gomb teljes szélességű. Egy mondatban említi a szótag-takarást is
+  (kattintás/koppintás a szótagra, illetve `↓`).
 
 ### 12.4 Gyakorlónézet
 - **U-P1** Háttér: sík `--paper`, enyhe vignetta, három statikus `--paper-2` folt a sarkokban.
@@ -638,6 +724,9 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 - **U-P6** Számláló: jobb felső sarok, 24 px-re a szélektől, 20 px, `--ink-2`, `tabular-nums`.
 - **U-P7** Pause-jelző: a számlálótól balra, 28 px, két lekerekített sáv, `--ink` 35%, fade 300 ms.
 - **U-P8** Belépés animáció nélkül, az első tétel azonnal, teljes idővel. Kilépés azonnal.
+- **U-P9** Szótag-takaró: F-P22. Megjelenése és eltűnése azonnali. Egeres eszközön a szótag fölött a
+  kurzor nem változik (a tétel a gyereké, nem „gomb”); a kurzor elrejtése (F-P11) változatlan.
+  A takaró nem kap `aria-label`-t; a szótagok állapota a tétel `aria-label`-jében nem jelenik meg.
 
 ### 12.5 Jutalomnézet
 - **U-R1** Lufi: tojásdad (sz/m ≈ 0,82), háromszög csomó, 1 px madzag (`--ink` 25%), egy fényfolt;
