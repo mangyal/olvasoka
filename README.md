@@ -53,11 +53,16 @@ szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd á
 |---|---|
 | `Space` | következő tétel (az utolsón: jutalom) |
 | `←` / `→` | előző / következő tétel |
+| `↓` | szótag-takarás léptetése (kötőjeles tételnél) |
 | `P` | szünet / folytatás |
 | `Esc` | vissza a szülői felületre |
 | `Ctrl`+`Enter` | kör indítása a szülői felületen |
 
 A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább.
+Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
+szótagra, vagy nyomd a `↓`-t (egész → csak az 1. szótag → … → csak az utolsó → egész). Az első takarás
+megállítja az időt; a következő tételnél minden szótag újra látszik.
+
 A beállítások az adott böngészőben maradnak meg.
 
 ## Felépítés
@@ -77,6 +82,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   source.js           forrás: táblázat, tartalékként lists.txt
   selection.js        listák kijelölése
   drift.js            a jutalom lufijainak mozgása
+  cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
 js/data/            localStorage és a listák letöltése
 js/ui/              szülői felület, gyakorlás, jutalom

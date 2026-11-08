@@ -12,6 +12,8 @@
 .item-svg text{fill:var(--ink);font-family:var(--f-item);font-weight:400;white-space:pre}
 #barTrack{fill:var(--line)}
 #barFill{fill:var(--accent);opacity:.75}
+/* F-P22, U-P9: szótag-takaró papírlap; megjelenése azonnali */
+.item-svg .cover{fill:var(--paper-2);stroke:var(--line);stroke-width:1}
 .stage[data-mode=practice]{cursor:none}
 .stage[data-mode=practice].ui{cursor:default}
 .stage[data-mode=reward]{cursor:var(--kid-cursor,default)}
