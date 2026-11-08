@@ -7,6 +7,7 @@
   --paper:#F5F0E6; --paper-2:#ECE5D6; --line:#D9CFBE; --field:#FBF8F2;
   --ink:#1E2A32; --ink-2:#5A6670; --accent:#2E6B66; --on-accent:#FFFFFF;
   --warn:#94560F; --error:#A23B2A; --sky:#DCE9EF;
+  --ruler:#F4E3A1; --ruler-edge:#C9B26A; --ruler-tick:#8C7638; --ruler-bevel:#E6D18A;
   --f-item:Arial,'Arimo',Helvetica,sans-serif;
   --f-ui:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
   --gut:24px; --r-ctl:6px; --r-dlg:10px;

@@ -51,7 +51,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 
 | # | Terület | Változás | Érintett pontok |
 |---|---|---|---|
-| 1 | Szótag-takarás | A kötőjellel tagolt tétel szótagjai a szülő műveletére egyenként letakarhatók (kattintás/koppintás a szótagra, vagy `↓`). Alapból minden szótag látszik; a program magától soha nem takar. | 2., 4.5, F-P17–F-P23, 4.4, U-P9 |
+| 1 | Szótag-takarás | A kötőjellel tagolt tétel szótagjai a szülő műveletére egyenként letakarhatók (kattintás/koppintás a szótagra, vagy `↓`). Alapból minden szótag látszik; a program magától soha nem takar. A takaró egy sárga műanyag vonalzó, a szótag szélességére nyújtva. | 2., 4.5, F-P17–F-P23, 4.4, U-P9 |
 | 2 | Koppintás | A tétel területén belüli koppintás többszótagú tételnél takar, nem léptet; azon kívül változatlanul NEXT. | F-P16 |
 | 3 | Auto-pause | A takarás megkezdése megállítja az időt. | F-P20 |
 
@@ -329,8 +329,8 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 ### 4.5 Szótag-takarás
 
 Az iskolai módszert követi: a gyerek előbb az első szótagot olvassa (a második letakarva), aztán a
-másodikat (az első letakarva), végül az egészet. A takarás a szülő eszköze, mint egy papírlap a
-könyvön: **alapból minden szótag látszik, és a program magától soha nem takar.**
+másodikat (az első letakarva), végül az egészet. A takarás a szülő eszköze, mint a vonalzó, amit a
+könyvön a szótagra tesz: **alapból minden szótag látszik, és a program magától soha nem takar.**
 
 - **F-P17 Szótagok.** A tétel szótagjait a kötőjel (`-`, U+002D) választja el, ahogy a listában le van
   írva (`ka-ta` → `ka`, `ta`). Az üres szakasz (kezdő, záró vagy dupla kötőjel) nem szótag. Legalább két
@@ -354,11 +354,23 @@ könyvön: **alapból minden szótag látszik, és a program magától soha nem 
   tételen kívül).
 - **F-P21 Visszaállás.** Minden tételváltáskor (időlejárat, Space, →, ←, ▶, ◀, koppintás) a takarás
   megszűnik: az új (vagy visszahozott) tétel mindig egészben jelenik meg. A takarás nem tárolódik.
-- **F-P22 Megjelenés.** A takaró egy papírlap a szótag fölött: `--paper-2` kitöltés, 1 px `--line` keret,
-  6 px sarok, árnyék és fade nélkül. Vízszintesen a szótag első betűjének bal szélétől az utolsó jobb
-  széléig tart, mindkét oldalon 0,06 em ráhagyással, de a szomszédos kötőjel tintáját nem érheti el;
-  függőlegesen a kör közös tinta-dobozát fedi, fent és lent 0,08 em ráhagyással. Így egy körön belül
-  minden takaró azonos magasságú, és a betűk alakja nem árulkodik kilógó ékezettel vagy szárral.
+- **F-P22 Megjelenés: vonalzó.** A takaró egy vízszintes, sárga műanyag vonalzó a szótag fölött.
+  Szám, felirat, árnyék, színátmenet és fade nincs rajta.
+  - **Test:** `--ruler` kitöltés, 1 px `--ruler-edge` keret, 0,03 em sarok. Egy vékony
+    (1 px, `--ruler-bevel`) vízszintes vonal a test magasságának 62%-ánál (a vonalzó éle).
+  - **Beosztás:** a felső élről lefelé induló, 1 px vastag, `--ruler-tick` színű vonások. A lépésköz
+    0,045 em („mm”). Minden 10. vonás 0,16 em, minden 5. 0,11 em, a többi 0,06 em hosszú. Az első
+    vonás 0,05 em-re van a bal végtől (ez egyben 10-es vonás), az utolsó legalább 0,03 em-re a jobb
+    végtől. Így bármilyen hosszon ugyanolyan a minta, csak a vonások száma változik.
+  - **Vízszintes méret:** a szótag első betűjének bal szélétől az utolsó jobb széléig (az advance-doboz
+    szerint). A kötőjel felőli oldalon nincs ráhagyás, a külső oldalon 0,06 em. A szomszédos kötőjel
+    tintáját soha nem érheti el.
+  - **Függőleges méret:** a kör közös tinta-doboza (F-P13), fent és lent 0,03 em ráhagyással.
+    Az alsó él legalább 4 px-re az időjelző teteje fölött marad (U-P3); ha a ráhagyás ezt sértené,
+    lent kisebb lesz. Így egy körön belül minden vonalzó azonos magasságú, és nem árulkodik kilógó
+    ékezet vagy szár.
+  - A geometria (méret, vonások helye és hossza) a `js/core/cover.js`-ben számolódik
+    (`rulerGeometry(box, em)`), DOM nélkül; a rajzolás inline SVG.
 - **F-P23 Stabil elrendezés.** A takarás a betűméretet, az alapvonalat, a tétel és a kötőjelek
   helyzetét nem változtatja meg; a felfedett szótag pixelre ugyanott van, mint takarás előtt.
   Átméretezéskor a takarók a tétellel együtt újraszámolódnak, az állapot megmarad.
@@ -512,6 +524,9 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Tételváltás takarás közben | Az új tétel egészben látszik |
 | Átméretezés takarás közben | A takarók a tétellel együtt méreteződnek, az állapot marad |
 | `ka--ta`, `-ka`, `ka-` | Üres szakasz nem szótag: rendre 2, 1, 1 szótag |
+| Nagyon keskeny szótag (pl. `i`) | Rövid vonalzó, legalább az első 10-es vonással; nem szélesedik a kötőjel felé |
+| Vonalzó és időjelző közel | A vonalzó alsó éle min. 4 px-re az időjelző fölött; az időjelzőt nem fedi |
+| Két szomszédos szótag letakarva | Két külön vonalzó, köztük a kötőjel látszik |
 
 ---
 
@@ -547,9 +562,12 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
     és `gap` fázisban nincs hatása.
 19. *(automata)* Futó időnél az első takarás pause-t ad; felfedés nem folytat; P után a hátralévő idő
     fut le a takarással együtt. Bármely tételváltás után `covered` üres.
-20. Egy szótagra kattintva/koppintva csak az takaródik le; a kötőjel látszik; a takarás előtti és utáni
+20. Egy szótagra kattintva/koppintva csak az takaródik le, vonalzóval; a kötőjel látszik; a takarás előtti és utáni
     képernyőképen a nem takart betűk pixelre egyeznek. Érintőképernyőn a tételen kívüli koppintás lép.
 21. Takarási művelet nélkül a gyakorlónézet pixelre ugyanaz, mint a 2.7-ben.
+22. *(automata)* `rulerGeometry`: a vonások a vonalzón belül vannak (0,05 em-től a jobb vég − 0,03 em-ig),
+    a lépésköz 0,045 em, a hosszminta 10/5/1 szerint 0,16 / 0,11 / 0,06 em; az alsó él az időjelző
+    teteje − 4 px fölött van; a kötőjel felőli oldalon nincs ráhagyás.
 
 ---
 
@@ -611,11 +629,14 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | A szótagokat a listában már meglévő kötőjel jelöli | Nincs új adatformátum; a könyv és az iskola is így írja (`ka-ta`). |
 | A kötőjel marad, szótagív nincs | A szülő döntése; a gyerek a könyvben is kötőjellel látja. |
 | Alapból minden látszik, a program sosem takar magától | A takarás a szülő és a gyerek közös munkája, a szülő dönti el, mikor és mit. |
-| Kattintás/koppintás a szótagra + `↓` léptetés | Közvetlen, mint a papírlap; a `↓` a vakon vezérelhetőséget adja (U-E3), a sorrendje az iskolai módszert követi. |
+| Kattintás/koppintás a szótagra + `↓` léptetés | Közvetlen, mint a vonalzó a könyvön; a `↓` a vakon vezérelhetőséget adja (U-E3), a sorrendje az iskolai módszert követi. |
 | Az első takarás pause-t ad | A takarásos olvasás nem fér bele a felvillanási időbe; a gyerek ne kapkodjon. |
 | Tételváltáskor visszaáll | Minden új tételnél ugyanaz a kiindulás; nincs rejtett állapot. |
-| A takaró a kör közös tinta-dobozát fedi | Ne lógjon ki ékezet vagy szár, ami elárulná a szótagot; minden takaró egyforma. |
+| A takaró a kör közös tinta-dobozát fedi, kis ráhagyással, az időjelző fölött megállva | Ne lógjon ki ékezet vagy szár, ami elárulná a szótagot; minden takaró egyforma; az első prototípusban a nagy ráhagyás belelógott az időjelzőbe. |
 | A „Keresd meg!” módban egyelőre nincs takarás | Négy tételnél nem egyértelmű, melyik takarása a cél. |
+| A takaró vonalzó | Iskolai tárgy, amit a gyerek ismer, és otthon is ezzel takarnak; a beosztás ismétlődik, ezért bármilyen szótaghosszra természetesen nyújtható; visszafogott, nem viszi el a figyelmet a betűkről. |
+| Elvetett takarók | Sima téglalap („random téglalap” hatás), tépett füzetlap, behajtott cetli, felhő, radír, ragasztószalag, tenyér (kipróbálva). A tenyér tetszett, de csak egyenletesen skálázható, keskeny szótagnál apró, és az ingujj fedi az időjelzőt. |
+| Nincs szám a vonalzón | A gyerek nézetében nincs szöveg és szám (U-E4); a számok a betűkkel versengenének. |
 
 ---
 
@@ -656,6 +677,10 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | `--warn` | `#94560F` | figyelmeztetés |
 | `--error` | `#A23B2A` | hiba |
 | `--sky` | `#DCE9EF` | jutalom háttér |
+| `--ruler` | `#F4E3A1` | szótag-takaró vonalzó teste |
+| `--ruler-edge` | `#C9B26A` | a vonalzó kerete |
+| `--ruler-tick` | `#8C7638` | a vonalzó beosztása |
+| `--ruler-bevel` | `#E6D18A` | a vonalzó élvonala |
 
 Lufik: `#F2B5A7` · `#F5D58F` · `#B5D5BB` · `#A7C8E0` · `#CBB8DE` · `#EFC2D3`, fehér, 25%-os fényfolttal.
 
@@ -724,7 +749,7 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 - **U-P6** Számláló: jobb felső sarok, 24 px-re a szélektől, 20 px, `--ink-2`, `tabular-nums`.
 - **U-P7** Pause-jelző: a számlálótól balra, 28 px, két lekerekített sáv, `--ink` 35%, fade 300 ms.
 - **U-P8** Belépés animáció nélkül, az első tétel azonnal, teljes idővel. Kilépés azonnal.
-- **U-P9** Szótag-takaró: F-P22. Megjelenése és eltűnése azonnali. Egeres eszközön a szótag fölött a
+- **U-P9** Szótag-takaró (vonalzó): F-P22, színei a 12.2 `--ruler*` tokenjei. Megjelenése és eltűnése azonnali. Egeres eszközön a szótag fölött a
   kurzor nem változik (a tétel a gyereké, nem „gomb”); a kurzor elrejtése (F-P11) változatlan.
   A takaró nem kap `aria-label`-t; a szótagok állapota a tétel `aria-label`-jében nem jelenik meg.
 

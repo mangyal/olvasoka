@@ -3,7 +3,7 @@
 
 import { buildSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
-import { syllables } from '../core/cover.js';
+import { syllables, rulerGeometry } from '../core/cover.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
 
@@ -23,7 +23,7 @@ export function createPractice(el, { onExit }) {
   function letSleep() { if (wake) { wake.release().catch(() => {}); wake = null; } }
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
   let touch = false;                // F-P10: volt már érintés/toll → a ✕ végig látszik
-  const lay = { barW: 0, size: 0, top: 0, bottom: 0 };
+  const lay = { barW: 0, barY: Infinity, size: 0, top: 0, bottom: 0 };
   let geo = null;                   // a látható tétel szótag-geometriája (F-P19, F-P22)
   const coverG = document.createElementNS(SVG, 'g');
   coverG.setAttribute('class', 'covers');
@@ -104,6 +104,7 @@ export function createPractice(el, { onExit }) {
     lay.barW = Math.min(vw * 0.7, Math.max(160, maxW * s));
     const x = (vw - lay.barW) / 2;
     const y = Math.min(baseline + D * s + Math.max(16, vh * 0.035), vh - 110);
+    lay.barY = y;
     for (const r of [el.barTrack, el.barFill]) { r.setAttribute('x', x.toFixed(1)); r.setAttribute('y', y.toFixed(1)); }
     el.barTrack.setAttribute('width', lay.barW.toFixed(1));
   }
@@ -138,7 +139,7 @@ export function createPractice(el, { onExit }) {
   function geometry() {
     if (geo) return geo;
     const text = el.itemText.textContent, syl = syllables(text);
-    if (syl.length < 2) return (geo = { syl, slices: [], rects: [] });
+    if (syl.length < 2) return (geo = { syl, slices: [], rulers: [] });
     measure.font = `400 ${lay.size}px ${FONT_STACK}`;
     const em = lay.size;
     const whole = ink(text, 0, text.length);
@@ -150,32 +151,43 @@ export function createPractice(el, { onExit }) {
       cuts.push(((a.l + a.r) / 2 + (b.l + b.r) / 2) / 2);
     }
     const slices = syl.map((_, k) => ({ l: k ? cuts[k - 1] : whole.l, r: k < cuts.length ? cuts[k] : whole.r }));
-    // F-P22: szótag-tinta ± 0,06 em, a szomszédos kötőjel tintáját nem éri el; függőlegesen a kör tinta-doboza ± 0,08 em
-    const y = lay.top - 0.08 * em, h = lay.bottom - lay.top + 0.16 * em;
-    const rects = syl.map((sy) => {
-      const g = ink(text, sy.start, sy.end - sy.start);
-      let l = g.l - 0.06 * em, r = g.r + 0.06 * em;
+    // F-P22: vonalzó a szótag advance-dobozán; a kötőjel felől ráhagyás nélkül, a tintáját nem éri el
+    const rulers = syl.map((sy) => {
       const before = hyph(sy.start - 1), after = hyph(sy.end);
-      if (before) l = Math.max(l, before.r + 1);
-      if (after) r = Math.min(r, after.l - 1);
-      return { x: l, y, w: Math.max(0, r - l), h };
+      return rulerGeometry({
+        left: el.itemText.getStartPositionOfChar(sy.start).x,
+        right: el.itemText.getEndPositionOfChar(sy.end - 1).x,
+        top: lay.top, bottom: lay.bottom, barTop: lay.barY,
+        hyphenLeft: before ? before.r : undefined,
+        hyphenRight: after ? after.l : undefined,
+      }, em);
     });
-    return (geo = { syl, slices, rects });
+    return (geo = { syl, slices, rulers });
   }
 
   function drawCovers() {
     const c = mode === 'practice' && st.phase === 'showing' ? st.covered : [];
     if (!c.some(Boolean)) { coverG.replaceChildren(); return; }
-    const { rects } = geometry();
-    coverG.replaceChildren(...rects.flatMap((r, k) => {
-      if (!c[k]) return [];
-      const n = document.createElementNS(SVG, 'rect');
-      n.setAttribute('class', 'cover');
-      n.setAttribute('x', r.x.toFixed(1)); n.setAttribute('y', r.y.toFixed(1));
-      n.setAttribute('width', r.w.toFixed(1)); n.setAttribute('height', r.h.toFixed(1));
-      n.setAttribute('rx', 6);
-      return [n];
-    }));
+    const { rulers } = geometry();
+    coverG.replaceChildren(...rulers.flatMap((r, k) => (c[k] ? [rulerNode(r)] : [])));
+  }
+
+  // F-P22: test, élvonal, beosztás. Az 1 px-es vonalak a képpontrácsra igazítva.
+  const px = (v) => (Math.round(v - 0.5) + 0.5).toFixed(1);
+  function rulerNode(r) {
+    const g = document.createElementNS(SVG, 'g');
+    g.setAttribute('class', 'ruler');
+    const body = document.createElementNS(SVG, 'rect');
+    body.setAttribute('class', 'ruler-body');
+    for (const [k, v] of [['x', r.x], ['y', r.y], ['width', r.w], ['height', r.h], ['rx', r.rx]]) body.setAttribute(k, v.toFixed(1));
+    const bevel = document.createElementNS(SVG, 'path');
+    bevel.setAttribute('class', 'ruler-bevel');
+    bevel.setAttribute('d', `M${(r.x + 1).toFixed(1)} ${px(r.bevelY)}H${(r.x + r.w - 1).toFixed(1)}`);
+    const ticks = document.createElementNS(SVG, 'path');
+    ticks.setAttribute('class', 'ruler-ticks');
+    ticks.setAttribute('d', r.ticks.map((t) => `M${px(t.x)} ${(r.y + 0.5).toFixed(1)}v${t.len.toFixed(1)}`).join(''));
+    g.append(body, bevel, ticks);
+    return g;
   }
 
   /** Melyik szótag takarási területén van a pont (F-P19); -1, ha egyiken sem, vagy nincs mit takarni. */
