@@ -86,7 +86,8 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   drift.js            a jutalom lufijainak mozgása
   cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
-  env.js              éles/dev környezet, tárolási nevek, a táblázat címe környezetenként
+  env.js              éles/dev környezet, tárolási nevek
+  config.js           a táblázat címei környezetenként (kiadáskor repository variable-ökből)
 js/data/            localStorage és a listák letöltése
 js/ui/              szülői felület, gyakorlás, jutalom
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
@@ -131,9 +132,20 @@ Az `infra/*` a workflow-k és a kiadási eszközök módosítására való: mive
 `deploy.yml`-jét futtatja, ezek a változtatások közvetlenül a `main`-be menjenek, utána a `main`-t
 vissza kell olvasztani a `dev`-be.
 
-**A dev környezet táblázata** a `js/core/env.js` `SHEETS.dev` bejegyzése. Alapból az éles táblázatot
-olvassa (csak olvas, nem ír bele); teszt-táblázathoz tegyél közzé egy másolatot CSV-ként, és írd át a
-`dev` két címét.
+**A listák táblázata környezetenként** GitHub repository variable-ökből jön: Settings → Secrets and
+variables → Actions → *Variables* fül → *New repository variable*.
+
+| Változó | Mire való | Ha nincs beállítva |
+|---|---|---|
+| `PROD_SHEET_CSV_URL` | az éles táblázat „Közzététel az interneten” CSV címe (`…/pub?output=csv`) | a `js/core/config.js` alapértéke |
+| `PROD_SHEET_EDIT_URL` | az éles táblázat szerkesztő címe („Listák szerkesztése” link) | a `js/core/config.js` alapértéke |
+| `DEV_SHEET_CSV_URL` | a dev táblázat CSV címe | az éles cím |
+| `DEV_SHEET_EDIT_URL` | a dev táblázat szerkesztő címe | az éles cím |
+
+A változó módosítása magától nem ad ki új változatot: utána Actions → *Kiadás (GitHub Pages)* →
+*Run workflow* (ág: `main`). A futás naplójában az *A táblázat címei* lépés kiírja, melyik cím honnan
+jött. A címek nem titkosak (a böngészőben úgyis látszanak), ezért változó, nem secret. Helyi
+futtatáskor és a tesztekben a `js/core/config.js` alapértékei érvényesek.
 
 ### GitHub beállítások
 

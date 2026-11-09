@@ -33,3 +33,10 @@ test('verzió: X.Y.Z alakú', () => {
   assert.ok(v, 'js/version.js: VERSION');
   assert.match(v[1], /^\d+\.\d+\.\d+$/);
 });
+
+test('config: mindkét környezetnek van CSV és szerkesztő címe', () => {
+  for (const e of ['prod', 'dev']) {
+    assert.match(SHEETS[e].csv, /^https:\/\/docs\.google\.com\/spreadsheets\/.+output=csv/);
+    assert.match(SHEETS[e].edit, /^https:\/\/docs\.google\.com\/spreadsheets\//);
+  }
+});

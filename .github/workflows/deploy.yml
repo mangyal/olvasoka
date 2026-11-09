@@ -61,6 +61,7 @@ jobs:
       - name: Összerakás
         run: |
           set -e
+          cp site/.github/scripts/write-sheet-config.mjs "$RUNNER_TEMP/"
           rm -rf site/.git site/.github
           if [ -d devsrc ]; then
             rm -rf site/dev
@@ -71,6 +72,16 @@ jobs:
           fi
           echo "éles: $(grep -o "'[0-9.]*'" site/js/version.js 2>/dev/null || echo '?')"
           [ -d site/dev ] && echo "dev:   $(grep -o "'[0-9.]*'" site/dev/js/version.js 2>/dev/null || echo '?')" || true
+
+      - name: A táblázat címei (repository variable-ök)
+        # Settings → Secrets and variables → Actions → Variables. Változtatás után a workflow-t újra kell
+        # futtatni (Actions → Kiadás → Run workflow), mert a változó módosítása magától nem indít kiadást.
+        env:
+          PROD_SHEET_CSV_URL: ${{ vars.PROD_SHEET_CSV_URL }}
+          PROD_SHEET_EDIT_URL: ${{ vars.PROD_SHEET_EDIT_URL }}
+          DEV_SHEET_CSV_URL: ${{ vars.DEV_SHEET_CSV_URL }}
+          DEV_SHEET_EDIT_URL: ${{ vars.DEV_SHEET_EDIT_URL }}
+        run: node "$RUNNER_TEMP/write-sheet-config.mjs" site/js/core/config.js site/dev/js/core/config.js
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
