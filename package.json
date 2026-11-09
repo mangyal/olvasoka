@@ -5,7 +5,10 @@
   "description": "Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak.",
   "scripts": {
     "test": "node --test",
-    "start": "python3 -m http.server 8000"
+    "start": "python3 -m http.server 8000",
+    "smoke": "node --test e2e/smoke.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
