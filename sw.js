@@ -32,6 +32,7 @@ const ASSETS = [
   'js/main.js',
   'js/font.js',
   'js/version.js',
+  'js/core/config.js',
   'js/core/cover.js',
   'js/core/csv.js',
   'js/core/drift.js',
