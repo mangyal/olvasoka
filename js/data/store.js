@@ -2,8 +2,10 @@
 // letiltott tárolásnál az alkalmazás memóriából fut tovább.
 
 import { normalizeState } from '../core/settings.js';
+import { ENV } from '../core/env.js';
 
-const KEY = 'olvasoka';
+// éles: 'olvasoka' (a régi név), dev: 'olvasoka-dev' – a kettő nem írja felül egymást
+const KEY = ENV.storageKey;
 
 export function createStore() {
   let ok = probe();

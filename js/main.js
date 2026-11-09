@@ -7,6 +7,8 @@ import { clampSettings } from './core/settings.js';
 import { nameKey } from './core/items.js';
 import { clickSelect, reconcile, sourceFor, applySource } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
+import { ENV } from './core/env.js';
+import { VERSION } from './version.js';
 import { createAdmin } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
 
@@ -123,6 +125,15 @@ el.helpBtn.addEventListener('click', openHelp);
 el.helpHide.addEventListener('change', () => { app.hideHelp = el.helpHide.checked; persist(); });
 // a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
 el.editLink.href = SHEET_EDIT_URL;
+
+/* ---------- verzió és környezet ---------- */
+// a fejlécben a verzió; a dev környezet feltűnő jelzést kap, hogy ne lehessen összetéveszteni
+el.appVersion.textContent = `v${VERSION}`;
+if (ENV.env === 'dev') {
+  document.documentElement.dataset.env = 'dev';
+  document.title = 'Olvasóka DEV';
+  el.appVersion.textContent = `DEV · v${VERSION}`;
+}
 
 /* ---------- indulás ---------- */
 pickSelected();

@@ -5,6 +5,7 @@ egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör v
 Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
 
 **Élő oldal:** https://mangyal.github.io/olvasoka/
+**Fejlesztői változat:** https://mangyal.github.io/olvasoka/dev/ (piros „DEV” címke a fejlécben)
 
 ## Listák szerkesztése
 
@@ -73,6 +74,7 @@ Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
 index.html          markup
 lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom nézet
+js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
 js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   sequence.js         sorozat-generátor („húzózsák”)
   round.js            a gyakorlókör állapotgépe (időzítés, szünet, navigáció)
@@ -84,6 +86,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   drift.js            a jutalom lufijainak mozgása
   cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
+  env.js              éles/dev környezet, tárolási nevek, a táblázat címe környezetenként
 js/data/            localStorage és a listák letöltése
 js/ui/              szülői felület, gyakorlás, jutalom
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
@@ -105,6 +108,35 @@ python3 -m http.server      # helyi futtatás: http://localhost:8000
 Az oldal csak HTTP-n keresztül fut: fájlként (dupla kattintással) megnyitva a böngésző nem tölti be
 a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is lefutnak.
 
-## GitHub Pages beállítása
+## Környezetek és kiadás
 
-Settings → Pages → *Build and deployment*: **Deploy from a branch**, ág: `main`, mappa: `/ (root)`.
+| Ág | Cím | Szerep |
+|---|---|---|
+| `main` | https://mangyal.github.io/olvasoka/ | éles, ezt használják |
+| `dev` | https://mangyal.github.io/olvasoka/dev/ | fejlesztői, itt kell kipróbálni |
+
+1. **Fejlesztés:** új ág a `dev`-ből (`feat/…`, `fix/…`), PR a `dev`-be. Összevonás után kb. 1 perc
+   múlva a dev oldalon látszik.
+2. **Kipróbálás** a dev oldalon, tableten/telefonon is. A dev telepítve „Olvasóka DEV” néven, sötét
+   ikonnal jelenik meg, a beállításai az élestől függetlenek.
+3. **Kiadás:** léptesd a verziót a `js/version.js`-ben (a `dev`-en), majd PR `dev` → `main`, címe
+   „Kiadás vX.Y.Z”. A PR-sablon ellenőrzőlistáját pipáld ki. Összevonás **merge committal** (nem squash).
+   A workflow kiteszi az élest és `vX.Y.Z` taget készít.
+4. **Visszavonás:** a `main`-en a kiadás merge commitjának *Revert*-je; kb. 1 perc múlva a régi változat fut.
+5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel), utána a `main`-t
+   olvaszd vissza a `dev`-be.
+
+A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR (`.github/workflows/release-check.yml`).
+Az `infra/*` a workflow-k és a kiadási eszközök módosítására való: mivel egy push a saját ágának
+`deploy.yml`-jét futtatja, ezek a változtatások közvetlenül a `main`-be menjenek, utána a `main`-t
+vissza kell olvasztani a `dev`-be.
+
+**A dev környezet táblázata** a `js/core/env.js` `SHEETS.dev` bejegyzése. Alapból az éles táblázatot
+olvassa (csak olvas, nem ír bele); teszt-táblázathoz tegyél közzé egy másolatot CSV-ként, és írd át a
+`dev` két címét.
+
+### GitHub beállítások
+
+- Settings → Pages → *Build and deployment* → Source: **GitHub Actions**.
+- Settings → Branches (vagy Rules → Rulesets) a `main`-re: PR kötelező, a *Kiadás ellenőrzése* és a
+  *Tesztek* ellenőrzésnek zöldnek kell lennie, közvetlen push tiltva.

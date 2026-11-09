@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.8** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.9** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,13 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.9 (a 2.8-hoz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Környezetek | Éles (`main` → `/olvasoka/`) és fejlesztői (`dev` → `/olvasoka/dev/`) környezet ugyanazon a GitHub Pages oldalon. A dev külön tárolási nevet, saját service worker tárolót, eltérő nevet és sötét ikont kap. | N10, F-S3 |
+| 2 | Programverzió | `js/version.js`, a szülői felület fejlécében látszik; dev-ben „DEV” címkével. Kiadáskor léptetni kell; az éles kiadás `vX.Y.Z` taget kap. | N10, 7.1 |
 
 ### 2.8 (a 2.7-hez képest)
 
@@ -242,7 +249,7 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 
 ### 3.4 Helyi tárolás
 - **F-S3** A beállítások, a legutóbb kijelölt listák neve és a legutóbb letöltött `lists.txt` szövege a
-  `localStorage`-ban, `olvasoka` kulcs alatt:
+  `localStorage`-ban, `olvasoka` kulcs alatt (a dev környezetben `olvasoka-dev`, N10):
   ```json
   { "v": 3, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
     "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false,
@@ -466,6 +473,18 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
   - A tárolólistát (`ASSETS`) a `test/pwa.test.js` egyezteti a repó fájljaival.
 - **N9 Képernyőzár:** gyakorlás és jutalom alatt Screen Wake Lock, hogy a képernyő ne sötétüljön el;
   lap elrejtésekor a böngésző elengedi, visszatéréskor újrakéri. Ahol nincs ilyen API, nem jelez hibát.
+- **N10 Környezetek és kiadás:** az éles a `main` ágból a `/olvasoka/`, a fejlesztői a `dev` ágból a
+  `/olvasoka/dev/` címen fut; mindkettőt a `.github/workflows/deploy.yml` rakja össze és teszi ki.
+  - A környezetet a cím dönti el (`js/core/env.js`: `/dev/` vagy helyi gép → dev). Nincs ágankénti
+    beállítófájl, így a dev → main összevonás nem visz át dev-beállítást.
+  - Az azonos origin miatt minden tárolt név környezetfüggő: localStorage `olvasoka` / `olvasoka-dev`,
+    service worker tároló `olvasoka` / `olvasoka-dev`; az éles service worker a `/dev/` alatti
+    kéréseket nem kezeli. Az éles a régi neveket tartja, így a meglévő beállítások megmaradnak.
+  - A listák táblázata környezetenként a `js/core/env.js` `SHEETS` objektumában állítható.
+  - A dev telepítve „Olvasóka DEV” néven, sötét hátterű ikonnal jelenik meg; a fejlécben piros „DEV” címke.
+  - Menet: feature-ág → PR a `dev`-be → kipróbálás a dev oldalon → PR `dev` → `main` (merge commit) →
+    automatikus `vX.Y.Z` tag. A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR, és
+    (az `infra/*` kivételével) léptetett `js/version.js` verzióval (`release-check.yml`).
 
 ### 7.1 Felépítés
 
@@ -473,7 +492,8 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
 index.html          markup
 lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom
-js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, cover
+js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, cover, env
+js/version.js       a program verziója (N10)
 js/data/            store (localStorage), remote (lists.txt letöltése)
 js/ui/              admin, practice, reward
 js/font.js          betűtípus-kapu
@@ -638,6 +658,17 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | A takaró vonalzó | Iskolai tárgy, amit a gyerek ismer, és otthon is ezzel takarnak; a beosztás ismétlődik, ezért bármilyen szótaghosszra természetesen nyújtható; visszafogott, nem viszi el a figyelmet a betűkről. |
 | Elvetett takarók | Sima téglalap („random téglalap” hatás), tépett füzetlap, behajtott cetli, felhő, radír, ragasztószalag, tenyér (kipróbálva). A tenyér tetszett, de csak egyenletesen skálázható, keskeny szótagnál apró, és az ingujj fedi az időjelzőt. |
 | Nincs szám a vonalzón | A gyerek nézetében nincs szöveg és szám (U-E4); a számok a betűkkel versengenének. |
+
+**Fejlesztői és éles környezet (2.9, 2026-11-09):**
+
+| Döntés | Indok |
+|---|---|
+| Két környezet (dev, éles), külön QA nincs | Egy fejlesztő, statikus oldal: a dev egyben a tesztkörnyezet. |
+| Mindkettő ugyanazon a GitHub Pages oldalon, a dev a `/dev/` almappában | Nincs új hosting szolgáltatás. |
+| Minden futás a teljes oldalt rakja össze | A Pages egyszerre egy csomagot tesz ki; az éles a változatlan `main`-ből bájtra azonosan épül újra. |
+| A környezetet a cím dönti el, nem ágankénti fájl | Az összevonás nem visz át beállítást a dev-ből az élesbe. |
+| Az éles tárolási nevei változatlanok | A meglévő felhasználók beállításai és letöltött listái megmaradnak, migráció nélkül. |
+| Verziószám a fejlécben | Egy eszközön ránézésre látszik, melyik kiadás fut; a service worker hálózat-először stratégiája miatt a frissítéshez nem kell. |
 
 ---
 

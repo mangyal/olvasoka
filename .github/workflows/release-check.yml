@@ -1,0 +1,42 @@
+name: Kiadás ellenőrzése
+
+# PR a main-be (= éles kiadás). Ellenőrzi:
+#   1. honnan jön: dev (normál kiadás), hotfix/* (sürgős javítás), infra/* (workflow, kiadási eszközök)
+#   2. a js/version.js verziója nagyobb-e, mint a main-en (infra/* ágnál nem kötelező)
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Forrás-ág
+        env:
+          HEAD: ${{ github.head_ref }}
+        run: |
+          case "$HEAD" in
+            dev|hotfix/*|infra/*) echo "forrás: $HEAD – rendben" ;;
+            *) echo "::error::A main-be csak a dev, hotfix/* vagy infra/* ágból lehet PR-t nyitni (ez: $HEAD)."; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verzió léptetve
+        env:
+          HEAD: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          ver() { sed -n "s/.*VERSION = '\([0-9.]*\)'.*/\1/p"; }
+          new=$(ver < js/version.js)
+          old=$(git show "$BASE_SHA:js/version.js" 2>/dev/null | ver || true)
+          echo "main: ${old:-nincs}  →  PR: $new"
+          case "$HEAD" in infra/*) echo "infra ág: a verzió léptetése nem kötelező"; exit 0 ;; esac
+          if [ -z "$old" ]; then exit 0; fi
+          if [ "$new" = "$old" ] || [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -1)" != "$new" ]; then
+            echo "::error::Léptesd a verziót a js/version.js-ben (most: $new, a main-en: $old)."
+            exit 1
+          fi
