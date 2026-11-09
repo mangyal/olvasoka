@@ -279,11 +279,11 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .editor{margin-top:8px}
 }
 
-/* ================= mobil fekvő (E10): bal oszlop listák + fülek + Indítás, jobbra a beállítások ================= */
+/* ================= mobil fekvő (E10): balra listák + fülek + súgó, jobbra a beállítások, alattuk az Indítás ================= */
 @media (max-height:500px) and (orientation:landscape){
   :root{--gut:16px}
   .top{padding-block:6px}
-  .work{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);grid-template-rows:auto auto auto minmax(0,1fr);grid-auto-rows:auto;overflow:hidden;padding-bottom:0;column-gap:20px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+  .work{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);grid-template-rows:auto auto auto minmax(0,1fr) auto;grid-auto-rows:auto;overflow:hidden;padding-bottom:0;column-gap:20px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
   .sidebar,.editor{display:none}
   .picker{display:block;grid-column:1;grid-row:1;padding:12px 0 0;order:0}
   .narrow-pick{display:none}
@@ -293,10 +293,13 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .mode-tab{height:64px;flex-direction:row;gap:8px}
   .mode-tab[aria-disabled=true]{flex-wrap:wrap;align-content:center;row-gap:2px;height:64px}
   .mode-tab[aria-disabled=true] .mode-soon{flex-basis:100%;text-align:center;flex-grow:0;margin-inline:auto;width:max-content;flex-basis:auto}
+  .mode-soon{font-size:11px;padding:1px 6px;white-space:normal;text-align:center}
   .mode-head{grid-column:1;grid-row:3;margin-top:10px}
   .mode-desc{display:none}
-  .panel-start{position:static;grid-column:1;grid-row:4;align-self:end;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;border:0;box-shadow:none;background:transparent;padding:10px 0 calc(12px + env(safe-area-inset-bottom,0px))}
+  .panel-start{position:static;grid-column:2;grid-row:5;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;border:0;border-top:1px solid var(--line);box-shadow:none;background:transparent;padding:10px 4px calc(12px + env(safe-area-inset-bottom,0px))}
+  .estimate,.start-msg{text-align:right;align-items:flex-end}
+  .start-keys{display:none}
   .btn-start{min-width:0;width:auto;padding-inline:28px;height:52px}
   .estimate,.start-msg{max-width:none}
-  .settings{grid-column:2;grid-row:1/-1;overflow-y:auto;min-height:0;display:flex;padding:12px 4px 20px;-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
+  .settings{grid-column:2;grid-row:1/5;overflow-y:auto;min-height:0;display:flex;padding:12px 4px 20px;-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
 }

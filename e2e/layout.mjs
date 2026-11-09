@@ -77,6 +77,7 @@ test('desktop 1280×800: nincs alsó sor, jobb panel két füllel, a Keresd meg!
   assert.ok(await inViewport(page, '#startBtn'));
   assert.ok(await page.$eval('#panelScroll', (e) => e.scrollHeight <= e.clientHeight + 1), '1280×800-on a panel nem görget');
   assert.equal(await page.textContent('#startMsg'), '', 'a gomb alatt nincs információs üzenet');
+  assert.ok(await page.isVisible('.start-keys'), 'desktopon látszik a Ctrl+Enter hint');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -188,6 +189,7 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   const { page, ctx } = await open(PHONE);
   assert.ok(await page.isVisible('#listsBtn'));
   assert.equal(await page.isVisible('#listChecks'), false);
+  assert.equal(await page.isVisible('.start-keys'), false, 'mobil nézetben nincs Ctrl+Enter hint');
   assert.ok(await inViewport(page, '#startBtn'));
   await page.tap('#listsBtn');
   assert.equal(await page.$eval('#dlgLists', (d) => d.matches(':modal')), true);
@@ -210,11 +212,40 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   await ctx.close();
 });
 
-test('mobil fekvő (844×390): az Indítás görgetés nélkül látszik', async () => {
+/** Az Indítás a jobb oszlopban, a beállítások alatt (döntés 2026-11-09). */
+async function startOnRight(page) {
+  const [btn, set, tabs] = await Promise.all(['#startBtn', '#panelRead', '#modeTabs'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  assert.ok(btn.left >= set.left - 1 && btn.right <= set.right + 5, 'a jobb oszlopban');
+  assert.ok(btn.top >= set.bottom - 1, 'a beállítások alatt');
+  assert.ok(btn.left > tabs.right, 'a fülektől jobbra');
+}
+
+test('mobil fekvő (844×390): az Indítás görgetés nélkül látszik, jobb oldalt', async () => {
   const { page, ctx } = await open(PHONE_LAND);
   assert.ok(await inViewport(page, '#startBtn'));
   assert.ok(await page.isVisible('#tabRead'));
   assert.ok(await page.isVisible('#listsBtn'));
+  await startOnRight(page);
+  assert.equal(await page.isVisible('.start-keys'), false, 'mobil nézetben nincs Ctrl+Enter hint');
+  await ctx.close();
+});
+
+test('alacsony széles ablak (1270×480): fekvő elrendezés, az Indítás jobb oldalt', async () => {
+  const { page, ctx } = await open({ viewport: { width: 1270, height: 480 } });
+  assert.ok(await inViewport(page, '#startBtn'));
+  await startOnRight(page);
+  assert.equal(await page.isVisible('.start-keys'), false, 'mobil nézetben nincs Ctrl+Enter hint');
+  await ctx.close();
+});
+
+test('nagyon alacsony fekvő (740×320): a becslés az Indítás mellett, nem csúszik a súgógombra', async () => {
+  const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 740, height: 320 } }, { settings: { flashMs: 5500, gapMs: 500, count: 20 } });
+  assert.ok(await inViewport(page, '#startBtn'));
+  await startOnRight(page);
+  const [est, btn, how] = await Promise.all(['#estimate', '#startBtn', '#howBtn'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  assert.ok(est.left > how.right, 'a becslés a súgógombtól jobbra');
+  assert.ok(est.right <= btn.left && btn.left - est.right <= 24, 'a becslés jobbra zárva az Indítás mellett');
+  assert.equal(await page.$eval('#findSoon', (e) => e.scrollWidth <= e.clientWidth + 1), true, 'a „Hamarosan érkezik” nem vágódik le');
   await ctx.close();
 });
 
