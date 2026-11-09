@@ -35,6 +35,9 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      prod_version: ${{ steps.versions.outputs.prod }}
+      dev_version: ${{ steps.versions.outputs.dev }}
     steps:
       - name: Éles (main)
         uses: actions/checkout@v4
@@ -70,8 +73,14 @@ jobs:
             pip install --quiet pillow
             python3 devsrc/.github/scripts/make-dev-variant.py site/dev
           fi
-          echo "éles: $(grep -o "'[0-9.]*'" site/js/version.js 2>/dev/null || echo '?')"
-          [ -d site/dev ] && echo "dev:   $(grep -o "'[0-9.]*'" site/dev/js/version.js 2>/dev/null || echo '?')" || true
+
+      - name: Verziók
+        id: versions
+        run: |
+          ver() { [ -f "$1" ] && sed -n "s/.*VERSION = '\([0-9.]*\)'.*/\1/p" "$1"; }
+          echo "prod=$(ver site/js/version.js)" >> "$GITHUB_OUTPUT"
+          echo "dev=$(ver site/dev/js/version.js)" >> "$GITHUB_OUTPUT"
+          echo "éles: $(ver site/js/version.js)  dev: $(ver site/dev/js/version.js || echo '-')"
 
       - name: A táblázat címei (repository variable-ök)
         # Settings → Secrets and variables → Actions → Variables. Változtatás után a workflow-t újra kell
@@ -94,9 +103,32 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke:
+    # füstteszt az élő oldalon (e2e/smoke.mjs): éles/dev címke, verziószám, /dev átirányítás, dev ≥ éles.
+    # Megvárja, amíg az oldal a most kiadott verziókat mutatja (a Pages gyorsítótára néhány percig késhet).
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright (csak a teszthez, a repóba nem kerül)
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Füstteszt
+        env:
+          BASE_URL: ${{ needs.deploy.outputs.page_url || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+          EXPECT_PROD: ${{ needs.build.outputs.prod_version }}
+          EXPECT_DEV: ${{ needs.build.outputs.dev_version }}
+        run: node --test e2e/smoke.mjs
 
   tag:
     # sikeres éles kiadás után: vX.Y.Z tag a js/version.js alapján (ha még nincs ilyen)
