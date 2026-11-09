@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Olvasóka</title>
+<script>
+  // GitHub Pages ezt adja minden nem létező címre. A perjel nélküli mappacímet (…/dev) a perjeles
+  // változatra irányítja, minden mást az Olvasóka kezdőlapjára.
+  (function () {
+    var p = location.pathname, base = '/' + (p.split('/')[1] || '') + '/';
+    location.replace(/\/dev$/.test(p) ? p + '/' + location.search + location.hash : base);
+  })();
+</script>
+</head>
+<body><p><a href="./">Olvasóka</a></p></body>
+</html>
