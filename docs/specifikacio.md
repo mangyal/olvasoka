@@ -489,6 +489,10 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
     `PROD_SHEET_EDIT_URL`, `DEV_SHEET_CSV_URL`, `DEV_SHEET_EDIT_URL`); a deploy workflow írja a kiadott
     `js/core/config.js`-be. Ami nincs beállítva: az éles a repó alapértéke, a dev az éles címe.
   - A dev telepítve „Olvasóka DEV” néven, sötét hátterű ikonnal jelenik meg; a fejlécben piros „DEV” címke.
+    A dev verziója mellett `+N` utótag: a `main`-ben még nem lévő (merge nélküli) commitok száma; csak a
+    kiadott fájlba kerül, a repóba nem.
+  - Kiadás-előkészítés gombbal (`release-prepare.yml`, patch/minor/major): a `dev`-en lépteti a verziót,
+    újra kiteszi a devet, és linket ad a kiadási PR-hoz (a PR-t a tulajdonos nyitja, hogy az ellenőrzések lefussanak).
   - Menet: feature-ág → PR a `dev`-be → kipróbálás a dev oldalon → PR `dev` → `main` (merge commit) →
     automatikus `vX.Y.Z` tag. A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR, és
     (az `infra/*` kivételével) léptetett `js/version.js` verzióval (`release-check.yml`).

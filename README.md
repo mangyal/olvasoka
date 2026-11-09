@@ -5,7 +5,8 @@ egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör v
 Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
 
 **Élő oldal:** https://mangyal.github.io/olvasoka/
-**Fejlesztői változat:** https://mangyal.github.io/olvasoka/dev/ (piros „DEV” címke a fejlécben)
+**Fejlesztői változat:** https://mangyal.github.io/olvasoka/dev/ (piros „DEV” címke a fejlécben; a
+`+N` utótag a még ki nem adott commitok száma, pl. `DEV · v1.0.1+5`)
 
 ## Listák szerkesztése
 
@@ -128,9 +129,11 @@ a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is 
    múlva a dev oldalon látszik.
 2. **Kipróbálás** a dev oldalon, tableten/telefonon is. A dev telepítve „Olvasóka DEV” néven, sötét
    ikonnal jelenik meg, a beállításai az élestől függetlenek.
-3. **Kiadás:** léptesd a verziót a `js/version.js`-ben (a `dev`-en), majd PR `dev` → `main`, címe
-   „Kiadás vX.Y.Z”. A PR-sablon ellenőrzőlistáját pipáld ki. Összevonás **merge committal** (nem squash).
-   A workflow kiteszi az élest és `vX.Y.Z` taget készít.
+3. **Kiadás:** Actions → *Kiadás előkészítése* → *Run workflow* (ág: `main`), lépés: `patch` (javítás),
+   `minor` (új funkció) vagy `major`. A workflow a `dev`-en beírja az új verziót a `js/version.js`-be,
+   újra kiteszi a dev oldalt, és az összefoglalójában linket ad a kiadási PR-hoz (`dev` → `main`,
+   kitöltött címmel). A PR-t te nyitod meg, kipipálod a listát, és **merge committal** vonod össze
+   (nem squash). A workflow kiteszi az élest és `vX.Y.Z` taget készít.
 4. **Visszavonás:** a `main`-en a kiadás merge commitjának *Revert*-je; kb. 1 perc múlva a régi változat fut.
 5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel), utána a `main`-t
    olvaszd vissza a `dev`-be.
