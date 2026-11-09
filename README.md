@@ -111,6 +111,9 @@ a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is 
 
 ## Környezetek és kiadás
 
+A teljes, kötelező menet (ágak, kiadás, hotfix, verziózás, szabályok ágenseknek):
+[`docs/agazasi-strategia.md`](docs/agazasi-strategia.md). Röviden:
+
 | Ág | Cím | Szerep |
 |---|---|---|
 | `main` | https://mangyal.github.io/olvasoka/ | éles, ezt használják |
