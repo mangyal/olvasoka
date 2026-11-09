@@ -25,7 +25,7 @@ test('env: az éles megtartja a régi tárolási nevet, a dev külön nevet kap'
 test('env: a service worker tárolója környezetenként külön, és az éles nem kezeli a /dev/-et', () => {
   const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   assert.match(sw, /const CACHE = IS_DEV \? 'olvasoka-dev' : 'olvasoka';/);
-  assert.match(sw, /if \(!IS_DEV && url\.pathname\.startsWith\(DEV_PATH\)\) return;/);
+  assert.match(sw, /if \(!IS_DEV && isDevPath\(url\.pathname\)\) return;/);
 });
 
 test('verzió: X.Y.Z alakú', () => {
