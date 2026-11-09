@@ -5,18 +5,11 @@
 // adat neve környezetfüggő; az éles megtartja a régi neveket, így a meglévő felhasználók
 // beállításai és listái érintetlenek maradnak.
 //
-// A LISTÁK FORRÁSA KÖRNYEZETENKÉNT ITT ÁLLÍTHATÓ (SHEETS). A dev egyelőre az éles táblázatot
-// olvassa; teszt-táblázathoz a `dev` két címét kell átírni.
+// A listák táblázata környezetenként: core/config.js (kiadáskor GitHub repository variable-ökből).
 
-const PROD_SHEET = {
-  csv: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTC1LeDZKtyeoWqy57jz7dUOsfY3FoutvTl3S5ogBvSKFWOWLbyxCjO2IISlCHXxMdCHSjrOM-T2Dq6/pub?output=csv',
-  edit: 'https://docs.google.com/spreadsheets/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit?gid=0#gid=0',
-};
+import { SHEETS } from './config.js';
 
-export const SHEETS = Object.freeze({
-  prod: PROD_SHEET,
-  dev: PROD_SHEET, // ← teszt-táblázat: { csv: '…/pub?output=csv', edit: '…/edit' }
-});
+export { SHEETS };
 
 /** 'dev', ha a cím a /dev/ almappában van, vagy helyi gépen fut; különben 'prod'. */
 export function envFrom(loc) {

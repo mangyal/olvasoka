@@ -480,7 +480,9 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
   - Az azonos origin miatt minden tárolt név környezetfüggő: localStorage `olvasoka` / `olvasoka-dev`,
     service worker tároló `olvasoka` / `olvasoka-dev`; az éles service worker a `/dev/` alatti
     kéréseket nem kezeli. Az éles a régi neveket tartja, így a meglévő beállítások megmaradnak.
-  - A listák táblázata környezetenként a `js/core/env.js` `SHEETS` objektumában állítható.
+  - A listák táblázata környezetenként GitHub repository variable-ökből jön (`PROD_SHEET_CSV_URL`,
+    `PROD_SHEET_EDIT_URL`, `DEV_SHEET_CSV_URL`, `DEV_SHEET_EDIT_URL`); a deploy workflow írja a kiadott
+    `js/core/config.js`-be. Ami nincs beállítva: az éles a repó alapértéke, a dev az éles címe.
   - A dev telepítve „Olvasóka DEV” néven, sötét hátterű ikonnal jelenik meg; a fejlécben piros „DEV” címke.
   - Menet: feature-ág → PR a `dev`-be → kipróbálás a dev oldalon → PR `dev` → `main` (merge commit) →
     automatikus `vX.Y.Z` tag. A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR, és
@@ -492,7 +494,7 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
 index.html          markup
 lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom
-js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, cover, env
+js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, cover, env, config
 js/version.js       a program verziója (N10)
 js/data/            store (localStorage), remote (lists.txt letöltése)
 js/ui/              admin, practice, reward
@@ -668,6 +670,7 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Minden futás a teljes oldalt rakja össze | A Pages egyszerre egy csomagot tesz ki; az éles a változatlan `main`-ből bájtra azonosan épül újra. |
 | A környezetet a cím dönti el, nem ágankénti fájl | Az összevonás nem visz át beállítást a dev-ből az élesbe. |
 | Az éles tárolási nevei változatlanok | A meglévő felhasználók beállításai és letöltött listái megmaradnak, migráció nélkül. |
+| A táblázat címe repository variable-ből | A cím kódmódosítás és kiadási PR nélkül cserélhető; a repó alapértéke a helyi futtatást és a teszteket szolgálja. |
 | Verziószám a fejlécben | Egy eszközön ránézésre látszik, melyik kiadás fut; a service worker hálózat-először stratégiája miatt a frissítéshez nem kell. |
 
 ---
