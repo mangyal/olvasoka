@@ -246,15 +246,20 @@ export function createAdmin(el, app, act) {
     el.howPop.show();
     el.howClose.focus();
   }
+  // A 'close' esemény aszinkron; a saját bezárásunk ezért azonnal rendezi az állapotot és a fókuszt,
+  // az esemény csak a böngésző által zárt alsó lapot (Esc) kezeli.
+  function howClosed() {
+    el.howBtn.setAttribute('aria-expanded', 'false');
+    if (howReturn) el.howBtn.focus();
+    howReturn = false;
+  }
   function closeHow(returnFocus = true) {
     if (!el.howPop.open) return;
     howReturn = returnFocus;
     el.howPop.close();
+    howClosed();
   }
-  el.howPop.addEventListener('close', () => {
-    el.howBtn.setAttribute('aria-expanded', 'false');
-    if (howReturn) el.howBtn.focus();
-  });
+  el.howPop.addEventListener('close', howClosed);
   el.howBtn.addEventListener('click', () => (el.howPop.open ? closeHow() : openHow()));
   el.howClose.addEventListener('click', () => closeHow());
   el.howOk.addEventListener('click', () => closeHow());
