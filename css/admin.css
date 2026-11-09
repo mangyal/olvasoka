@@ -297,7 +297,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .mode-desc{display:none}
   .panel-start{position:static;grid-column:2;grid-row:5;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;border:0;border-top:1px solid var(--line);box-shadow:none;background:transparent;padding:10px 4px calc(12px + env(safe-area-inset-bottom,0px))}
   .estimate,.start-msg{text-align:right;align-items:flex-end}
-  .start-keys{grid-column:1/-1;text-align:right;margin-top:-2px}
+  .start-keys{display:none}
   .btn-start{min-width:0;width:auto;padding-inline:28px;height:52px}
   .estimate,.start-msg{max-width:none}
   .settings{grid-column:2;grid-row:1/5;overflow-y:auto;min-height:0;display:flex;padding:12px 4px 20px;-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}

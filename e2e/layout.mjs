@@ -77,6 +77,7 @@ test('desktop 1280×800: nincs alsó sor, jobb panel két füllel, a Keresd meg!
   assert.ok(await inViewport(page, '#startBtn'));
   assert.ok(await page.$eval('#panelScroll', (e) => e.scrollHeight <= e.clientHeight + 1), '1280×800-on a panel nem görget');
   assert.equal(await page.textContent('#startMsg'), '', 'a gomb alatt nincs információs üzenet');
+  assert.ok(await page.isVisible('.start-keys'), 'desktopon látszik a Ctrl+Enter hint');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -188,6 +189,7 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   const { page, ctx } = await open(PHONE);
   assert.ok(await page.isVisible('#listsBtn'));
   assert.equal(await page.isVisible('#listChecks'), false);
+  assert.equal(await page.isVisible('.start-keys'), false, 'mobil nézetben nincs Ctrl+Enter hint');
   assert.ok(await inViewport(page, '#startBtn'));
   await page.tap('#listsBtn');
   assert.equal(await page.$eval('#dlgLists', (d) => d.matches(':modal')), true);
@@ -224,6 +226,7 @@ test('mobil fekvő (844×390): az Indítás görgetés nélkül látszik, jobb o
   assert.ok(await page.isVisible('#tabRead'));
   assert.ok(await page.isVisible('#listsBtn'));
   await startOnRight(page);
+  assert.equal(await page.isVisible('.start-keys'), false, 'mobil nézetben nincs Ctrl+Enter hint');
   await ctx.close();
 });
 
@@ -231,6 +234,7 @@ test('alacsony széles ablak (1270×480): fekvő elrendezés, az Indítás jobb 
   const { page, ctx } = await open({ viewport: { width: 1270, height: 480 } });
   assert.ok(await inViewport(page, '#startBtn'));
   await startOnRight(page);
+  assert.equal(await page.isVisible('.start-keys'), false, 'mobil nézetben nincs Ctrl+Enter hint');
   await ctx.close();
 });
 
