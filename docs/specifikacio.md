@@ -487,6 +487,9 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
   - Menet: feature-ág → PR a `dev`-be → kipróbálás a dev oldalon → PR `dev` → `main` (merge commit) →
     automatikus `vX.Y.Z` tag. A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR, és
     (az `infra/*` kivételével) léptetett `js/version.js` verzióval (`release-check.yml`).
+  - Kiadás után füstteszt az élő oldalon (`e2e/smoke.mjs`, headless Chrome): a `/` éles, DEV címke
+    nélkül; a `/dev` és a `/dev/` a dev oldal DEV címkével, telepített éles service workerrel is;
+    mindkettőn van verziószám, és a most kiadott verziót mutatja; a dev verziója ≥ az élesé.
 
 ### 7.1 Felépítés
 

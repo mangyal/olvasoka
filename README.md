@@ -127,6 +127,12 @@ a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is 
 5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel), utána a `main`-t
    olvaszd vissza a `dev`-be.
 
+**Füstteszt kiadás után:** minden kiadás után az *Kiadás (GitHub Pages)* workflow `smoke` lépése headless
+Chrome-mal megnyitja az élő oldalt (`e2e/smoke.mjs`), és ellenőrzi: a `/` éles (nincs DEV címke), a
+`/dev` és a `/dev/` a dev oldalra visz (DEV címke, telepített éles service workerrel is), mindkettőn
+van verziószám, és a dev verziója ≥ az élesé. Ha piros: a GitHub e-mailt küld; ha a dev régebbi, a
+`main`-t vissza kell olvasztani a `dev`-be. Helyben: `npm i --no-save playwright && npx playwright install chromium && npm run smoke`.
+
 A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR (`.github/workflows/release-check.yml`).
 Az `infra/*` a workflow-k és a kiadási eszközök módosítására való: mivel egy push a saját ágának
 `deploy.yml`-jét futtatja, ezek a változtatások közvetlenül a `main`-be menjenek, utána a `main`-t
