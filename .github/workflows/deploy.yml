@@ -60,6 +60,7 @@ jobs:
         with:
           ref: dev
           path: devsrc
+          fetch-depth: 0   # a ki nem adott commitok számolásához (dev verziócímke)
 
       - name: Összerakás
         run: |
@@ -75,12 +76,23 @@ jobs:
           fi
 
       - name: Verziók
+        # A dev címkéje: a dev verziója + a még ki nem adott (main-ben nem lévő, merge nélküli) commitok
+        # száma, pl. 1.0.2+5. Csak a kiadott fájlba kerül, a repóba nem; 0 esetén nincs utótag.
         id: versions
         run: |
           ver() { [ -f "$1" ] && sed -n "s/.*VERSION = '\([0-9.]*\)'.*/\1/p" "$1"; }
-          echo "prod=$(ver site/js/version.js)" >> "$GITHUB_OUTPUT"
-          echo "dev=$(ver site/dev/js/version.js)" >> "$GITHUB_OUTPUT"
-          echo "éles: $(ver site/js/version.js)  dev: $(ver site/dev/js/version.js || echo '-')"
+          prod=$(ver site/js/version.js)
+          dev=$(ver site/dev/js/version.js || true)
+          if [ -n "$dev" ]; then
+            n=$(git -C devsrc rev-list --count --no-merges origin/main..HEAD)
+            if [ "$n" -gt 0 ]; then
+              dev="$dev+$n"
+              sed -i "s/VERSION = '[^']*'/VERSION = '$dev'/" site/dev/js/version.js
+            fi
+          fi
+          echo "prod=$prod" >> "$GITHUB_OUTPUT"
+          echo "dev=$dev" >> "$GITHUB_OUTPUT"
+          echo "éles: $prod  dev: ${dev:--}"
 
       - name: A táblázat címei (repository variable-ök)
         # Settings → Secrets and variables → Actions → Variables. Változtatás után a workflow-t újra kell

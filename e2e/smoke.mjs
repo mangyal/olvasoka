@@ -5,7 +5,8 @@
 //   - a / az éles oldal: nincs DEV címke, van verziószám
 //   - a /dev és a /dev/ is a dev oldalra visz: DEV címke és verziószám
 //   - a /dev akkor is a dev oldalra visz, ha az éles service worker már telepítve van (v1.0.1 hiba)
-//   - a dev verziója ≥ az élesé (ha kisebb: egy hotfix után a main-t nem olvasztották vissza a dev-be)
+//   - a dev verziója ≥ az élesé (a +N utótag nélkül; ha kisebb: egy hotfix után a main-t nem
+//     olvasztották vissza a dev-be)
 //
 // EXPECT_PROD / EXPECT_DEV (opcionális): a frissen kiadott verziók. Ha meg vannak adva, a teszt
 // addig vár (legfeljebb WAIT_S mp), amíg az oldal ezeket mutatja – a GitHub Pages gyorsítótára
@@ -18,7 +19,8 @@ import { chromium } from 'playwright';
 const BASE = new URL(process.env.BASE_URL || 'https://mangyal.github.io/olvasoka/');
 const WAIT_MS = Number(process.env.WAIT_S || 300) * 1000;
 const EXPECT = { prod: process.env.EXPECT_PROD || '', dev: process.env.EXPECT_DEV || '' };
-const LABEL = /^(DEV · )?v(\d+\.\d+\.\d+)$/;
+// a dev címkéjén utótag is lehet: a ki nem adott commitok száma (pl. v1.0.2+5)
+const LABEL = /^(DEV · )?v(\d+\.\d+\.\d+(?:\+\d+)?)$/;
 
 const url = (p) => new URL(p, BASE).href;
 const DEV_NO_SLASH = BASE.pathname.replace(/\/$/, '') + '/dev'; // /olvasoka/dev
@@ -66,7 +68,8 @@ async function openExpecting(path, want) {
 }
 
 const cmp = (a, b) => {
-  const x = a.split('.').map(Number), y = b.split('.').map(Number);
+  const num = (v) => v.split('+')[0].split('.').map(Number);
+  const x = num(a), y = num(b);
   for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
   return 0;
 };
