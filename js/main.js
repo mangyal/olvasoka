@@ -3,7 +3,7 @@
 import { createStore } from './data/store.js';
 import { fetchLists } from './data/remote.js';
 import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
-import { clampSettings } from './core/settings.js';
+import { clampSettings, normalizeMode } from './core/settings.js';
 import { nameKey } from './core/items.js';
 import { clickSelect, reconcile, sourceFor, applySource } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
@@ -22,6 +22,7 @@ const app = {
   lists: [], problems: [], selected: [], anchor: null,
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
+  mode: saved.mode,                 // a kiválasztott játék; amíg a Keresd meg! inaktív, mindig 'read'
   settings: saved.settings, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
   kind: saved.cache?.kind || null,  // amiből a látható listák jöttek
   fallback: '',                     // miért nem a táblázatból jöttek (F-L13)
@@ -37,7 +38,7 @@ if (cache) {
 }
 
 function persist() {
-  store.write({ v: 3, settings: app.settings, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
+  store.write({ v: 4, mode: normalizeMode(app.mode), settings: app.settings, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
 }
 const listKeys = () => app.lists.map((l) => nameKey(l.name));
 
@@ -69,6 +70,13 @@ const admin = createAdmin(el, app, {
     setSelection(r.sel);
     persist(); admin.render();
   },
+  // mobil listaválasztó: Mind / Egyik sem
+  selectAll(all) {
+    const keys = listKeys();
+    app.anchor = all ? keys[0] || null : null;
+    setSelection(all ? keys : []);
+    persist(); admin.render();
+  },
   setting(patch) {
     app.settings = clampSettings({ ...app.settings, ...patch });
     if ('source' in patch && app.lists.length) setSelection(applySource(app.settings.source, app.selected, listKeys()));
@@ -76,7 +84,9 @@ const admin = createAdmin(el, app, {
   },
   refresh,
   start(ev) {
-    if (practice.active || !admin.canStart() || document.querySelector('dialog[open]')) return;
+    // modális ablak (súgó, betűteszt, alsó lap) alatt nem indul; a nem modális súgó-popover bezárul
+    if (practice.active || !admin.canStart() || document.querySelector('dialog:modal')) return;
+    admin.closeHow();
     el.admin.hidden = true;
     practice.start(admin.roundItems(), app.settings, ev);
   },
@@ -112,6 +122,7 @@ async function refresh() {
 /* ---------- billentyűk ---------- */
 document.addEventListener('keydown', (e) => {
   if (practice.active) { practice.key(e); return; }
+  if (admin.key(e)) return;
   if ((e.ctrlKey || e.metaKey) && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
     e.preventDefault();
     if (!e.repeat) el.startBtn.click();
@@ -125,6 +136,7 @@ el.helpBtn.addEventListener('click', openHelp);
 el.helpHide.addEventListener('change', () => { app.hideHelp = el.helpHide.checked; persist(); });
 // a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
 el.editLink.href = SHEET_EDIT_URL;
+el.listsEdit.href = SHEET_EDIT_URL;
 
 /* ---------- verzió és környezet ---------- */
 // a fejlécben a verzió; a dev környezet feltűnő jelzést kap, hogy ne lehessen összetéveszteni

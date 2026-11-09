@@ -10,7 +10,7 @@
   --ruler:#F4E3A1; --ruler-edge:#C9B26A; --ruler-tick:#8C7638; --ruler-bevel:#E6D18A;
   --f-item:Arial,'Arimo',Helvetica,sans-serif;
   --f-ui:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
-  --gut:24px; --r-ctl:6px; --r-dlg:10px;
+  --gut:24px; --r-ctl:6px; --r-dlg:10px; --r-card:10px; --r-sheet:18px; --panel-w:360px;
   --d-fast:150ms; --d-fade:300ms; --d-sky:1800ms;
   color-scheme:light;
 }

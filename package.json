@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "start": "python3 -m http.server 8000",
-    "smoke": "node --test e2e/smoke.mjs"
+    "smoke": "node --test e2e/smoke.mjs",
+    "layout": "node --test e2e/layout.mjs"
   },
   "engines": {
     "node": ">=20"
