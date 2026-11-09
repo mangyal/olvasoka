@@ -59,7 +59,13 @@ szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd á
 | `Esc` | vissza a szülői felületre |
 | `Ctrl`+`Enter` | kör indítása a szülői felületen |
 
-A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább.
+A beállítások a szülői felület jobb oldali paneljén vannak (tableten és telefonon a listák alatt), az
+Indítás gomb mindig látszik. A gyakorlás billentyűit a panel **Így játsszátok** gombja mutatja.
+A **Keresd meg!** játék fülön látszik, de még nem választható. Érintőképernyőn (pl. fekvő iPad) az
+oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy lenyíló sorból nyíló lapon
+választhatók.
+
+A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább. A tételek közti szünet 0, 0,5, 1, 2 vagy 3 mp.
 Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
 szótagra, vagy nyomd a `↓`-t (egész → csak az 1. szótag → … → csak az utolsó → egész). Az első takarás
 megállítja az időt; a következő tételnél minden szótag újra látszik.
@@ -86,6 +92,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   drift.js            a jutalom lufijainak mozgása
   cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
+  progress.js         a gyakorlás haladásjelzője (pöttysor / sáv)
   env.js              éles/dev környezet, tárolási nevek
   config.js           a táblázat címei környezetenként (kiadáskor repository variable-ökből)
 js/data/            localStorage és a listák letöltése
@@ -103,6 +110,7 @@ A követelmények, döntések és elfogadási kritériumok: [`docs/specifikacio.
 
 ```sh
 node --test                 # tesztek (Node 20+)
+npm run layout              # elrendezés-teszt headless Chrome-mal (e2e/layout.mjs; előbb: npm i --no-save playwright && npx playwright install chromium)
 python3 -m http.server      # helyi futtatás: http://localhost:8000
 ```
 

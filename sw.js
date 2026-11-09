@@ -38,6 +38,7 @@ const ASSETS = [
   'js/core/drift.js',
   'js/core/env.js',
   'js/core/items.js',
+  'js/core/progress.js',
   'js/core/lists.js',
   'js/core/round.js',
   'js/core/selection.js',

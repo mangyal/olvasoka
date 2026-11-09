@@ -4,6 +4,7 @@
 import { buildSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
 import { syllables, rulerGeometry } from '../core/cover.js';
+import { progressModel, dotState } from '../core/progress.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
 
@@ -41,6 +42,7 @@ export function createPractice(el, { onExit }) {
     el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
     st = startRound(seq, settings.flashMs, settings.gapMs, performance.now());
+    buildProgress();
     layout();
     render(); arm();                // S1: azonnal az első tétel, teljes idővel
     requestAnimationFrame(barFrame);
@@ -76,6 +78,7 @@ export function createPractice(el, { onExit }) {
     mode = 'off'; st = null;
     letSleep();
     el.itemText.textContent = ''; coverG.replaceChildren(); geo = null;
+    el.progress.replaceChildren(); prog = null;
     el.stage.hidden = true; el.stage.className = 'stage'; el.stage.dataset.mode = 'practice';
     onExit();
   }
@@ -115,12 +118,46 @@ export function createPractice(el, { onExit }) {
     const text = showing ? items[st.seq[st.index]] : '';
     if (el.itemText.textContent !== text) { el.itemText.textContent = text; geo = null; }
     drawCovers();
-    el.counter.textContent = practice ? `${st.index + 1}/${st.seq.length}` : '';
+    if (practice) renderProgress();
     el.pauseInd.classList.toggle('on', practice && st.paused);
     if (!practice) return;
     el.cPrev.disabled = !canPrev(st);
     el.cPlayPath.setAttribute('d', st.paused ? 'M8 5.5v13l10.5-6.5z' : 'M9 6v12M15 6v12');
     el.cPlay.setAttribute('aria-label', st.paused ? 'Folytatás' : 'Szünet');
+  }
+
+  /* ---------- haladásjelző (design spec 7.) ---------- */
+  // A DOM a kör indulásakor épül fel egyszer; lépésenként csak az osztályok és a felirat változnak.
+  let prog = null;                  // { kind, dots: [], fill, text }
+  function buildProgress() {
+    const m = progressModel(0, st.seq.length);
+    el.progress.className = 'progress ' + m.kind;
+    if (m.kind === 'dots') {
+      const dots = Array.from({ length: m.total }, () => document.createElement('span'));
+      for (const d of dots) d.className = 'dot';
+      el.progress.replaceChildren(...dots);
+      prog = { kind: 'dots', dots };
+    } else {
+      const track = document.createElement('span'); track.className = 'track';
+      const fill = document.createElement('span'); fill.className = 'fill'; track.append(fill);
+      const text = document.createElement('span'); text.className = 'ptext num';
+      el.progress.replaceChildren(track, text);
+      prog = { kind: 'bar', fill, text };
+    }
+  }
+  function renderProgress() {
+    const m = progressModel(st.index, st.seq.length);
+    el.progress.setAttribute('aria-label', m.label);
+    if (prog.kind === 'dots') {
+      prog.dots.forEach((d, k) => {
+        const s = dotState(k, m.current);
+        d.classList.toggle('is-done', s === 'done');
+        d.classList.toggle('is-current', s === 'current');
+      });
+    } else {
+      prog.fill.style.width = `${(m.fraction * 100).toFixed(2)}%`;
+      prog.text.textContent = m.text;
+    }
   }
 
   /* ---------- szótag-takarás (spec 4.5) ---------- */

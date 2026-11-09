@@ -13,3 +13,16 @@ jobs:
         with:
           node-version: 22
       - run: node --test
+
+  # Elrendezés-teszt headless Chrome-mal (e2e/layout.mjs): a design spec elfogadási kritériumai
+  # desktopon, tableten és mobilon. Hálózat nélkül fut: a listák a repó lists.txt-jéből jönnek.
+  layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: npm run layout

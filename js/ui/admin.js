@@ -1,12 +1,14 @@
 // Szülői felület: a listák csak olvashatók; forrásuk a Google táblázat, tartalékként a repó lists.txt-je.
 
-import { GAPS } from '../core/settings.js';
+import { GAPS, estimate, fmtNum } from '../core/settings.js';
 import { nameKey } from '../core/items.js';
 import { itemsOf } from '../core/selection.js';
 
 const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
-
-const fmtNum = (x) => String(x).replace('.', ',');
+// érintős elsődleges mutató: az oldalsávban koppintás = hozzáad/elvesz (Ctrl nélkül)
+const COARSE = matchMedia('(hover:none) and (pointer:coarse)');
+// a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)
+const SHEET = matchMedia('(max-width:899px), (hover:none) and (pointer:coarse), (max-height:500px) and (orientation:landscape)');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
 
 export function createAdmin(el, app, act) {
@@ -34,11 +36,9 @@ export function createAdmin(el, app, act) {
     if (!n) {
       return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
     }
+    // a gomb alatt csak hiba vagy figyelmeztetés (a lista- és tételszámot a fejléc mutatja)
     const fontWarn = app.font.state === 'failed';
-    const parts = [];
-    if (k > 1) parts.push(`${k} lista, ${n} különböző tétel`);
-    if (fontWarn) parts.push('A betűk alakja eltérhet.');
-    return { enabled: true, msg: parts.join(' · '), warn: fontWarn };
+    return { enabled: true, msg: fontWarn ? 'A betűk alakja eltérhet.' : '', warn: fontWarn };
   }
 
   /* ---------- renderelés ---------- */
@@ -68,10 +68,14 @@ export function createAdmin(el, app, act) {
       const name = document.createElement('span'); name.textContent = l.name;
       const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
       b.append(name, cnt);
-      b.addEventListener('click', (e) => act.select(l.name, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey }));
+      b.addEventListener('click', (e) => {
+        const touch = e.pointerType === 'touch' || e.pointerType === 'pen' || (COARSE.matches && e.pointerType !== 'mouse');
+        act.select(l.name, { toggle: e.ctrlKey || e.metaKey || (touch && !e.shiftKey), range: e.shiftKey });
+      });
       li.append(b); return li;
     }));
-    el.navHint.textContent = `${MOD}+kattintás: több lista · Shift+kattintás: tartomány`;
+    el.navHint.textContent = COARSE.matches ? 'Koppintással több listát is kijelölhetsz.'
+      : `${MOD}+kattintás: több lista · Shift+kattintás: tartomány`;
     el.navHint.hidden = app.lists.length < 2;
 
     // keskeny nézet: jelölőnégyzetek (érintőképernyőn nincs Ctrl)
@@ -83,7 +87,39 @@ export function createAdmin(el, app, act) {
       c.addEventListener('change', () => act.select(l.name, { toggle: true }));
       lab.append(c, name, cnt); return lab;
     }));
-    el.listPick.hidden = !app.lists.length;
+    el.picker.hidden = !app.lists.length;
+    const sum = selectionSummary();
+    el.pickSum.textContent = sum.text;
+    el.listsBtnLabel.textContent = sum.n ? `Listák · ${sum.n} tétel` : 'Listák';
+    el.listsBtnNames.textContent = sum.names || 'Nincs kijelölt lista';
+    if (el.dlgLists.open) renderListsSheet();
+  }
+
+  /** A kijelölés összesítője: „2 lista · 38 tétel”, a nevek „·”-tal. */
+  function selectionSummary() {
+    const sel = selected();
+    const n = itemsOf(app.lists, app.selected, nameKey).length;
+    const text = sel.length ? `${sel.length} lista · ${n} tétel` : 'Nincs kijelölt lista';
+    return { k: sel.length, n, text, names: sel.map((l) => l.name).join(' · ') };
+  }
+
+  /* ---------- mobil listaválasztó lap (E11) ---------- */
+  function renderListsSheet() {
+    el.listsRows.replaceChildren(...app.lists.map((l) => {
+      const lab = document.createElement('label'); lab.className = 'ls-row';
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = isSel(l);
+      const name = document.createElement('span'); name.className = 'ls-name'; name.textContent = l.name;
+      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
+      c.addEventListener('change', () => act.select(l.name, { toggle: true }));
+      lab.append(c, name, cnt); return lab;
+    }));
+    const sum = selectionSummary();
+    el.listsSum.textContent = sum.k ? `${sum.k} lista / ${sum.n} tétel` : 'Nincs kijelölt lista';
+  }
+  function openLists() {
+    renderListsSheet();
+    // a görgetési helyzet megmarad, ha egy pipálás újrarajzolja a sorokat
+    el.dlgLists.showModal();
   }
 
   const chipBox = (items) => {
@@ -154,11 +190,9 @@ export function createAdmin(el, app, act) {
   }
 
   function renderEstimate() {
-    const s = app.settings;
-    if (s.flashMs === 0) { el.estimate.textContent = 'kézi léptetés'; return; }
-    const total = Math.round(s.count * (s.flashMs + s.gapMs) / 1000);
-    el.estimate.textContent = total < 60 ? `kb. ${total} mp`
-      : `kb. ${Math.floor(total / 60)} perc${total % 60 ? ` ${total % 60} mp` : ''}`;
+    const e = estimate(app.settings);
+    el.estCount.textContent = e.count;
+    el.estTime.textContent = e.time;
   }
 
   function renderStart() {
@@ -167,6 +201,7 @@ export function createAdmin(el, app, act) {
     el.startBtn.textContent = st.label || 'Indítás';
     el.startMsg.textContent = st.msg || '';
     el.startMsg.className = 'start-msg' + (st.warn ? ' wrn' : '');
+    el.panelStart.classList.toggle('has-msg', !!st.msg);
   }
 
   function render() {
@@ -194,8 +229,61 @@ export function createAdmin(el, app, act) {
   el.countDec.addEventListener('click', () => setCount(app.settings.count - 1));
   el.countInc.addEventListener('click', () => setCount(app.settings.count + 1));
   el.refreshBtn.addEventListener('click', act.refresh);
+  el.modKey.textContent = MOD;
+
+  /* ---------- módfülek (4.1): a Keresd meg! még inaktív, nem vált ---------- */
+  el.tabFind.addEventListener('click', (e) => e.preventDefault());
+
+  /* ---------- „Így játsszátok” (6.) ---------- */
+  let howReturn = false;            // bezáráskor vissza a fókusz a súgógombra
+  function openHow() {
+    howReturn = true;
+    el.howBtn.setAttribute('aria-expanded', 'true');
+    if (SHEET.matches) { el.howPop.showModal(); el.howClose.focus(); return; }
+    // a popover a súgógomb magasságában, a panel bal széléhez tapadva
+    const top = el.howBtn.getBoundingClientRect().top - el.panel.getBoundingClientRect().top - 8;
+    el.howPop.style.setProperty('--how-top', `${Math.max(8, Math.round(top))}px`);
+    el.howPop.show();
+    el.howClose.focus();
+  }
+  function closeHow(returnFocus = true) {
+    if (!el.howPop.open) return;
+    howReturn = returnFocus;
+    el.howPop.close();
+  }
+  el.howPop.addEventListener('close', () => {
+    el.howBtn.setAttribute('aria-expanded', 'false');
+    if (howReturn) el.howBtn.focus();
+  });
+  el.howBtn.addEventListener('click', () => (el.howPop.open ? closeHow() : openHow()));
+  el.howClose.addEventListener('click', () => closeHow());
+  el.howOk.addEventListener('click', () => closeHow());
+  // alsó lapnál a háttérre koppintás zár (a lap tartalma a .how-body-ban van)
+  el.howPop.addEventListener('click', (e) => { if (e.target === el.howPop) closeHow(); });
+  // popovernél a kívülre kattintás zár (a fókusz ott marad, ahová kattintottak)
+  document.addEventListener('pointerdown', (e) => {
+    if (el.howPop.open && !el.howPop.matches(':modal') && !el.howPop.contains(e.target) && !el.howBtn.contains(e.target)) closeHow(false);
+  }, true);
+  SHEET.addEventListener('change', () => closeHow(false));
+
+  /* ---------- mobil listaválasztó lap ---------- */
+  el.listsBtn.addEventListener('click', openLists);
+  el.listsDone.addEventListener('click', () => el.dlgLists.close());
+  el.dlgLists.addEventListener('click', (e) => { if (e.target === el.dlgLists) el.dlgLists.close(); });
+  el.dlgLists.addEventListener('close', () => el.listsBtn.focus());
+  el.listsAll.addEventListener('click', () => act.selectAll(true));
+  el.listsNone.addEventListener('click', () => act.selectAll(false));
+  COARSE.addEventListener('change', () => renderNav());
+
+  /** Esc: először a nyitott popover zár (a modális lapokat a böngésző zárja). */
+  function key(e) {
+    if (e.key === 'Escape' && el.howPop.open && !el.howPop.matches(':modal')) {
+      e.preventDefault(); closeHow(); return true;
+    }
+    return false;
+  }
   el.startBtn.addEventListener('click', (e) => act.start(e));
   el.fontBtn.addEventListener('click', act.fontTest);
 
-  return { render, roundItems, canStart: () => startState().enabled };
+  return { render, roundItems, key, closeHow: () => closeHow(false), canStart: () => startState().enabled };
 }

@@ -138,7 +138,7 @@ A tartalom gyakran változik. A szülő a listákat egy Google táblázatban sze
 | Nézet | Ki használja | Tartalom |
 |---|---|---|
 | **Szülői felület (admin)** | szülő | lista kiválasztása, beállítások, kör indítása |
-| **Gyakorlónézet** | gyerek (a szülő vezérli) | a villantott tétel, időjelző, számláló, vezérlők, dekoráció |
+| **Gyakorlónézet** | gyerek (a szülő vezérli) | a villantott tétel, időjelző, haladásjelző, vezérlők, dekoráció |
 | **Jutalomnézet** | gyerek | lufipukkasztó játék |
 
 Állapotgép: `ADMIN → PRACTICE → REWARD → ADMIN`. Az **Esc** a PRACTICE és REWARD állapotból bármikor
@@ -231,12 +231,12 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 |---|---|---|
 | Tételek forrása | Kijelölt listák / Összes lista | **Kijelölt listák** |
 | Felvillanási idő | 0–25 mp, 0,5 mp lépés; **0 = kézi** | **10 mp** |
-| Szünet a tételek között | 0–3 mp, 0,5 mp lépés | **0 mp** |
+| Szünet a tételek között | 0 · 0,5 · 1 · 2 · 3 mp (a régi 1,5 / 2,5 mp tárolt érték 1 / 2 mp-re áll) | **0 mp** |
 | Tételszám a körben | 1–50 | **10** |
 
 - **F-S1a Kijelölt listák:** egy vagy több lista jelölhető ki (U-A1). A kör a kijelölt listák
   tételeinek uniójából épül, ismétlődés nélkül, kiegyenlítés nélkül (a nagyobb lista több tételt ad).
-  Több kijelölt listánál az „Indítás” mellett: „3 lista, 47 különböző tétel”.
+  A kijelölt listák és a különböző tételek száma a középső rész fejlécében (U-A3), mobilon a lista-lenyílón látszik.
 - **F-S1b A forrásválasztó követi a kijelölést, és fordítva.**
   - Ha kézzel minden lista ki van jelölve, a választón az „Összes lista” aktív; ha legalább egy nincs, a „Kijelölt listák”.
   - Az „Összes lista” megnyomása minden listát kijelöl.
@@ -251,12 +251,14 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 - **F-S3** A beállítások, a legutóbb kijelölt listák neve és a legutóbb letöltött `lists.txt` szövege a
   `localStorage`-ban, `olvasoka` kulcs alatt (a dev környezetben `olvasoka-dev`, N10):
   ```json
-  { "v": 3, "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
+  { "v": 4, "mode": "read", "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
     "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false,
     "cache": { "text": "45. oldal,Á-A-E\nfa,á\n…", "fetchedAt": 1794080000000, "kind": "sheet" } }
   ```
   A `cache.kind` a szöveg forrása (`sheet` vagy `txt`); a `kind` nélküli régi cache `lists.txt`.
   A v2 állapot `lastList` neve betöltéskor a `lastLists` egyetlen eleme lesz.
+  A `mode` a kiválasztott játék (`read` | `find`); amíg a Keresd meg! inaktív, betöltéskor mindig `read`
+  (így egy félbehagyott állapot sem nyit inaktív fület). A v3 állapot `mode` nélkül `read` lesz.
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
   a program fut, figyelmeztetéssel: a beállítások nem maradnak meg, és hálózat nélkül nem lesz lista.
 - **F-S5** A tárolás böngészőnként és címenként külön él. A listák a repóból jönnek, ezért nem vesznek el.
@@ -294,7 +296,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-P8** Automatikus pause, ha a fül háttérbe kerül vagy az ablak fókuszt veszt. Visszatéréskor pause marad.
 
 ### 4.3 Képernyőtartalom
-- **F-P9** A képernyőn: a tétel, az időjelző (F-P14), a számláló (F-P15), a vezérlősor (F-P10),
+- **F-P9** A képernyőn: a tétel, az időjelző (F-P14), a haladásjelző (F-P15), a vezérlősor (F-P10),
   a dekoráció, pause alatt a pause-jelző. **Nincs** pontszám, hibajelölés, szöveges felirat.
 - **F-P10** **Vezérlősor** (◀ ⏸/▶ ▶) alul középen, **végig látszik**. A **✕ kilépés** a bal felső sarokban
   egeres eszközön csak egérmozgásra (≥ 8 px) jelenik meg, 2,5 mp mozdulatlanság után eltűnik.
@@ -303,7 +305,7 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
   A ✕-re koppintás csak kilép, nem lép tovább (F-P16). A ◀ az első tételen
   halványított; a ▶ mindig aktív. Az ikonok szöveg nélküliek, `aria-label`-lel, `tabindex="-1"`.
 - **F-P11** Mozdulatlanságnál a kurzor elrejtődik (a gombok fölött látszik), mozgásra visszajön.
-- **F-P12** **Pause-jelző:** pause alatt kis ⏸ jel a jobb felső sarokban, a számlálótól balra.
+- **F-P12** **Pause-jelző:** pause alatt kis ⏸ jel a jobb felső sarokban.
 - **F-P13** **Betűméret:** a kör indulásakor egyetlen méret, amellyel a kör legszélesebb tétele elfér a
   szélesség 72%-án, a tételek közös tinta-doboza a magasság 53%-án, és a betűméret legfeljebb a magasság
   53%-a (2.8-ban 85%, 62%, 62%). Az alapvonal a körön belül állandó; a közös tinta-doboz közepe a magasság 46%-án van.
@@ -311,8 +313,11 @@ A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seed
 - **F-P14** **Időjelző:** a tétel alatt 6 px magas, lekerekített csík a kör legszélesebb tételének
   szélességében (min. 160 px, max. a szélesség 70%-a). A kitöltés balról jobbra fogy a hátralévő idő
   arányában. Pause alatt áll, ← és → után tele csíkkal indul újra. A szünetben és kézi léptetésnél nem látszik.
-- **F-P15** **Számláló:** a jobb felső sarokban `index/N` formában (pl. `3/10`), `--ink-2` színnel,
-  egérmozgástól függetlenül. A szünetben a most lejárt tétel sorszámát mutatja. A jutalomnál nincs.
+- **F-P15** **Haladásjelző (pöttysor):** felül középen, a kör minden tételéhez egy pötty; a kész tételek
+  `--accent`, az aktuális szélesebb `--accent` kapszula, a hátralévők `--line`. 20 tétel fölött pöttyök
+  helyett 240 px-es sáv és mellette `index/N` (pl. `12/50`). Egérmozgástól független; `←` a kapszulát
+  visszaviszi. A szünetben a most lejárt tételt mutatja. Akadálymentes felirata „4. tétel a 10-ből”.
+  A jutalomnál nincs. (Design spec 7.; a modell: `js/core/progress.js`.)
 - **F-P16** **Koppintás:** érintőképernyőn (és tollal) egy koppintás a gyakorlónézetben bárhol
   ugyanaz, mint a ▶ (`NEXT`): szünetben is lép, az utolsón jutalomra vált. A vezérlőgombokra koppintás
   csak a gombot működteti; 12 px-nél nagyobb húzás nem lép. Egérkattintásra nincs hatása.
@@ -568,7 +573,7 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
    a szünetben a most lejártat hozza, teljes idővel.
 5. *(automata)* Pause alatt ← és → lép és folytat. → és Space az utolsó tételen jutalomra vált.
 6. *(automata)* Felvillanás = 0 esetén nincs automatikus váltás.
-7. Gyakorlás közben egérmozgás nélkül a tétel, az időjelző, a számláló, a vezérlősor és a dekoráció
+7. Gyakorlás közben egérmozgás nélkül a tétel, az időjelző, a haladásjelző, a vezérlősor és a dekoráció
    látszik (pause alatt + pause-jelző); a ✕ egeres eszközön nem, érintőképernyőn igen.
 8. Az időjelző a hátralévő idővel arányosan fogy, pause alatt áll.
 9. Egy körön belül minden tétel azonos betűmérettel és alapvonallal jelenik meg; a leghosszabb is egy
@@ -697,7 +702,7 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
   szinte üresek, egyetlen fókusszal.
 - **U-E2 Rövid fő út.** Megnyitás → a legutóbbi lista kijelölve → „Indítás” (vagy Ctrl+Enter).
 - **U-E3 Vakon vezérelhető.** Minden gyakorlás közbeni művelet billentyűvel megy, fókusztól függetlenül.
-- **U-E4 A gyerek nézet nem „alkalmazás”.** Nincs fejléc, menü, szöveg, logó. A számláló és a
+- **U-E4 A gyerek nézet nem „alkalmazás”.** Nincs fejléc, menü, szöveg, logó. A haladásjelző és a
   vezérlősor visszafogott, a tételnél jóval kisebb vizuális súlyú.
 - **U-E5 Tiltott klisék.** Színátmenetes gombok és hátterek, üveghatás, emoji ikonként, árnyékos
   kártyarács, pill badge-ek. Helyette: sík, papírszerű felület, egy kiemelőszín, vékony vonalak.
@@ -710,7 +715,7 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | `--paper-2` | `#ECE5D6` | kijelölt lista, hover, dekoráció |
 | `--line` | `#D9CFBE` | vonalak, keretek, az időjelző sávja |
 | `--ink` | `#1E2A32` | tétel, fő szöveg |
-| `--ink-2` | `#5A6670` | másodlagos szöveg, számláló |
+| `--ink-2` | `#5A6670` | másodlagos szöveg |
 | `--accent` | `#2E6B66` | elsődleges gomb, kijelölés, fókusz, az időjelző kitöltése (75%) |
 | `--warn` | `#94560F` | figyelmeztetés |
 | `--error` | `#A23B2A` | hiba |
@@ -723,33 +728,47 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 Lufik: `#F2B5A7` · `#F5D58F` · `#B5D5BB` · `#A7C8E0` · `#CBB8DE` · `#EFC2D3`, fehér, 25%-os fényfolttal.
 
 Tipográfia: tétel Arial 400 (F-F1); szülői felület `system-ui`, 13 / 15 / 18 / 24 px, alap 15 px;
-számok `tabular-nums`. Térköz 4 px-es rács. Sarok: 6 px vezérlők, 10 px dialógus.
+számok `tabular-nums`. Térköz 4 px-es rács. Sarok: 6 px vezérlők (`--r-ctl`), 10 px dialógus, módfül, nagy gomb
+(`--r-dlg`, `--r-card`), 18 px az alsó lapok felső sarka (`--r-sheet`). A jobb panel szélessége `--panel-w` (360 px).
 Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 
 ### 12.3 Szülői felület
 
+A részletes design specifikáció (elrendezés, komponensek, reszponzív viselkedés, döntések):
+[Olvasóka – design specifikáció: új szülői felület és Felolvasás](https://claude.ai/artifact/VYwYQy3jmn2MCqwWwT7BCd).
+
 ```
-┌───────────────────────────────────────────────────────────────────┐
-│ Olvasóka                                               Betűteszt   │
-├───────────────────────────────────────────────────────────────────┤
-│ ▌ figyelmeztetések (ha vannak)                                   ✕ │
-├────────────────┬──────────────────────────────────────────────────┤
-│ LISTÁK         │ 45. oldal                              46 tétel  │
-│ ▌45. oldal  46 │ [f] [m] [k] [l] [c] [ó] [ú] …                    │
-│  44. oldal  59 │ ──────────────────────────────────────────────── │
-│  Á-A-E      27 │ Frissítve: 20:49  [Frissítés]  Listák szerk. ↗   │
-├────────────────┴──────────────────────────────────────────────────┤
-│ Tételek [Kijelölt|Összes]  Felvillanás ──●── 10 mp  Szünet [0…3]  Tétel − 10 + │
-│ kb. 1 perc 40 mp   Space tovább · ← → lépés · ↓ takar · P szünet · Esc kilép   [Indítás] │
-└───────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ Olvasóka                                                    Súgó   Betűteszt   │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ ▌ figyelmeztetések (ha vannak)                                               ✕ │
+├────────────────┬───────────────────────────────────┬──────────────────────────┤
+│ LISTÁK         │ 45. oldal                46 tétel │ [Felolvasás][Keresd meg!]│
+│ ▌45. oldal  46 │ [f] [m] [k] [l] [c] [ó] [ú] …     │  leírás   (Így játsszátok)│
+│  44. oldal  59 │ ───────────────────────────────── │ Tételek [Kijelölt|Összes]│
+│  Á-A-E      27 │ Frissítve: 20:49 [Frissítés] ↗    │ Felvillanás ──●── 10 mp  │
+│                │                                   │ Szünet [0|0,5|1|2|3]     │
+│                │                                   │ Tételek a körben − 10 +  │
+│                │                                   ├──────────────────────────┤
+│                │                                   │ 10 tétel · kb. 1 perc…   │
+│                │                                   │ [       Indítás        ] │
+│                │                                   │ Ctrl+Enter indít         │
+└────────────────┴───────────────────────────────────┴──────────────────────────┘
 ```
+
+Elrendezések: desktop (≥ 900 px) a fenti; álló tablet (601–899 px) a listák pipálható chipekként felül,
+alattuk a panel kártyaként, az Indítás a képernyő aljára tapadó sávban; mobil (≤ 600 px) a listák
+egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kész); mobil fekvő
+(`max-height:500px` és fekvő) két oszlop: balra listák, fülek, súgógomb, Indítás, jobbra a beállítások.
 
 - **U-A1** Listasáv: névsorban (F-L2), név mellett a tételszám. Kijelölt: `--paper-2` háttér +
   3 px `--accent` bal szegély, `aria-pressed`. Kattintás: csak az a lista. Ctrl/⌘+kattintás: hozzáad vagy
   kivesz; az utolsó kijelölt nem vehető ki. Shift+kattintás: tartomány a legutóbb kattintott listától
   (Ctrl/⌘+Shift: a tartomány hozzáadódik). A sáv alján halvány súgósor, ha legalább két lista van.
-  900 px alatt a lista fölött jelölőnégyzetes címkék (érintőképernyőn nincs Ctrl); a négyzet hozzáad
-  vagy kivesz, az utolsó itt sem vehető ki.
+  Érintős elsődleges mutatón (`pointer:coarse`, pl. fekvő iPad) a koppintás hozzáad vagy kivesz, mintha
+  Ctrl lenne lenyomva; egérrel minden a régi. 900 px alatt a lista fölött jelölőnégyzetes chipek
+  „2 lista · 38 tétel” összesítővel, 600 px alatt lenyíló sor és alsó lap; ezeken is hozzáad vagy kivesz
+  a pipa, az utolsó itt sem vehető ki (a mobil lapon a „Egyik sem” kiürítheti, ekkor az Indítás tilt).
 - **U-A2** Megnyitáskor a `lastLists` szerinti listák, amelyik megvan; ha egy sem, az első.
 - **U-A3** A kijelölt lista tételei vékony keretes címkékként, Arialban, a fájlbeli sorrendben. Több
   kijelölt listánál a fejléc „3 lista kijelölve · 47 különböző tétel”, alatta listánként csoportosítva
@@ -757,11 +776,14 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 - **U-A4** Forrássor: frissítési állapot, „Frissítés” gomb, szerkesztő link (F-L11); alatta szükség esetén
   a tartalék jelzése (F-L13), 13 px, `--ink-2`, `--warn` színű nyitójellel.
 - **U-A5** Figyelmeztető sáv a fejléc alatt, `--warn` bal szegéllyel, egyenként bezárható.
-- **U-A6** Kör-sáv alul, mindig látható; az „Indítás” az oldal egyetlen elsődleges gombja. Állapotai:
+- **U-A6** Jobb panel (keskeny nézetben a tartalom alatt): módfülek (Felolvasás; Keresd meg! inaktív,
+  „Hamarosan érkezik” címkével), leírás + „Így játsszátok” súgógomb, a beállítások, alul a mindig látható
+  Indítás-blokk: becslés („10 tétel · kb. 40 mp”, kézi léptetésnél „10 tétel · kézi léptetés”), az
+  oldal egyetlen elsődleges gombja, alatta csak hiba vagy figyelmeztetés. Állapotai:
 
-  | Állapot | Gomb | Szöveg mellette |
+  | Állapot | Gomb | Szöveg alatta |
   |---|---|---|
-  | kész | aktív | – (több listánál: „4 lista, 98 különböző tétel”) |
+  | kész | aktív | – |
   | listák töltődnek, nincs korábbi | inaktív, „Listák töltődnek…” | – |
   | font töltődik | inaktív, „Betűtípus töltődik…” | – |
   | font nem töltődött be | aktív | `--warn`: „A betűk alakja eltérhet.” |
@@ -769,6 +791,10 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
   | üres lista / mind üres | inaktív | „A listában nincs tétel.” / „Egyik listában sincs tétel.” |
 
 - **U-A7** Mikroszöveg: tegező, rövid, felkiáltójel nélkül; hibánál a teendőt mondja.
+- **U-A7b „Így játsszátok”:** játékonkénti súgó a panel súgógombjáról. Desktopon nem modális popover
+  a panel bal szélén (✕, Esc, kívülre kattintás, a gomb újbóli megnyomása zárja; a fókusz a ✕-re, majd
+  vissza a gombra); érintőn, 900 px alatt és mobil fekvőben alsó lap „Értem” gombbal. A gyakorlás
+  billentyűi itt vannak, az admin alsó sorából kikerültek.
 - **U-A7a Súgó:** modális ablak a program céljáról és használatáról (5 lépés). Induláskor magától
   megjelenik, amíg a „Ne jelenjen meg újra” jelölőnégyzet nincs bepipálva (`hideHelp` a helyi
   állapotban); a fejléc „Súgó” gombja bármikor megnyitja. Billentyűs eszközön a billentyűket,
@@ -784,8 +810,9 @@ Időtartamok: 150 ms (hover), 300 ms (fade), 1800 ms (jutalom háttér).
 - **U-P4** Vezérlősor: ◀ ⏸/▶ ▶ alul középen, 24 px-re az aljától, 16 px közzel; 56 px kerek találati
   terület, 28 px ikon, `--ink` 55%; hoverre 8%-os kör háttér és 85%. Inaktív: 20%.
 - **U-P5** ✕: bal felső sarok; egeres eszközön egérmozgásra, fade be 150 ms, ki 300 ms; érintőképernyőn végig látszik (F-P10).
-- **U-P6** Számláló: jobb felső sarok, 24 px-re a szélektől, 20 px, `--ink-2`, `tabular-nums`.
-- **U-P7** Pause-jelző: a számlálótól balra, 28 px, két lekerekített sáv, `--ink` 35%, fade 300 ms.
+- **U-P6** Haladásjelző: felül középen, `42 px + safe area` magasan; pötty 12×12 px, 10 px rés, aktuális
+  28×12 px; 600 px alatt 8 px-es pötty, 6 px rés, 20 px-es kapszula. Váltás 150 ms, csökkentett mozgásnál azonnal.
+- **U-P7** Pause-jelző: a jobb felső sarokban, 24 px-re a szélektől, 28 px, két lekerekített sáv, `--ink` 35%, fade 300 ms.
 - **U-P8** Belépés animáció nélkül, az első tétel azonnal, teljes idővel. Kilépés azonnal.
 - **U-P9** Szótag-takaró (vonalzó): F-P22, színei a 12.2 `--ruler*` tokenjei. Megjelenése és eltűnése azonnali. Egeres eszközön a szótag fölött a
   kurzor nem változik (a tétel a gyereké, nem „gomb”); a kurzor elrejtése (F-P11) változatlan.
