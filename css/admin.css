@@ -293,6 +293,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .mode-tab{height:64px;flex-direction:row;gap:8px}
   .mode-tab[aria-disabled=true]{flex-wrap:wrap;align-content:center;row-gap:2px;height:64px}
   .mode-tab[aria-disabled=true] .mode-soon{flex-basis:100%;text-align:center;flex-grow:0;margin-inline:auto;width:max-content;flex-basis:auto}
+  .mode-soon{font-size:11px;padding:1px 6px;white-space:normal;text-align:center}
   .mode-head{grid-column:1;grid-row:3;margin-top:10px}
   .mode-desc{display:none}
   .panel-start{position:static;grid-column:2;grid-row:5;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;border:0;border-top:1px solid var(--line);box-shadow:none;background:transparent;padding:10px 4px calc(12px + env(safe-area-inset-bottom,0px))}

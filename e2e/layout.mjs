@@ -238,6 +238,17 @@ test('alacsony széles ablak (1270×480): fekvő elrendezés, az Indítás jobb 
   await ctx.close();
 });
 
+test('nagyon alacsony fekvő (740×320): a becslés az Indítás mellett, nem csúszik a súgógombra', async () => {
+  const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 740, height: 320 } }, { settings: { flashMs: 5500, gapMs: 500, count: 20 } });
+  assert.ok(await inViewport(page, '#startBtn'));
+  await startOnRight(page);
+  const [est, btn, how] = await Promise.all(['#estimate', '#startBtn', '#howBtn'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  assert.ok(est.left > how.right, 'a becslés a súgógombtól jobbra');
+  assert.ok(est.right <= btn.left && btn.left - est.right <= 24, 'a becslés jobbra zárva az Indítás mellett');
+  assert.equal(await page.$eval('#findSoon', (e) => e.scrollWidth <= e.clientWidth + 1), true, 'a „Hamarosan érkezik” nem vágódik le');
+  await ctx.close();
+});
+
 test('érintős oldalsáv (fekvő iPad): koppintás hozzáad és elvesz, Ctrl nélkül', async () => {
   const { page, ctx } = await open(IPAD_LAND, { lastLists: [] });
   const items = page.locator('.nav-item');
