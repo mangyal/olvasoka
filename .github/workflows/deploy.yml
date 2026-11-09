@@ -1,0 +1,105 @@
+name: Kiadás (GitHub Pages)
+
+# Egy GitHub Pages oldal = egy csomag, ezért minden futás a teljes oldalt rakja össze:
+#   main → https://mangyal.github.io/olvasoka/       (éles)
+#   dev  → https://mangyal.github.io/olvasoka/dev/   (fejlesztői)
+# Egy dev push az élest a változatlan main-ből építi újra, így annak tartalma bájtra azonos marad.
+#
+# Figyelem: a futás a pusholt ág saját deploy.yml-jét használja. A workflow módosításai ezért
+# infra/* ágon, közvetlenül a main-be menjenek, utána a main-t vissza kell olvasztani a dev-be.
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # verzió-tag a main-en
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Éles (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+
+      - name: Van-e dev ág
+        id: dev
+        run: |
+          if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}" dev >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fejlesztői (dev)
+        if: steps.dev.outputs.exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: devsrc
+
+      - name: Összerakás
+        run: |
+          set -e
+          rm -rf site/.git site/.github
+          if [ -d devsrc ]; then
+            rm -rf site/dev
+            mkdir site/dev
+            (cd devsrc && tar --exclude=.git --exclude=.github -cf - .) | tar -xf - -C site/dev
+            pip install --quiet pillow
+            python3 devsrc/.github/scripts/make-dev-variant.py site/dev
+          fi
+          echo "éles: $(grep -o "'[0-9.]*'" site/js/version.js 2>/dev/null || echo '?')"
+          [ -d site/dev ] && echo "dev:   $(grep -o "'[0-9.]*'" site/dev/js/version.js 2>/dev/null || echo '?')" || true
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  tag:
+    # sikeres éles kiadás után: vX.Y.Z tag a js/version.js alapján (ha még nincs ilyen)
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          v="v$(sed -n "s/.*VERSION = '\([0-9.]*\)'.*/\1/p" js/version.js)"
+          if git rev-parse -q --verify "refs/tags/$v" >/dev/null; then
+            echo "$v már létezik, nincs új tag."
+          else
+            git tag "$v" && git push origin "$v" && echo "tag: $v"
+          fi

@@ -2,9 +2,11 @@
 // A letöltést a hívó adja (`get`), így a tartalékra váltás hálózat nélkül tesztelhető.
 
 import { parseListsText, parseSheetCsv } from './lists.js';
+import { ENV } from './env.js';
 
-export const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTC1LeDZKtyeoWqy57jz7dUOsfY3FoutvTl3S5ogBvSKFWOWLbyxCjO2IISlCHXxMdCHSjrOM-T2Dq6/pub?output=csv';
-export const SHEET_EDIT_URL = 'https://docs.google.com/spreadsheets/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit?gid=0#gid=0';
+// A táblázat címei környezetenként a core/env.js-ben vannak.
+export const SHEET_CSV_URL = ENV.sheet.csv;
+export const SHEET_EDIT_URL = ENV.sheet.edit;
 export const TXT_URL = 'lists.txt';
 
 /** A tárolt szöveg értelmezése a forrása szerint. */

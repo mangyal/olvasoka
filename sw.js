@@ -6,8 +6,14 @@
 // A lists.txt-t sem kezeli: annak offline állapotát a program maga jelzi (F-L8, F-L9).
 //
 // Az ASSETS listát a test/pwa.test.js egyezteti a repó fájljaival.
+//
+// Környezetek (js/core/env.js): az éles a gyökérben, a dev a /dev/ almappában fut, ugyanazon az
+// originon, így a Cache Storage közös. Ezért a dev saját tárolót használ, az éles pedig a /dev/
+// alatti kéréseket nem kezeli (azokat a dev saját service workere szolgálja ki).
 
-const CACHE = 'olvasoka';
+const IS_DEV = /\/dev\//.test(self.location.pathname) || ['localhost', '127.0.0.1'].includes(self.location.hostname);
+const CACHE = IS_DEV ? 'olvasoka-dev' : 'olvasoka';
+const DEV_PATH = new URL('dev/', self.location).pathname;
 const TIMEOUT_MS = 3000;
 
 const ASSETS = [
@@ -24,9 +30,11 @@ const ASSETS = [
   'img/icons/icon-192.png',
   'js/main.js',
   'js/font.js',
+  'js/version.js',
   'js/core/cover.js',
   'js/core/csv.js',
   'js/core/drift.js',
+  'js/core/env.js',
   'js/core/items.js',
   'js/core/lists.js',
   'js/core/round.js',
@@ -53,6 +61,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('/lists.txt')) return;
+  if (!IS_DEV && url.pathname.startsWith(DEV_PATH)) return;
   e.respondWith(fromNetwork(req).catch(() => fromCache(req)));
 });
 
