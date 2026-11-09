@@ -13,7 +13,8 @@
 
 const IS_DEV = /\/dev\//.test(self.location.pathname) || ['localhost', '127.0.0.1'].includes(self.location.hostname);
 const CACHE = IS_DEV ? 'olvasoka-dev' : 'olvasoka';
-const DEV_PATH = new URL('dev/', self.location).pathname;
+const DEV_PATH = new URL('dev/', self.location).pathname;           // …/olvasoka/dev/
+const isDevPath = (p) => p.startsWith(DEV_PATH) || p === DEV_PATH.slice(0, -1); // perjel nélkül is
 const TIMEOUT_MS = 3000;
 
 const ASSETS = [
@@ -61,7 +62,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('/lists.txt')) return;
-  if (!IS_DEV && url.pathname.startsWith(DEV_PATH)) return;
+  if (!IS_DEV && isDevPath(url.pathname)) return;
   e.respondWith(fromNetwork(req).catch(() => fromCache(req)));
 });
 
@@ -70,6 +71,8 @@ function fromNetwork(req) {
     const t = setTimeout(() => reject(new Error('timeout')), TIMEOUT_MS);
     fetch(req, { cache: 'no-cache' }).then((res) => {
       clearTimeout(t);
+      // átirányítás (pl. perjel nélküli mappa): a böngésző kövesse, ne a tárolt példány jöjjön
+      if (res.type === 'opaqueredirect') { resolve(res); return; }
       if (!res.ok) { reject(new Error(String(res.status))); return; }
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(req, copy));
