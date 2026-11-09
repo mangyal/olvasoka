@@ -210,11 +210,27 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   await ctx.close();
 });
 
-test('mobil fekvő (844×390): az Indítás görgetés nélkül látszik', async () => {
+/** Az Indítás a jobb oszlopban, a beállítások alatt (döntés 2026-11-09). */
+async function startOnRight(page) {
+  const [btn, set, tabs] = await Promise.all(['#startBtn', '#panelRead', '#modeTabs'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  assert.ok(btn.left >= set.left - 1 && btn.right <= set.right + 5, 'a jobb oszlopban');
+  assert.ok(btn.top >= set.bottom - 1, 'a beállítások alatt');
+  assert.ok(btn.left > tabs.right, 'a fülektől jobbra');
+}
+
+test('mobil fekvő (844×390): az Indítás görgetés nélkül látszik, jobb oldalt', async () => {
   const { page, ctx } = await open(PHONE_LAND);
   assert.ok(await inViewport(page, '#startBtn'));
   assert.ok(await page.isVisible('#tabRead'));
   assert.ok(await page.isVisible('#listsBtn'));
+  await startOnRight(page);
+  await ctx.close();
+});
+
+test('alacsony széles ablak (1270×480): fekvő elrendezés, az Indítás jobb oldalt', async () => {
+  const { page, ctx } = await open({ viewport: { width: 1270, height: 480 } });
+  assert.ok(await inViewport(page, '#startBtn'));
+  await startOnRight(page);
   await ctx.close();
 });
 

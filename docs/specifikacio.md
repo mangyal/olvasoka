@@ -763,7 +763,8 @@ A részletes design specifikáció (elrendezés, komponensek, reszponzív viselk
 Elrendezések: desktop (≥ 900 px) a fenti; álló tablet (601–899 px) a listák pipálható chipekként felül,
 alattuk a panel kártyaként, az Indítás a képernyő aljára tapadó sávban; mobil (≤ 600 px) a listák
 egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kész); mobil fekvő
-(`max-height:500px` és fekvő) két oszlop: balra listák, fülek, súgógomb, Indítás, jobbra a beállítások.
+(`max-height:500px` és fekvő, desktopon alacsony ablakban is) két oszlop: balra listák, fülek,
+súgógomb, jobbra a görgethető beállítások, alattuk az Indítás.
 
 - **U-A1** Listasáv: névsorban (F-L2), név mellett a tételszám. Kijelölt: `--paper-2` háttér +
   3 px `--accent` bal szegély, `aria-pressed`. Kattintás: csak az a lista. Ctrl/⌘+kattintás: hozzáad vagy
