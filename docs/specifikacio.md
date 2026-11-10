@@ -767,7 +767,9 @@ egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kés
 balra a cím, a verziócímke és ikonos Súgó/Betűteszt gomb, alattuk listák, fülek, súgógomb (700 px alatti
 szélességen a cím elmarad, a verziócímke marad); jobbra a görgethető beállítások, alattuk az Indítás.
 A jobb oszlop a teljes magasságot kapja, a bal oszlop tartalma nem tolhatja le az Indítást: 256 px
-magasságig görgetés nélkül látszik (#40).
+magasságig görgetés nélkül látszik (#40). Keskeny fekvő nézetben (568 px-nél keskenyebb, ez valódi telefonon nem fordul elő, csak nagyításnál
+vagy összehúzott ablakban, pl. 400% → 320 × 256) az álló mobil elrendezése érvényes: ikonos fejléc, egy
+görgethető oszlop, alul tapadó Indítás-sáv (#44).
 
 **Legkisebb támogatott méret (WCAG 1.4.10, Reflow):** 320 CSS px szélesség és 256 CSS px magasság. Ennél
 kisebb ablakban a szülői felület helyett teljes képernyős tájékoztató jelenik meg („Túl kicsi a képernyő”):

@@ -244,8 +244,8 @@ export function createAdmin(el, app, act) {
   };
   function fitTabs() {
     el.modeTabs.classList.remove('icon-only');
-    const over = tabs.some((t) => t.scrollWidth > t.clientWidth + 0.5
-      || [...t.querySelectorAll('.mode-icon, .mode-name, .mode-soon')].some((c) => overflows(t, c) || c.scrollWidth > c.clientWidth + 0.5));
+    const over = tabs.some((t) => t.scrollWidth > t.clientWidth + 1 || t.scrollHeight > t.clientHeight + 1
+      || [...t.querySelectorAll('.mode-icon, .mode-name, .mode-soon')].some((c) => overflows(t, c) || c.scrollWidth > c.clientWidth + 1 || c.scrollHeight > c.clientHeight + 1));
     el.modeTabs.classList.toggle('icon-only', over);
   }
   if ('ResizeObserver' in window) new ResizeObserver(fitTabs).observe(el.modeTabs);

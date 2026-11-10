@@ -266,6 +266,57 @@ for (const [w, h] of [[740, 256], [568, 256]]) {
   });
 }
 
+// ---------- keskeny fekvő (< 568 px; nagyítás, összehúzott ablak): egy görgethető oszlop, alul Indítás (#44) ----------
+/** A látható, nem rejtett vezérlők közül fedik-e egymást valamelyek (a görgető terület látható részén). */
+const overlaps = (page) => page.evaluate(() => {
+  const sel = '#helpBtn, #fontBtn, #appVersion, #listsBtn, #tabRead, #tabFind, #howBtn, .seg-opts label, #flashIn, #countDec, #countIn, #countInc, #startBtn, #estimate';
+  const rs = [...document.querySelectorAll(sel)].map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.width > 1 && r.height > 1);
+  const bar = document.getElementById('panelStart').getBoundingClientRect(), top = document.querySelector('.top').getBoundingClientRect();
+  const out = [];
+  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+    const [a, ra] = rs[i], [b, rb] = rs[j];
+    if (a.contains(b) || b.contains(a)) continue;
+    // a görgető tartalom a tapadó sáv és a fejléc alá is becsúszhat: csak a ténylegesen látható részt nézzük
+    const vis = (e, r) => e.closest('#panelStart, .top') ? r : { ...r.toJSON(), top: Math.max(r.top, top.bottom), bottom: Math.min(r.bottom, bar.top) };
+    const A = vis(a, ra), B = vis(b, rb);
+    if (A.bottom <= A.top || B.bottom <= B.top) continue;
+    if (A.left < B.right - 0.5 && B.left < A.right - 0.5 && A.top < B.bottom - 0.5 && B.top < A.bottom - 0.5) out.push(`${a.id || a.className} × ${b.id || b.className}`);
+  }
+  return out;
+});
+
+for (const [w, touch] of [[320, true], [320, false], [480, true], [567, true]]) {
+  test(`keskeny fekvő ${w}×256${touch ? ' (érintő)' : ' (desktop, 400% nagyítás)'}: egy oszlop, az Indítás látszik, semmi sem fedi egymást (#44)`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: 256 }, hasTouch: touch, isMobile: touch });
+    assert.ok(await inViewport(page, '#startBtn'), 'az Indítás görgetés nélkül látszik');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'nincs vízszintes görgetés');
+    for (const id of ['#helpBtn', '#fontBtn', '#appVersion', '#estimate']) assert.ok(await inViewport(page, id), `${id} látszik`);
+    const [lists, tabs, set] = await Promise.all(['#listsBtn', '#modeTabs', '#panelRead'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+    assert.ok(Math.abs(lists.left - tabs.left) < 1 && Math.abs(tabs.left - set.left) < 1, 'egy oszlopban, egymás alatt');
+    assert.ok(tabs.top >= lists.bottom && set.top >= tabs.bottom);
+    assert.deepEqual(await overlaps(page), [], 'nem fedik egymást');
+    // minden beállítás elérhető függőleges görgetéssel, a fejléc és a tapadó sáv között
+    for (const q of ['#srcAll', '#flashIn', '#gapOpts', '#countInc', '#howBtn']) {
+      await page.$eval(q, (e) => e.scrollIntoView({ block: 'center' }));
+      const ok = await page.$eval(q, (e) => {
+        const r = (e.type === 'radio' ? e.parentElement : e).getBoundingClientRect();
+        const bar = document.getElementById('panelStart').getBoundingClientRect(), top = document.querySelector('.top').getBoundingClientRect();
+        return r.top >= top.bottom - 0.5 && r.bottom <= bar.top + 0.5;
+      });
+      assert.ok(ok, `${q} görgetéssel elérhető`);
+    }
+    assert.deepEqual(await overlaps(page), [], 'görgetés után sem fedik egymást');
+    await ctx.close();
+  });
+}
+
+test('568×256: marad a két oszlopos fekvő elrendezés (valódi telefon fekve)', async () => {
+  const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 568, height: 256 } });
+  await startOnRight(page);
+  assert.ok(await page.$eval('.work', (e) => getComputedStyle(e).display === 'contents'));
+  await ctx.close();
+});
+
 // ---------- módfülek: ha a felirat nem fér el, csak az ikon marad, a kerethez méretezve ----------
 const tabState = (page) => page.evaluate(() => {
   const inside = (b, r) => r.left >= b.left - 0.5 && r.right <= b.right + 0.5 && r.top >= b.top - 0.5 && r.bottom <= b.bottom + 0.5;
@@ -285,7 +336,7 @@ const tabState = (page) => page.evaluate(() => {
   };
 });
 
-for (const [w, iconOnly] of [[320, true], [568, true], [740, false]]) {
+for (const [w, iconOnly] of [[320, false], [568, true], [740, false]]) {
   test(`módfülek ${w}×256: ${iconOnly ? 'csak ikon, a kerethez méretezve' : 'ikon + felirat'}, semmi sem lóg ki`, async () => {
     const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: w, height: 256 } });
     const st = await tabState(page);
