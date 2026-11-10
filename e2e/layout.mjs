@@ -266,6 +266,80 @@ for (const [w, h] of [[740, 256], [568, 256]]) {
   });
 }
 
+// ---------- túl kicsi képernyő (WCAG 1.4.10 alatt: < 320 px széles vagy < 256 px magas) ----------
+const shown = (page, sel) => page.isVisible(sel);
+/** Az overlay a teljes ablakot takarja-e (a szülői felület nem kattintható alatta). */
+const covers = (page) => page.evaluate(() => {
+  const r = document.getElementById('tooSmall').getBoundingClientRect();
+  const hit = document.elementFromPoint(innerWidth / 2, innerHeight - 5);
+  return r.left <= 0 && r.top <= 0 && r.right >= innerWidth && r.bottom >= innerHeight && !!hit?.closest('#tooSmall');
+});
+
+for (const [name, opts, rotate] of [
+  ['álló, 319 px széles', { viewport: { width: 319, height: 640 }, hasTouch: true, isMobile: true }, false],
+  ['hajlítható telefon külső kijelzője, 280 px széles', { viewport: { width: 280, height: 653 }, hasTouch: true, isMobile: true }, false],
+  ['fekvő telefon, 255 px magas', { viewport: { width: 568, height: 255 }, hasTouch: true, isMobile: true }, true],
+  ['desktop ablak, 255 px magas', { viewport: { width: 1270, height: 255 } }, false],
+]) {
+  test(`túl kicsi képernyő (${name}): teljes képernyős tájékoztató`, async () => {
+    const { page, ctx } = await open(opts);
+    assert.ok(await shown(page, '#tooSmall'));
+    assert.ok(await covers(page), 'a teljes ablakot takarja');
+    assert.equal(await page.textContent('.ts-title'), 'Túl kicsi a képernyő');
+    assert.equal(await shown(page, '.ts-rotate'), rotate, 'elforgatást csak fekvő érintőképernyőn kér');
+    assert.equal(await shown(page, '.ts-other'), !rotate);
+    const fit = await page.evaluate(() => {
+      const vw = visualViewport.width, vh = visualViewport.height;
+      return {
+        layout: document.documentElement.scrollWidth <= innerWidth && innerWidth <= vw + 1,
+        text: [...document.querySelectorAll('#tooSmall > *')].filter((e) => e.offsetParent)
+          .every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= vw + 0.5 && r.top >= 0 && r.bottom <= vh + 0.5; }),
+      };
+    });
+    assert.ok(fit.layout, 'az oldal nem szélesebb a látható ablaknál');
+    assert.ok(fit.text, 'a tájékoztató minden sora a látható ablakban van');
+    await ctx.close();
+  });
+}
+
+for (const [w, h] of [[320, 256], [320, 568], [568, 256], [1270, 256]]) {
+  test(`${w}×${h} (WCAG-határ): nincs tájékoztató`, async () => {
+    const touch = w < 900;
+    const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch });
+    assert.equal(await shown(page, '#tooSmall'), false);
+    await ctx.close();
+  });
+}
+
+test('túl kicsi képernyő: a nyitott súgót elrejti, nagyobb ablakban visszajön; játék közben nem jelenik meg', async () => {
+  const { page, ctx } = await open(DESKTOP, { settings: { flashMs: 0, gapMs: 0, count: 5 } });
+  await page.click('#helpBtn');
+  assert.ok(await shown(page, '#dlgHelp'));
+  await page.setViewportSize({ width: 1270, height: 240 });
+  assert.ok(await shown(page, '#tooSmall'));
+  assert.equal(await shown(page, '#dlgHelp'), false, 'a súgó nem takarja ki a tájékoztatót');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  assert.equal(await shown(page, '#tooSmall'), false);
+  assert.ok(await shown(page, '#dlgHelp'), 'a súgó változatlanul nyitva');
+  await page.keyboard.press('Escape');
+  await page.click('#startBtn');
+  await page.waitForSelector('#stage:not([hidden])');
+  await page.setViewportSize({ width: 300, height: 240 });
+  assert.equal(await shown(page, '#tooSmall'), false, 'kör közben nincs tájékoztató');
+  assert.ok(await shown(page, '#stage'));
+  await ctx.close();
+});
+
+test('túl kicsi képernyő: számbevitel közben (felugró billentyűzet) nem jelenik meg', async () => {
+  const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 740, height: 320 } });
+  await page.focus('#countIn');
+  await page.setViewportSize({ width: 740, height: 200 });
+  assert.equal(await shown(page, '#tooSmall'), false);
+  await page.$eval('#countIn', (e) => e.blur());
+  assert.ok(await shown(page, '#tooSmall'));
+  await ctx.close();
+});
+
 test('érintős oldalsáv (fekvő iPad): koppintás hozzáad és elvesz, Ctrl nélkül', async () => {
   const { page, ctx } = await open(IPAD_LAND, { lastLists: [] });
   const items = page.locator('.nav-item');
