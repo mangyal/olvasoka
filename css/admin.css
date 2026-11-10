@@ -11,7 +11,10 @@
 kbd{font:12px/1.4 var(--f-ui);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--field);color:var(--ink-2)}
 
 /* ---------- admin ---------- */
-.admin{height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr);min-height:0}
+.admin{height:100%;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);min-height:0}
+/* a cím szükség esetén rövidül; így széles rendszerbetűvel sem szélesebb a fejléc az ablaknál */
+.top h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-version,.top-actions{flex:none}
 .pad{padding-left:max(var(--gut),env(safe-area-inset-left,0px));padding-right:max(var(--gut),env(safe-area-inset-right,0px))}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:12px;border-bottom:1px solid var(--line)}
 .top h1{font-size:18px;font-weight:600;margin:0;letter-spacing:.01em}
@@ -286,12 +289,12 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .editor{margin-top:8px}
 }
 
-/* ================= mobil fekvő (E10): balra fejléc + listák + fülek + súgó, jobbra a beállítások, alattuk az Indítás =================
+/* ================= mobil fekvő (E10, 568 px-től): balra fejléc + listák + fülek + súgó, jobbra a beállítások, alattuk az Indítás =================
    Az .admin maga a két oszlopos rács (.work, .panel, .panel-scroll „átlátszó”), így:
    - nincs külön fejlécsor: a cím, a verziócímke és az ikonos Súgó/Betűteszt a bal oszlop tetején,
    - a jobb oszlop (beállítások + Indítás) a teljes magasságot kapja; a bal oszlop alsó eleme a rács
      végéig ér, így a bal oszlop magassága nem tolja le az Indítást (#40). */
-@media (max-height:500px) and (orientation:landscape){
+@media (max-height:500px) and (orientation:landscape) and (min-width:568px){
   :root{--gut:16px}
   .admin{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);grid-template-rows:auto auto auto auto minmax(0,1fr) auto;column-gap:20px;overflow:hidden;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
   .work,.panel,.panel-scroll{display:contents}
@@ -323,8 +326,40 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .estimate,.start-msg{max-width:none}
 }
 /* keskeny fekvő telefonon (pl. 568 px) a cím nem fér el a verziócímke és az ikonok mellett: csak a címke marad */
-@media (max-height:500px) and (orientation:landscape) and (max-width:699px){
+@media (max-height:500px) and (orientation:landscape) and (min-width:568px) and (max-width:699px){
   .top h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+}
+
+/* ================= nagyon keskeny álló nézet (≤ 400 px): a fejléc gombjai csak ikonok =================
+   Széles rendszerbetűvel (pl. DejaVu Sans) a „Súgó” + „Betűteszt” felirat a cím és a verziócímke mellett
+   320 px-en nem fér el. */
+@media (max-width:400px){
+  .top{gap:10px}
+  .top h1{font-size:16px}
+  .top-actions{gap:0;margin-right:-10px}
+  .top .top-btn{width:44px;height:44px;min-height:44px;padding:0;border-radius:var(--r-ctl)}
+  .top-btn .icon{display:block}
+  .top-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+
+/* ================= keskeny fekvő (< 568 px széles, ≤ 500 px magas; #44) =================
+   Valódi telefon fekve legalább 568 px széles; ez a nagyítás (400% → 320 × 256) és az összehúzott ablak esete.
+   A két oszlop itt túl keskeny, ezért az álló mobil elrendezése (≤ 600 px) érvényes: egy görgethető oszlop,
+   alul tapadó, keskenyebb Indítás-sáv. A WCAG 1.4.10 itt függőleges görgetést megenged. */
+@media (max-height:500px) and (orientation:landscape) and (max-width:567px){
+  .top{padding-block:2px}
+  .top h1{font-size:16px;white-space:nowrap}
+  .app-version{white-space:nowrap}
+  .top-actions{gap:0;margin-right:-10px}
+  .top .top-btn{width:44px;height:44px;min-height:44px;padding:0;border-radius:var(--r-ctl)}
+  .top-btn .icon{display:block}
+  .top-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .work{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  .picker{padding-top:10px}
+  .panel{margin-top:10px}
+  .mode-desc{display:none}
+  .panel-start{padding-block:8px calc(8px + env(safe-area-inset-bottom,0px))}
+  .btn-start{height:52px}
 }
 
 /* ================= túl kicsi képernyő: WCAG 1.4.10 (Reflow) alatt, < 320 px széles vagy < 256 px magas =================
