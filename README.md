@@ -136,24 +136,31 @@ a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is 
 2. **Kipróbálás** a dev oldalon, tableten/telefonon is. A dev telepítve „Olvasóka DEV” néven, sötét
    ikonnal jelenik meg, a beállításai az élestől függetlenek.
 3. **Kiadás:** Actions → *Kiadás előkészítése* → *Run workflow* (ág: `main`), lépés: `patch` (javítás),
-   `minor` (új funkció) vagy `major`. A workflow a `dev`-en beírja az új verziót a `js/version.js`-be,
-   újra kiteszi a dev oldalt, és az összefoglalójában linket ad a kiadási PR-hoz (`dev` → `main`,
-   kitöltött címmel). A PR-t te nyitod meg, kipipálod a listát, és **merge committal** vonod össze
-   (nem squash). A workflow kiteszi az élest és `vX.Y.Z` taget készít.
+   `minor` (új funkció) vagy `major`. A futás összefoglalójában két link van, kitöltött címmel:
+   - **Verzió-PR** (`release/vX.Y.Z` → `dev`): megnyitod, ha zöld, összevonod.
+   - **Kiadási PR** (`dev` → `main`): miután a dev oldal az új verziót mutatja, megnyitod, kipipálod a
+     listát, és **merge committal** vonod össze (nem squash). A workflow kiteszi az élest és `vX.Y.Z`
+     taget készít.
+
+   A PR-okat azért nyitod meg te, mert a `dev`-re és a `main`-re csak olyan változás kerülhet, amelyen
+   lefutottak a kötelező ellenőrzések, és ezek a bot által nyitott PR-on nem futnak.
 4. **Visszavonás:** a `main`-en a kiadás merge commitjának *Revert*-je; kb. 1 perc múlva a régi változat fut.
-5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel), utána a `main`-t
-   olvaszd vissza a `dev`-be.
+5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel).
+
+**Dev szinkron:** a *Dev szinkron (main → dev)* workflow figyeli, hogy a `main` változásai (hotfix,
+infra) bekerültek-e a `dev`-be. Ha nem, issue-t nyit egy linkkel a `main` → `dev` PR-hoz; azt megnyitod
+és összevonod, az issue pedig magától lezárul. Sima kiadás után nincs teendő.
 
 **Füstteszt kiadás után:** minden kiadás után az *Kiadás (GitHub Pages)* workflow `smoke` lépése headless
 Chrome-mal megnyitja az élő oldalt (`e2e/smoke.mjs`), és ellenőrzi: a `/` éles (nincs DEV címke), a
 `/dev` és a `/dev/` a dev oldalra visz (DEV címke, telepített éles service workerrel is), mindkettőn
-van verziószám, és a dev verziója ≥ az élesé. Ha piros: a GitHub e-mailt küld; ha a dev régebbi, a
-`main`-t vissza kell olvasztani a `dev`-be. Helyben: `npm i --no-save playwright && npx playwright install chromium && npm run smoke`.
+van verziószám, és a dev verziója ≥ az élesé. Ha piros: a GitHub e-mailt küld; ha a dev régebbi,
+nézd meg a *Dev szinkron* issue-t. Helyben: `npm i --no-save playwright && npx playwright install chromium && npm run smoke`.
 
 A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR (`.github/workflows/release-check.yml`).
 Az `infra/*` a workflow-k és a kiadási eszközök módosítására való: mivel egy push a saját ágának
-`deploy.yml`-jét futtatja, ezek a változtatások közvetlenül a `main`-be menjenek, utána a `main`-t
-vissza kell olvasztani a `dev`-be.
+`deploy.yml`-jét futtatja, ezek a változtatások közvetlenül a `main`-be menjenek (a `dev`-be a
+*Dev szinkron* issue linkjével kerül át).
 
 **A listák táblázata környezetenként** GitHub repository variable-ökből jön: Settings → Secrets and
 variables → Actions → *Variables* fül → *New repository variable*.
