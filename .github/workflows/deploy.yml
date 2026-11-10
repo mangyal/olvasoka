@@ -66,6 +66,8 @@ jobs:
         run: |
           set -e
           cp site/.github/scripts/write-sheet-config.mjs "$RUNNER_TEMP/"
+          # az éles fa saját kalibráló szkriptje (ha már van benne Keresd meg!); a dev a sajátját a devsrc-ből futtatja
+          if [ -f site/.github/scripts/calibrate.mjs ]; then cp site/.github/scripts/calibrate.mjs "$RUNNER_TEMP/calibrate-prod.mjs"; fi
           rm -rf site/.git site/.github
           if [ -d devsrc ]; then
             rm -rf site/dev
@@ -103,6 +105,14 @@ jobs:
           DEV_SHEET_CSV_URL: ${{ vars.DEV_SHEET_CSV_URL }}
           DEV_SHEET_EDIT_URL: ${{ vars.DEV_SHEET_EDIT_URL }}
         run: node "$RUNNER_TEMP/write-sheet-config.mjs" site/js/core/config.js site/dev/js/core/config.js
+
+      - name: Keresd meg! nehézségi görbe (kalibrálás a táblázat listáján)
+        # A görbe kártyaszámonként a kiadott parok.json-ba kerül, a repóba nem. A lista a környezet táblázatából
+        # jön (az előző lépés címével), tartalékként a lists.txt-ből. Hibás parok.json esetén a kiadás megáll.
+        run: |
+          set -e
+          if [ -f "$RUNNER_TEMP/calibrate-prod.mjs" ]; then node "$RUNNER_TEMP/calibrate-prod.mjs" site prod; fi
+          if [ -f devsrc/.github/scripts/calibrate.mjs ]; then node devsrc/.github/scripts/calibrate.mjs site/dev dev; fi
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
