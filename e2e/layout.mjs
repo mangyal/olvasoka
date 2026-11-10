@@ -42,8 +42,12 @@ const PHONE = { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile:
 const PHONE_LAND = { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true };
 
 /** Új böngésző-környezet tárolt állapottal; a táblázat letiltva, a súgó nem nyílik magától. */
-async function open(opts, state = {}) {
+async function open(opts, state = {}, { font } = {}) {
   const ctx = await browser.newContext({ serviceWorkers: 'block', ...opts });
+  // a felület betűje system-ui: géppenként más (helyben pl. Inter, a CI Ubuntun DejaVu Sans); a tesztek ezzel rögzíthetik
+  if (font) await ctx.addInitScript((f) => document.addEventListener('DOMContentLoaded', () => {
+    const st = document.createElement('style'); st.textContent = `:root{--f-ui:${f}!important}`; document.head.append(st);
+  }), font);
   await ctx.route(/docs\.google\.com|googleusercontent\.com/, (r) => r.abort());
   await ctx.addInitScript(([k, s]) => {
     if (!sessionStorage.getItem('seeded')) { localStorage.setItem(k, JSON.stringify(s)); sessionStorage.setItem('seeded', '1'); }
@@ -285,9 +289,10 @@ const overlaps = (page) => page.evaluate(() => {
   return out;
 });
 
-for (const [w, touch] of [[320, true], [320, false], [480, true], [567, true]]) {
-  test(`keskeny fekvő ${w}×256${touch ? ' (érintő)' : ' (desktop, 400% nagyítás)'}: egy oszlop, az Indítás látszik, semmi sem fedi egymást (#44)`, async () => {
-    const { page, ctx } = await open({ viewport: { width: w, height: 256 }, hasTouch: touch, isMobile: touch });
+const WIDE_FONT = "'DejaVu Sans',Verdana,sans-serif";   // széles betű: a CI Ubuntun ez a system-ui
+for (const [w, touch, font] of [[320, true], [320, false], [480, true], [567, true], [320, true, WIDE_FONT], [320, false, WIDE_FONT], [480, true, WIDE_FONT]]) {
+  test(`keskeny fekvő ${w}×256${touch ? ' (érintő)' : ' (desktop, 400% nagyítás)'}${font ? ', széles betűvel' : ''}: egy oszlop, az Indítás látszik, semmi sem fedi egymást (#44)`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: 256 }, hasTouch: touch, isMobile: touch }, {}, { font });
     assert.ok(await inViewport(page, '#startBtn'), 'az Indítás görgetés nélkül látszik');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'nincs vízszintes görgetés');
     for (const id of ['#helpBtn', '#fontBtn', '#appVersion', '#estimate']) assert.ok(await inViewport(page, id), `${id} látszik`);
@@ -306,6 +311,16 @@ for (const [w, touch] of [[320, true], [320, false], [480, true], [567, true]]) 
       assert.ok(ok, `${q} görgetéssel elérhető`);
     }
     assert.deepEqual(await overlaps(page), [], 'görgetés után sem fedik egymást');
+    await ctx.close();
+  });
+}
+
+for (const [w, h] of [[320, 568], [360, 800]]) {
+  test(`álló mobil ${w}×${h} széles betűvel: nincs vízszintes görgetés, a fejléc elfér`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true }, {}, { font: WIDE_FONT });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'nincs vízszintes görgetés');
+    for (const id of ['#helpBtn', '#fontBtn', '#appVersion', '#startBtn']) assert.ok(await inViewport(page, id), `${id} látszik`);
+    assert.deepEqual(await overlaps(page), []);
     await ctx.close();
   });
 }
@@ -336,16 +351,17 @@ const tabState = (page) => page.evaluate(() => {
   };
 });
 
-for (const [w, iconOnly] of [[320, false], [568, true], [740, false]]) {
-  test(`módfülek ${w}×256: ${iconOnly ? 'csak ikon, a kerethez méretezve' : 'ikon + felirat'}, semmi sem lóg ki`, async () => {
+// 320 px-en betűfüggő, hogy kifér-e a felirat (null: bármelyik lehet, de semmi sem lóghat ki)
+for (const [w, iconOnly] of [[320, null], [568, true], [740, false]]) {
+  test(`módfülek ${w}×256: ${iconOnly === null ? 'ikon vagy felirat' : iconOnly ? 'csak ikon, a kerethez méretezve' : 'ikon + felirat'}, semmi sem lóg ki`, async () => {
     const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: w, height: 256 } });
     const st = await tabState(page);
-    assert.equal(st.iconOnly, iconOnly);
+    if (iconOnly !== null) assert.equal(st.iconOnly, iconOnly);
     for (const t of st.tabs) {
-      assert.equal(t.nameShown, !iconOnly);
+      assert.equal(t.nameShown, !st.iconOnly);
       assert.ok(t.visibleInside, 'a látható tartalom a fül keretén belül');
       assert.ok(t.iconInside, 'az ikon a fül keretén belül');
-      if (iconOnly) assert.ok(t.iconRatio >= 0.5, `az ikon kitölti a fület (${t.iconRatio.toFixed(2)})`);
+      if (st.iconOnly) assert.ok(t.iconRatio >= 0.5, `az ikon kitölti a fület (${t.iconRatio.toFixed(2)})`);
     }
     assert.match(st.tabs[0].text, /Felolvasás/, 'a név a felolvasónak megmarad');
     assert.match(st.tabs[1].text, /Keresd meg!.*Hamarosan érkezik/);
