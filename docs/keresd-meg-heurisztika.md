@@ -73,6 +73,8 @@ Súly a belső arány (s) és az élesítés (p, a `csuszka_elesites` kulcs) mel
 w(x) = \big( (1 - s) \cdot T(x) + s \cdot K(x) \big)^{p}
 ```
 
+A közeli pontszámot a kezdet súlya (`kezdet_suly`, β) kiegészíti az azonos kezdettel: K helyett K' = (1 − β)·K + β·M, lásd [keresd-meg-azonos-kezdet.md](keresd-meg-azonos-kezdet.md). β = 0 mellett a fenti képlet változatlan.
+
 ## Konfiguráció
 
 A repóbeli `parok.json` az egyetlen forrás minden párra, költségre és rácsparaméterre. Ez a fejezet csak azt írja le, mit jelentenek a kulcsok és hogyan kell használni őket; az aktuális értékek a fájlban vannak.
@@ -94,6 +96,7 @@ A repóbeli `parok.json` az egyetlen forrás minden párra, költségre és rác
 | `csuszka_alapertelmezett` | A kezdő fokozat | A `csuszka_szintek` egyik eleme |
 | `csuszka_elesites` | A súlyképlet p kitevője; nagyobb = markánsabb végletek | Nem fokozat; csak a heurisztika hangolásához |
 | `csuszka_gorbe` | A kiegyenlítő görbe töréspontjai: egy közös lista, vagy kártyaszámonként külön lista, az N értékével kulcsolva | Annyi elem, ahány fokozat; 0-val kezdődik, 1-gyel végződik, monoton nő. A deploy-kalibrálás írja (kártyaszámonként), kézzel nem szerkesztendő; a repóbeli érték csak a helyi futtatás alapértéke. Hiányzó kártyaszámnál a legközelebbi N görbéje érvényes |
+| `kezdet_suly` | β, az azonos kezdet súlya a közeli pontszámban ([keresd-meg-azonos-kezdet.md](keresd-meg-azonos-kezdet.md)) | Szám 0 és 1 között; opcionális, hiányzó kulcs = 0 (a kezdet nem számít) |
 
 ### Betöltés
 

@@ -3,7 +3,8 @@
 //
 // Fogalmak: tétel (lista egy cellája), betű (a többjegyű egynek számít), típus (betű | szótag | szó),
 // horgony (a rács első, egyenletes véletlennel húzott tétele), távolság (súlyozott Levenshtein a
-// betűsorozatokon), fokozat (0–1), belső arány (a fokozat a kiegyenlítő görbén át).
+// betűsorozatokon), fokozat (0–1), belső arány (a fokozat a kiegyenlítő görbén át), közös kezdet és
+// kezdet súlya (docs/keresd-meg-azonos-kezdet.md).
 
 const VOWELS = new Set([...'aáeéiíoóöőuúüű']);
 const DIGRAPHS = ['cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
@@ -98,6 +99,10 @@ export function validateConfig(cfg) {
     } else p.push('racs.csuszka_gorbe: lista vagy kártyaszámonkénti objektum kell');
   }
   if (!isNum(r.csuszka_elesites) || r.csuszka_elesites <= 0) p.push('racs.csuszka_elesites: pozitív szám kell');
+  // opcionális: hiányzó kulcs = 0 (a kezdet nem számít)
+  if ('kezdet_suly' in r && !(isNum(r.kezdet_suly) && r.kezdet_suly >= 0 && r.kezdet_suly <= 1)) {
+    p.push('racs.kezdet_suly: 0 és 1 közötti szám kell');
+  }
   for (const k of DEPRECATED) if (k in r) p.push(`racs.${k}: elavult kulcs, törölni kell`);
   return p;
 }
@@ -124,6 +129,7 @@ export function compileConfig(cfg) {
     indel: cfg.beszuras_torles,
     levels: r.csuszka_szintek.slice(), defaultLevel: r.csuszka_alapertelmezett,
     sharpen: r.csuszka_elesites, curve: r.csuszka_gorbe,
+    prefixWeight: r.kezdet_suly ?? 0,
   };
 }
 
@@ -155,6 +161,26 @@ export function distanceTokens(a, b, cc) {
 }
 
 export const distance = (x, y, cc) => distanceTokens(tokenize(x), tokenize(y), cc);
+
+/* ---------- közös kezdet ---------- */
+
+/** Két betűsorozat leghosszabb közös előtagja, betűben (csak pontos egyezés; `sz` ≠ `s`). */
+export function prefixTokens(a, b) {
+  const m = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < m && a[i] === b[i]) i++;
+  return i;
+}
+
+/** pre(x, y): két tétel közös kezdete betűben. */
+export const prefix = (x, y) => prefixTokens(tokenize(x), tokenize(y));
+
+/** M(x) = max_r pre(x, r) / |x|: a jelölt legnagyobb közös kezdete a rács tagjaival, x hosszához mérve. */
+export function prefixScore(x, grid) {
+  const t = tokenize(x);
+  if (!t.length) return 0;
+  return grid.reduce((m, r) => Math.max(m, prefixTokens(t, tokenize(r))), 0) / t.length;
+}
 
 /* ---------- fokozat → belső arány ---------- */
 
@@ -196,10 +222,12 @@ export function createPool(items, cc) {
   }
   const n = entries.length;
   const d = Array.from({ length: n }, () => new Float64Array(n));
+  const pre = Array.from({ length: n }, () => new Uint8Array(n));
   for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     d[i][j] = d[j][i] = distanceTokens(entries[i].tokens, entries[j].tokens, cc);
+    pre[i][j] = pre[j][i] = Math.min(255, prefixTokens(entries[i].tokens, entries[j].tokens));
   }
-  return { entries, d, cc };
+  return { entries, d, pre, cc };
 }
 
 // a feltöltés sorrendje (szabály 2.)
@@ -245,23 +273,34 @@ function shuffle(a, rng) {
  * @param {number} s  belső arány (0 = távoli, 1 = horgonyhoz közeli)
  */
 export function gridFrom(pool, a, n, s, rng) {
-  const { d } = pool, p = pool.cc.sharpen;
+  const { d, pre, entries } = pool, p = pool.cc.sharpen, b = pool.cc.prefixWeight ?? 0;
   const grid = [a];
-  // T(x) = 1 − e^(−min_r d(x,r)) a rács eddigi tagjaitól; K(x) = e^(−d(x,h)) a horgonytól
-  const minD = new Map();
+  // T(x) = 1 − e^(−min_r d(x,r)) a rács eddigi tagjaitól; K(x) = e^(−d(x,h)) a horgonytól;
+  // M(x) = max_r pre(x,r) / |x| a rács minden eddigi tagjától; K'(x) = (1 − β)·K(x) + β·M(x), |x| > 1
+  const minD = new Map(), maxPre = new Map();
   for (const tier of tiers(pool, a)) {
     const cands = tier.slice();
-    for (const x of cands) minD.set(x, d[x][a]);
+    for (const x of cands) {
+      minD.set(x, d[x][a]);
+      if (b) maxPre.set(x, grid.reduce((m, r) => Math.max(m, pre[x][r]), 0));
+    }
     while (grid.length < n && cands.length) {
       const weights = cands.map((x) => {
         const T = 1 - Math.exp(-minD.get(x));
         const K = Math.exp(-d[x][a]);
-        return Math.pow((1 - s) * T + s * K, p);
+        // β = 0: pontosan a régi K (a rácsok a mostaniakkal azonosak). Egybetűs jelöltnél nincs
+        // értelmezhető közös kezdet: ott is K marad, különben a (1 − β)·K a betűrácsokat könnyítené.
+        const len = entries[x].tokens.length;
+        const K2 = b && len > 1 ? (1 - b) * K + b * maxPre.get(x) / len : K;
+        return Math.pow((1 - s) * T + s * K2, p);
       });
       const k = pickWeighted(cands, weights, rng);
       const x = cands.splice(k, 1)[0];
       grid.push(x);
-      for (const y of cands) minD.set(y, Math.min(minD.get(y), d[y][x]));
+      for (const y of cands) {
+        minD.set(y, Math.min(minD.get(y), d[y][x]));
+        if (b) maxPre.set(y, Math.max(maxPre.get(y), pre[y][x]));
+      }
     }
     if (grid.length >= n) break;
   }
@@ -310,6 +349,23 @@ export function closePairs(pool, grid, limit = 0.5) {
   let c = 0;
   for (let i = 0; i < grid.length; i++) for (let j = i + 1; j < grid.length; j++) if (pool.d[grid[i]][grid[j]] <= limit + 1e-9) c++;
   return c;
+}
+
+/**
+ * Olvasási mélység egy rácson (mérőszám, nem része a súlynak): kártyánként hány betűt kell kiolvasni,
+ * mire a rácsban egyedi lesz (felismerési pont: min(|x|, 1 + max_r pre(x, r))), a kártya hosszához
+ * mérve; a rácsra a kártyák átlaga. 0–1.
+ */
+export function readingDepth(pool, grid) {
+  if (!grid.length) return 0;
+  let sum = 0;
+  for (const x of grid) {
+    const len = pool.entries[x].tokens.length;
+    let m = 0;
+    for (const r of grid) if (r !== x) m = Math.max(m, pool.pre[x][r]);
+    sum += Math.min(len, m + 1) / len;
+  }
+  return sum / grid.length;
 }
 
 /**

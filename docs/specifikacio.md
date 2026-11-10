@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.11** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.12** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,14 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.12 (a 2.11-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Jutalom | Második jutalomjáték: **panda-ugrálás**. Egy szemből látott panda bambuszpadokon ugrál felfelé a nyilakkal (←/↑/→) vagy koppintással; ha két pad közé ugrik, leesik és a játék csendben véget ér. | 2., 5., 5a., 12.5a |
+| 2 | Választás | A két jutalom körönként véletlenszerűen jön, de kétszer egymás után nem ugyanaz (két játéknál: váltakozik). Kipróbáláshoz a cím `?jutalom=lufi` vagy `?jutalom=panda` paramétere rögzíti. | F-R14 |
+| 3 | Konfetti | A konfettieső közös modul (`js/ui/confetti.js`), a lufi és a panda is ezt használja; viselkedése változatlan. | F-R5, F-J7 |
 
 ### 2.11 (a 2.10-hez képest)
 
@@ -157,7 +165,7 @@ A tartalom gyakran változik. A szülő a listákat egy Google táblázatban sze
 | **Szülői felület (admin)** | szülő | lista kiválasztása, beállítások, kör indítása |
 | **Gyakorlónézet** | gyerek (a szülő vezérli) | a villantott tétel, időjelző, haladásjelző, vezérlők, dekoráció |
 | **Keresd meg! nézet** | gyerek (a szülő mondja ki a kártyát) | N kártyás rács, haladásjelző, vezérlők, dekoráció |
-| **Jutalomnézet** | gyerek | lufipukkasztó játék |
+| **Jutalomnézet** | gyerek | jutalomjáték: lufipukkasztás vagy panda-ugrálás (F-R14) |
 
 Állapotgép: `ADMIN → PRACTICE → REWARD → ADMIN`, illetve Keresd meg! módban `ADMIN → FIND → REWARD → ADMIN`.
 Az **Esc** a PRACTICE, FIND és REWARD állapotból bármikor visszavisz ADMIN-ba.
@@ -548,6 +556,48 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
   ha mind kipukkadt (F-R5).
 - **F-R11** Érintés csak pukkaszt, a lufi mozgását nem befolyásolja. Csökkentett mozgásnál
   (`prefers-reduced-motion`) a lufik helyben lebegnek (F-R2, U-R1), a fúvó ugyanúgy látszik.
+- **F-R14** **Melyik jutalom:** két jutalomjáték van, a lufipukkasztás (5.) és a panda-ugrálás (5a.).
+  Körönként véletlenszerűen jön az egyik, de kétszer egymás után nem ugyanaz; két játéknál ez váltakozást
+  jelent. Az első a program indítása után véletlen. A cím `?jutalom=lufi` / `?jutalom=panda` paramétere
+  rögzíti (kipróbáláshoz, tesztekhez); érvénytelen érték nem számít. Logika: `js/core/rewards.js`.
+  A F-R6 (Esc, ✕, kurzor) és a F-R7 mindkét játékra érvényes.
+
+---
+
+## 5a. Panda-ugrálás (REWARD)
+
+Gyorsan, kb. 15–30 mp alatt végigjátszható ügyességi játék, a lufipukkasztással azonos bonyolultságú.
+Nincs pontszám, idő, felirat (a számlálón kívül), hang, büntetés, újrakezdés.
+
+- **F-J1** **Kezdés:** a háttér 1,8 mp alatt papírszínről égkékre vált (mint F-R9). Utána alulról
+  70 ms-onként egymás után beúsznak a bambuszpadok, és a panda felülről a legalsó (kiinduló) padra pottyan.
+- **F-J2** **Pálya:** 7–9 ugrás a célig. A padok egy láncot alkotnak: mindegyik egy emelettel (S) feljebb van
+  az előzőnél, és vagy egyértelműen balra/jobbra (vízszintesen 1,2–2,2 pandányi távolságra), vagy majdnem
+  pontosan fölötte (legfeljebb 0,3 pandányi eltéréssel). Inkább cikcakkban halad, a padok a képernyőn
+  belül maradnak. Az utolsó pad a cél (sárga, bambuszszárakkal, U-J4). Minden körben új, véletlen pálya.
+- **F-J3** **Irányítás:** ← balra, → jobbra, ↑ (vagy Space) felfelé ugrik. Érintéssel/egérrel: a panda
+  bal vagy jobb oldalára koppintva oldalra, a pandára vagy fölé (vízszintesen ±0,6 pandán belül) felfelé.
+  Ugrás közben a bemenet nem számít (nincs előre lenyomott ugrás); nyomva tartott billentyű nem ismétel.
+- **F-J4** **Segített ugrás:** ha a lenyomott irány a következő pad felé mutat, a panda egy ívben pontosan
+  annak a közepére érkezik. Egy ugrás kb. fél másodperc.
+- **F-J5** **A ↑ sosem veszélyes:** ha nincs fölötte a következő pad, a panda helyben ugrik egyet.
+- **F-J6** **Leesés:** rossz oldalra ugorva a panda egy szokásos ívet ír le. Ha lefelé menet egy lejjebb lévő
+  padra ér, ott megáll, és onnan folytatja; egyébként pörögve kiesik a képből. Ilyenkor a játék csendben
+  véget ér: nincs szöveg, szomorú kép vagy újrakezdés; 0,5 mp múlva a háttér 600 ms alatt vissza, majd ADMIN.
+- **F-J7** **Cél:** a cél padra érve a panda örül (U-J2), és 3 mp konfettieső jön (F-R5), utána a háttér
+  600 ms alatt vissza, majd ADMIN.
+- **F-J8** **Kamera:** ha a pálya nem fér ki, a nézet a pandával együtt finoman felfelé görget: az álló panda
+  a képernyő ~70%-ánál van, a cél sosem kerül a felső margó alá, a kiinduló pad alatt nincs üres rész.
+  Leesés közben a kamera megáll. A felhők lassabban mozognak (mélység).
+- **F-J9** **Számláló:** a jobb felső sarokban `elért pad/ugrások száma` (pl. `3/8`), a F-R12 stílusában.
+- **F-J10** **Irány-tipp:** az első ugrás előtt 0,5 mp múlva a panda mellett (vagy fölött) halvány, lüktető
+  nyíl mutatja a jó irányt; az első lenyomásra eltűnik, többet nem jön.
+- **F-J11** **Csökkentett mozgás:** nincs ív, pottyanás, guggolás és görgetési animáció: a panda azonnal az
+  ugrás végére kerül (vagy leesés esetén eltűnik), a kamera azonnal áll be; a konfetti álló (F-R5).
+- **F-J12** **Elforgatás:** álló panda mellett az elrendezés azonnal átméreteződik (a pálya alakja marad);
+  ugrás közben a következő földet érés után.
+- A pálya és a mozgás modellje `js/core/hop.js` (Node-ban tesztelve: a padok a képen belül, egyértelmű
+  irányok, a jó irány a következő pad közepére visz, a ↑ nem ejt le, rossz irány leejt vagy lejjebb megáll).
 
 ---
 
@@ -629,10 +679,10 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
 index.html          markup
 lists.txt           a listák
 css/                tokens · szülői felület · gyakorló és jutalom
-js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, cover, env, config
+js/core/            tiszta logika: sequence, round, items, lists, csv, source, selection, settings, drift, hop, rewards, cover, env, config
 js/version.js       a program verziója (N10)
 js/data/            store (localStorage), remote (lists.txt letöltése)
-js/ui/              admin, practice, reward
+js/ui/              admin, practice, find, reward (lufi), panda, confetti
 js/font.js          betűtípus-kapu
 js/main.js          indítás, állapotváltás
 test/               node --test
@@ -752,6 +802,12 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
     `lists.txt`-ből; hibás `parok.json`-nál nem nulla kilépési kóddal megáll (F-K17, F-K18).
 34. A Keresd meg! minta 320 px széles nézetben is minden tételt teljes egészében, levágás és kilógás nélkül
     mutat, 8 kártyás beállítással és háromszótagú tételekkel is.
+35. *(automata)* Panda-ugrálás: a pálya minden képernyőméreten (320×256-tól 1920×1080-ig) a képen belül van,
+    minden lépés iránya egyértelmű, és a jó irány a következő pad közepére visz; a ↑ sosem ejt le; rossz
+    oldalra ugorva leesik, vagy egy lejjebb lévő padon megáll (F-J2–F-J6).
+36. *(automata)* Két egymást követő kör jutalma nem azonos; a `?jutalom=` paraméter rögzíti (F-R14).
+37. Panda-ugrálás végigjátszva billentyűvel és koppintással is 30 mp alatt; a célnál konfetti, leesésnél
+    csendes visszatérés; Esc és ✕ bármikor kilép. Telefon álló és fekvő nézetben is játszható.
 
 ---
 
@@ -852,6 +908,9 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | A nehézségi görbe kiadáskor a táblázat listáján, kártyaszámonként (F-K17) | A lépcsők a tényleges listán legyenek egyenletesek; a görbe nem kerül a repóba, mert a lista a táblázatban változik. |
 | Kalibrálás tartaléka a `lists.txt`, a deploy nem áll meg | A táblázat átmeneti elérhetetlensége ne akadályozza a kiadást. |
 | A mintasor mobil fekvőben (E10) rejtve | Nem fér el; a beállítás e nélkül is érthető. |
+| Második jutalom: panda-ugrálás, körönként váltakozva a lufival (2.12) | A gyerek ne unja meg a jutalmat; egyetlen lufis játék sokadszorra már kevésbé motivál. A váltakozás kiszámítható, nincs szülői beállítás. |
+| Segített ugrás és veszélytelen ↑ | Egy 7 éves a nyíl irányát könnyen eltalálja, a pontos időzítést nem; a kihívás az irány, nem az ügyesség. |
+| Leesésnél csendes vége, nincs újrakezdés | Jutalomról van szó: nincs kudarcélmény, és a kör nem nyúlik meg. |
 | A minta tördelődő címkesor, nem fix rács | Keskeny nézetben (360–390 px) a 6 oszlopos rács ~55 px-es cellájából a háromszótagú szavak kilógtak; a betű kicsinyítése 11–12 px-et adna, ami olvashatatlan. |
 
 ---
@@ -1056,6 +1115,19 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   nincs arc, szöveg, minta. Csökkentett mozgásnál rács alapú elhelyezés véletlen eltolással, max. 30% átfedés;
   egyébként szabadon szállnak (F-R9).
 - **U-R2** Kurzor: 32 px-es nyíl (`--ink` kitöltés, fehér körvonal), lufi fölött sem vált kézre.
+
+### 12.5a Panda-ugrálás nézet
+- **U-J1 Méretek:** a panda szélessége a rövidebb képernyőoldal 13%-a, 56–110 px (magassága 1,1×).
+  Egy emelet a magasság 21%-a, 1,5–2 panda között. Pad: 1,6 × 0,3 panda.
+- **U-J2 Panda:** szemből, nagy kerek fej, fekete fülek és szemfoltok, fehér csillanás a szemben, rózsaszín
+  pofi (`#F2B5A7`), kis orr és „w” száj; a fekete helyett lágy sötét (`#2F3A40`). Ugrás közben a karjai
+  felemelkednek és tátva a szája (vidám „hú”); a sebesség felé legfeljebb 10°-ot dől. Földet éréskor
+  260 ms-os guggolás és 6 apró fehér porszem. A célon mosolygó (^ ^) szem, integető karok, kis ugrálás.
+  Leesés közben lassan pörög. Arca mindig barátságos, szomorú vagy ijedt arc nincs.
+- **U-J3 Bambuszpad:** pasztellzöld (`#B5D5BB`), két sötétebb ízzel (`#8DBE97`), fényes csík, kis levél.
+- **U-J4 Cél:** sárga pad (`#F5D58F`, ízek `#D9B65E`), mögötte három bambuszszár lassan lengő levelekkel.
+- **U-J5 Tipp-nyíl:** chevron, `--ink` 45%, 24–40 px, enyhén előre-hátra lüktet.
+- **U-J6 Háttér:** a jutalom égkékje (`--sky`), öt fehér felhő 70%-os átlátszósággal. A ✕ (F-R6) felül marad.
 
 ### 12.6 Akadálymentesség
 - Kontraszt: tétel ≥ 7:1, admin szöveg ≥ 4,5:1, ikonok és keretek ≥ 3:1.
