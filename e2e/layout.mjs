@@ -266,6 +266,63 @@ for (const [w, h] of [[740, 256], [568, 256]]) {
   });
 }
 
+// ---------- módfülek: ha a felirat nem fér el, csak az ikon marad, a kerethez méretezve ----------
+const tabState = (page) => page.evaluate(() => {
+  const inside = (b, r) => r.left >= b.left - 0.5 && r.right <= b.right + 0.5 && r.top >= b.top - 0.5 && r.bottom <= b.bottom + 0.5;
+  return {
+    iconOnly: document.getElementById('modeTabs').classList.contains('icon-only'),
+    tabs: ['tabRead', 'tabFind'].map((id) => {
+      const t = document.getElementById(id), b = t.getBoundingClientRect(), icon = t.querySelector('.mode-icon').getBoundingClientRect();
+      const name = t.querySelector('.mode-name');
+      return {
+        nameShown: name.getBoundingClientRect().width > 1,
+        text: t.textContent.replace(/\s+/g, ' ').trim(),
+        iconInside: inside(b, icon),
+        iconRatio: icon.height / (b.height - 2 * t.clientTop),
+        visibleInside: [...t.children].filter((c) => c.getBoundingClientRect().width > 1).every((c) => inside(b, c.getBoundingClientRect())),
+      };
+    }),
+  };
+});
+
+for (const [w, iconOnly] of [[320, true], [568, true], [740, false]]) {
+  test(`módfülek ${w}×256: ${iconOnly ? 'csak ikon, a kerethez méretezve' : 'ikon + felirat'}, semmi sem lóg ki`, async () => {
+    const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: w, height: 256 } });
+    const st = await tabState(page);
+    assert.equal(st.iconOnly, iconOnly);
+    for (const t of st.tabs) {
+      assert.equal(t.nameShown, !iconOnly);
+      assert.ok(t.visibleInside, 'a látható tartalom a fül keretén belül');
+      assert.ok(t.iconInside, 'az ikon a fül keretén belül');
+      if (iconOnly) assert.ok(t.iconRatio >= 0.5, `az ikon kitölti a fület (${t.iconRatio.toFixed(2)})`);
+    }
+    assert.match(st.tabs[0].text, /Felolvasás/, 'a név a felolvasónak megmarad');
+    assert.match(st.tabs[1].text, /Keresd meg!.*Hamarosan érkezik/);
+    assert.equal(await page.getAttribute('#tabRead', 'title'), 'Felolvasás');
+    await ctx.close();
+  });
+}
+
+test('módfülek: szélesítéskor a felirat visszajön, keskenyítéskor eltűnik', async () => {
+  const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 568, height: 256 } });
+  assert.equal((await tabState(page)).iconOnly, true);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForFunction(() => !document.getElementById('modeTabs').classList.contains('icon-only'));
+  await page.setViewportSize({ width: 568, height: 256 });
+  await page.waitForFunction(() => document.getElementById('modeTabs').classList.contains('icon-only'));
+  await ctx.close();
+});
+
+for (const [name, opts] of [['desktop 1280×800', DESKTOP], ['mobil 390×844', PHONE], ['álló tablet', TABLET]]) {
+  test(`módfülek ${name}: a felirat látszik`, async () => {
+    const { page, ctx } = await open(opts);
+    const st = await tabState(page);
+    assert.equal(st.iconOnly, false);
+    assert.ok(st.tabs.every((t) => t.nameShown && t.visibleInside));
+    await ctx.close();
+  });
+}
+
 // ---------- túl kicsi képernyő (WCAG 1.4.10 alatt: < 320 px széles vagy < 256 px magas) ----------
 const shown = (page, sel) => page.isVisible(sel);
 /** Az overlay a teljes ablakot takarja-e (a szülői felület nem kattintható alatta). */

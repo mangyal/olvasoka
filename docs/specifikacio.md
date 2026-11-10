@@ -791,7 +791,8 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   a tartalék jelzése (F-L13), 13 px, `--ink-2`, `--warn` színű nyitójellel.
 - **U-A5** Figyelmeztető sáv a fejléc alatt, `--warn` bal szegéllyel, egyenként bezárható.
 - **U-A6** Jobb panel (keskeny nézetben a tartalom alatt): módfülek (Felolvasás; Keresd meg! inaktív,
-  „Hamarosan érkezik” címkével), leírás + „Így játsszátok” súgógomb, a beállítások, alul a mindig látható
+  „Hamarosan érkezik” címkével; ha bármelyik fül tartalma nem fér el a keretben, mindkét fülön csak az
+  ikon látszik, a fül méretéhez igazítva, a név a felolvasónak és súgószövegként megmarad), leírás + „Így játsszátok” súgógomb, a beállítások, alul a mindig látható
   Indítás-blokk: becslés („10 tétel · kb. 40 mp”, kézi léptetésnél „10 tétel · kézi léptetés”), az
   oldal egyetlen elsődleges gombja, alatta csak hiba vagy figyelmeztetés. Állapotai:
 

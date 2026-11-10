@@ -119,6 +119,10 @@ dialog p{margin:0 0 12px}
 .mode-tab[aria-disabled=true] .mode-icon{width:24px;height:24px;stroke-width:2}
 /* „Hamarosan érkezik”: teljes --ink-2, nem halványított (kontraszt, spec 9.) */
 .mode-soon{font-size:12px;line-height:1.2;color:var(--ink-2);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:1px 7px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+/* csak ikon, ha a felirat nem fér el (js/ui/admin.js fitTabs): az ikon a fül méretéhez igazodik */
+.mode-tabs.icon-only .mode-tab{container-type:size;gap:0;padding:4px}
+.mode-tabs.icon-only .mode-tab .mode-name,.mode-tabs.icon-only .mode-tab .mode-soon{position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.mode-tabs.icon-only .mode-tab .mode-icon{width:min(70cqh,76cqw);height:min(70cqh,76cqw)}
 
 /* leírás + súgógomb (4.2) */
 .mode-head{display:flex;align-items:flex-start;gap:12px}
