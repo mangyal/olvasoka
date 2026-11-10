@@ -1,0 +1,62 @@
+name: Dev szinkron (main → dev)
+
+# Minden main-re kerülő változás (kiadás, hotfix, infra) után a main-t automatikusan visszaolvasztja
+# a dev-be, hogy a dev ne maradjon le (régi workflow-k, régebbi verzió).
+#   - ha a dev már tartalmazza a main-t: nincs teendő
+#   - ha lehet, fast-forward (kiadás után ez a tipikus), különben merge commit
+#   - ütközésnél NEM old fel semmit: a futás piros lesz, és az összefoglaló leírja, mit kell kézzel tenni
+# A GitHub saját tokenjével tett push magától nem indít kiadást, ezért a dev kiadását külön indítja.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # push a dev-re
+  actions: write    # a dev kiadás indítása
+
+concurrency:
+  group: sync-dev
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: main → dev
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "A dev már tartalmazza a main-t, nincs teendő."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git merge --no-edit -m "Merge main into dev (automatikus szinkron)" origin/main; then
+            git merge --abort || true
+            {
+              echo "## Ütközés: a main nem olvasztható automatikusan a dev-be"
+              echo
+              echo "Kézi teendő: PR a main-ből a dev-be (vagy kérd meg az ágenst), az ütközés feloldásával."
+              echo
+              echo "[main → dev összehasonlítás](https://github.com/${{ github.repository }}/compare/dev...main)"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Ütközés a main → dev szinkronban; kézi feloldás kell."
+            exit 1
+          fi
+          git push origin HEAD:dev
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "A dev szinkronizálva: $(git rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: A dev kiadás indítása
+        if: steps.merge.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref dev

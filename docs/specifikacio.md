@@ -491,6 +491,8 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
   - A dev telepítve „Olvasóka DEV” néven, sötét hátterű ikonnal jelenik meg; a fejlécben piros „DEV” címke.
     A dev verziója mellett `+N` utótag: a `main`-ben még nem lévő (merge nélküli) commitok száma; csak a
     kiadott fájlba kerül, a repóba nem.
+  - A `main` minden változása után a `sync-dev.yml` automatikusan visszaolvasztja a `main`-t a `dev`-be
+    (fast-forward vagy merge commit); ütközésnél leáll, kézi feloldás kell.
   - Kiadás-előkészítés gombbal (`release-prepare.yml`, patch/minor/major): a `dev`-en lépteti a verziót,
     újra kiteszi a devet, és linket ad a kiadási PR-hoz (a PR-t a tulajdonos nyitja, hogy az ellenőrzések lefussanak).
   - Menet: feature-ág → PR a `dev`-be → kipróbálás a dev oldalon → PR `dev` → `main` (merge commit) →
