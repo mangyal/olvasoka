@@ -762,7 +762,9 @@ A részletes design specifikáció (elrendezés, komponensek, reszponzív viselk
 
 Elrendezések: desktop (≥ 900 px) a fenti; álló tablet (601–899 px) a listák pipálható chipekként felül,
 alattuk a panel kártyaként, az Indítás a képernyő aljára tapadó sávban; mobil (≤ 600 px) a listák
-egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kész); mobil fekvő
+egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kész; a listák és alattuk a „Listák
+szerkesztése a táblázatban” link együtt görgetnek, a fejléc és a Kész mindig látszik; alacsony fekvő nézetben a lap
+szinte a teljes magasságot kapja, a Kész az összesítő mellett, így 256 px-en is legalább két lista látszik); mobil fekvő
 (`max-height:500px` és fekvő, desktopon alacsony ablakban is) két oszlop, külön fejlécsor nélkül:
 balra a cím, a verziócímke és ikonos Súgó/Betűteszt gomb, alattuk listák, fülek, súgógomb (700 px alatti
 szélességen a cím elmarad, a verziócímke marad); jobbra a görgethető beállítások, alattuk az Indítás.
