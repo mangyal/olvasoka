@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.9** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.11** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,23 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.11 (a 2.10-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Keresd meg! minta | A minta nem fix 6 oszlopos rács, hanem tördelődő címkesor: minden címke a tétel szélességével, egy sorban (nincs sortörés a szón belül), ha nem fér ki, új sorba kerül. Azonos betűméret (17 px, Arial), `--line` keret, `--field` háttér. Utolsó védőháló: ha egy tétel szélesebb a panelnél, `text-overflow: ellipsis`. | U-A8 |
+
+### 2.10 (a 2.9-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Keresd meg! | Új játék: a rácsból a szülő kimond egy kártyát, a gyerek rábök. A program nem értékel. A fül csak akkor inaktív, ha a `parok.json` nem használható. | 2., 3.3a, 4a., U-A8, 12.4a |
+| 2 | Beállítások | Keresd meg! beállítások: kártyák (4 · 6 · 8), feladatok száma, nehézség (1–5, első használatkor 1, utána megmarad). | 3.3a, F-S3 |
+| 3 | Telefon | Ha a nézet rövidebb oldala 500 px alatt van, legfeljebb 6 kártya; a tárolt beállítás nem változik. | F-K10, U-A8 |
+| 4 | Szóhasználat | A felületen „feladat”: egy feladat egy rács. A heurisztika dokumentumában ugyanez „rács”. | 4a. |
+| 5 | Horgony | Két egymást követő feladat horgonya nem lehet azonos. | F-K16 |
+| 6 | Konfiguráció | `parok.json` a repó gyökerében; a nehézségi görbét kiadáskor a táblázat listáján kalibrálja a deploy (tartalék: `lists.txt`). | F-K17, F-K18 |
 
 ### 2.9 (a 2.8-hoz képest)
 
@@ -139,10 +156,11 @@ A tartalom gyakran változik. A szülő a listákat egy Google táblázatban sze
 |---|---|---|
 | **Szülői felület (admin)** | szülő | lista kiválasztása, beállítások, kör indítása |
 | **Gyakorlónézet** | gyerek (a szülő vezérli) | a villantott tétel, időjelző, haladásjelző, vezérlők, dekoráció |
+| **Keresd meg! nézet** | gyerek (a szülő mondja ki a kártyát) | N kártyás rács, haladásjelző, vezérlők, dekoráció |
 | **Jutalomnézet** | gyerek | lufipukkasztó játék |
 
-Állapotgép: `ADMIN → PRACTICE → REWARD → ADMIN`. Az **Esc** a PRACTICE és REWARD állapotból bármikor
-visszavisz ADMIN-ba.
+Állapotgép: `ADMIN → PRACTICE → REWARD → ADMIN`, illetve Keresd meg! módban `ADMIN → FIND → REWARD → ADMIN`.
+Az **Esc** a PRACTICE, FIND és REWARD állapotból bármikor visszavisz ADMIN-ba.
 
 A PRACTICE állapotot a `js/core/round.js` írja le:
 `{ seq, flash, gap, index, phase: 'showing' | 'gap', paused, deadline, remaining, done, covered }`.
@@ -247,18 +265,41 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 - **F-S2 Kézi léptetés (0 mp):** a tétel addig látszik, amíg Space-t vagy →-t nem nyomnak.
   A csúszka mellett „kézi”, a becsült hossz helyén „kézi léptetés” áll.
 
+### 3.3a Keresd meg! beállítások
+
+| Beállítás | Tartomány | Alapérték |
+|---|---|---|
+| Tételek forrása | közös a Felolvasással (3.3) | **Kijelölt listák** |
+| Kártyák | 4 · 6 · 8 (telefonon legfeljebb 6, F-K10) | **4** |
+| Feladatok száma | 1–30 | **10** |
+| Nehézség | 1–5 | **1** (legkönnyebb) |
+
+- **F-S6 Nehézség.** Az 1–5 fokozat a heurisztika 0 · 0,25 · 0,5 · 0,75 · 1 fokozatának felel meg
+  ([keresd-meg-heurisztika.md](keresd-meg-heurisztika.md)): 1 = jól megkülönböztethető, 5 = nagyon hasonló
+  elemek. Első használatkor 1, utána a szülő legutóbbi választása marad (F-S3). A felület nem említi,
+  hogy a rács szabályok szerint, véletlennel áll össze; csak a hasonlóságról beszél.
+- **F-S7** A Keresd meg! módban nincs felvillanási idő és szünet: egy feladat addig látszik, amíg a szülő
+  tovább nem lép (F-K5).
+- **F-S8** Az Indítás feltétele legalább 2 különböző tétel a kör forrásában. Különben inaktív:
+  „Legalább két különböző tétel kell.”
+
 ### 3.4 Helyi tárolás
 - **F-S3** A beállítások, a legutóbb kijelölt listák neve és a legutóbb letöltött `lists.txt` szövege a
   `localStorage`-ban, `olvasoka` kulcs alatt (a dev környezetben `olvasoka-dev`, N10):
   ```json
   { "v": 4, "mode": "read", "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
+    "find": { "cards": 4, "tasks": 10, "level": 1 },
     "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false,
     "cache": { "text": "45. oldal,Á-A-E\nfa,á\n…", "fetchedAt": 1794080000000, "kind": "sheet" } }
   ```
   A `cache.kind` a szöveg forrása (`sheet` vagy `txt`); a `kind` nélküli régi cache `lists.txt`.
   A v2 állapot `lastList` neve betöltéskor a `lastLists` egyetlen eleme lesz.
-  A `mode` a kiválasztott játék (`read` | `find`); amíg a Keresd meg! inaktív, betöltéskor mindig `read`
-  (így egy félbehagyott állapot sem nyit inaktív fület). A v3 állapot `mode` nélkül `read` lesz.
+  A `mode` a kiválasztott játék (`read` | `find`); betöltéskor megmarad. Ha a `parok.json` nem használható
+  (F-K18), a Keresd meg! fül inaktív és a Felolvasás nyílik, a tárolt `mode` viszont nem íródik felül, így
+  a következő betöltés újra próbálja. A v3 állapot `mode` nélkül `read` lesz.
+  A `find` a Keresd meg! beállításai (3.3a): `cards` 4 | 6 | 8, `tasks` 1–30, `level` 1–5. Hiányzó vagy
+  érvénytelen mezőnél az alapérték; a mező új, de csak hozzáadás, ezért a `v` marad 4. A telefonos
+  korlát (F-K10) nem írja át a `cards` értékét.
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
   a program fut, figyelmeztetéssel: a beállítások nem maradnak meg, és hálózat nélkül nem lesz lista.
 - **F-S5** A tárolás böngészőnként és címenként külön él. A listák a repóból jönnek, ezért nem vesznek el.
@@ -389,6 +430,86 @@ könyvön a szótagra tesz: **alapból minden szótag látszik, és a program ma
   Átméretezéskor a takarók a tétellel együtt újraszámolódnak, az állapot megmarad.
 - A takarás logikája (szótagolás, `↓`-sorozat, váltás, visszaállás, auto-pause) a `js/core/cover.js`-ben
   és a `round.js` reducerében van, DOM nélkül, `node --test`-tel tesztelve.
+
+---
+
+## 4a. Keresd meg! kör (FIND)
+
+A szülő a rácsból kimond egy kártyát, a gyerek megkeresi és rábök. A program nem tudja, melyik a jó
+válasz, és nem értékel: csak megjelöli, amire a gyerek rábökött. A differenciálást (hasonló alakú
+betűk, szótagok, szavak megkülönböztetése) a nehézség adja (F-S6).
+
+Szóhasználat: a felületen **feladat**, egy feladat egy N kártyás rács. A heurisztika dokumentumában
+ugyanez **rács**.
+
+A FIND állapot (tervezett, a `round.js`-hez hasonló tiszta állapotgép):
+`{ tasks, index, marked, done }`. A `tasks` a kör feladatai, mindegyik a kártyák tételei megjelenítési
+sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy `null`.
+
+### 4a.1 Feladatok előállítása
+- **F-K1** A kör indulásakor mind a K feladat elkészül (K = feladatok száma). Egy feladatot a heurisztika
+  állít össze ([keresd-meg-heurisztika.md](keresd-meg-heurisztika.md)); bemenete a kör tételei (3.3a),
+  a kártyaszám (F-K10 után) és a fokozat (F-S6).
+- **F-K2** Egy feladat a körön belül nem változik: ← után ugyanaz a rács ugyanabban a sorrendben jön
+  vissza, a jelölés törlődik.
+- **F-K3** Ha a forrásban N-nél kevesebb különböző tétel van, a feladat az összes elérhető tételből áll,
+  kevesebb kártyával (a heurisztika szerint).
+- **F-K4** A véletlenforrás paraméter; a tesztek seedelt `rng`-t használnak (mint 4.1).
+
+### 4a.2 Lejátszás
+- **F-K5** Nincs idő: a feladat addig látszik, amíg a szülő tovább nem lép. Nincs időjelző, pause és
+  pause-jelző; az automatikus pause (F-P8) itt nem kell.
+- **F-K6 Jelölés.** Kártyára kattintás vagy koppintás megjelöli. Ugyanarra újra: a jelölés lekerül.
+  Másikra: a jelölés átkerül, egyszerre legfeljebb egy kártya jelölt. A jelölés nem léptet; nincs hang
+  és nincs jó/rossz visszajelzés.
+- **F-K7 Lépés.** →, Space vagy ▶: a következő feladat, jelölés nélkül; az utolsón jutalom (5.).
+  ← vagy ◀: az előző feladat (F-K2); az elsőn nincs hatása, a ◀ inaktív.
+- **F-K8** Érintőképernyőn a kártyák közé vagy melléjük koppintás nem léptet: a gyerek koppint,
+  a lapozás a szülőé. Ez eltér a gyakorlókör koppintásos léptetésétől (F-P16).
+- **F-K9** Esc: azonnal ADMIN, jutalom nélkül. A képernyőzár (N9) FIND alatt is él.
+- **F-K10 Kártyaszám telefonon.** Ha a kör indulásakor a nézet rövidebb oldala 500 CSS px alatt van,
+  a kártyaszám legfeljebb 6 (8 → 6). A tárolt beállítás nem változik, tableten újra 8 lesz. Forgatás a
+  körön belül csak az elrendezést változtatja (F-K12), a kártyaszámot nem.
+- **F-K11** Szótag-takarás a Keresd meg! módban nincs (10., szótag-takarás döntései).
+
+### 4a.3 Képernyőtartalom
+- **F-K12 Elrendezés.** Az oszlopok és sorok száma a nézet alakjától függ:
+
+  | Kártyák | Fekvő (szélesség ≥ magasság) | Álló |
+  |---|---|---|
+  | 4 | 2 × 2 | 2 × 2 |
+  | 6 | 3 oszlop × 2 sor | 2 oszlop × 3 sor |
+  | 8 | 4 oszlop × 2 sor | 2 oszlop × 4 sor |
+
+  Kevesebb kártyánál (F-K3) a beállított kártyaszám rácsa marad, az utolsó sor középre igazítva.
+- **F-K13 Betűméret.** Egy feladaton belül minden kártyán azonos a betűméret és az alapvonal (Arial,
+  F-F1). A méretet a feladat leghosszabb tétele adja: a kártya belső szélességének legfeljebb 80%-át
+  és magasságának legfeljebb 55%-át foglalja. Feladatváltáskor és átméretezéskor újraszámolódik.
+- **F-K14** A képernyőn: a rács, a haladásjelző a feladatok számával (U-P6), a ◀ ▶ vezérlők, a ✕ és a
+  dekoráció. Nincs szöveg, szám, pontszám.
+- **F-K15** A feladatok előállítása és a lépés-logika a `js/core/` alatt, DOM nélkül, `node --test`-tel
+  tesztelve: `js/core/grid.js` (heurisztika), `js/core/find.js` (feladatok és lépés-logika).
+- **F-K16 Horgony.** Két egymást követő feladat horgonya nem lehet azonos, ha a forrásban legalább két
+  különböző tétel van. A horgony a többi tétel közül továbbra is egyenletes véletlennel jön.
+- **F-K17 Konfiguráció.** A párok, költségek és rácsparaméterek a repó gyökerében lévő `parok.json`-ban
+  vannak (a kulcsok jelentése: [keresd-meg-heurisztika.md](keresd-meg-heurisztika.md)). A program
+  induláskor letölti; a service worker offline is kiszolgálja. A nehézségi görbét (`racs.csuszka_gorbe`)
+  kiadáskor a deploy kártyaszámonként (4, 6, 8) újraszámolja a környezet táblázatának teljes listáján; ha a
+  táblázat nem érhető el, a `lists.txt`-n, figyelmeztetéssel. A görbe csak a kiadott példányba kerül, a
+  repóba nem; a repó görbéje a helyi futtatás és a tesztek alapértéke.
+- **F-K18 Hibás konfiguráció.** Hibás `parok.json` (nem olvasható, hiányzó vagy elavult kulcs, rossz csoport
+  vagy görbe) esetén a deploy megáll. Ha futáskor mégsem tölthető be vagy hibás, a Keresd meg! fül inaktív
+  („Nem elérhető”), a Felolvasás érintetlen.
+
+### 4a.4 Billentyűk
+
+| Billentyű | Hatás |
+|---|---|
+| →, Space | következő feladat; az utolsón jutalom |
+| ← | előző feladat |
+| Tab / Shift+Tab, Enter | lépés a kártyák között, jelölés (akadálymentesség) |
+| Esc | ADMIN |
+| P, ↓ | nincs hatásuk |
 
 ---
 
@@ -562,6 +683,14 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Nagyon keskeny szótag (pl. `i`) | Rövid vonalzó, legalább az első 10-es vonással; nem szélesedik a kötőjel felé |
 | Vonalzó és időjelző közel | A vonalzó alsó éle min. 4 px-re az időjelző fölött; az időjelzőt nem fedi |
 | Két szomszédos szótag letakarva | Két külön vonalzó, köztük a kötőjel látszik |
+| Keresd meg!: a forrásban 1 különböző tétel | „Indítás” inaktív: „Legalább két különböző tétel kell.” (F-S8) |
+| Keresd meg!: kevesebb tétel, mint a kártyaszám | Kevesebb kártya, az utolsó sor középen (F-K3, F-K12) |
+| Keresd meg!: 8 kártya, telefonon indítva | 6 kártya; a tárolt beállítás 8 marad (F-K10) |
+| Keresd meg!: forgatás kör közben | A kártyaszám marad, az elrendezés vált (F-K12) |
+| Keresd meg!: ← az első feladaton | Nincs hatása, a ◀ inaktív |
+| Keresd meg!: koppintás a kártyák közé | Nincs hatása (F-K8) |
+| Keresd meg!: tárolt `mode: find`, a `parok.json` nem használható | Felolvasás nyílik, a fül inaktív; a tárolt `mode` marad (F-S3, F-K18) |
+| Keresd meg!: a forrásban 2 különböző tétel | A feladatok horgonya váltakozik (F-K16) |
 
 ---
 
@@ -603,6 +732,24 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 22. *(automata)* `rulerGeometry`: a vonások a vonalzón belül vannak (0,05 em-től a jobb vég − 0,03 em-ig),
     a lépésköz 0,045 em, a hosszminta 10/5/1 szerint 0,16 / 0,11 / 0,06 em; az alsó él az időjelző
     teteje − 4 px fölött van; a kötőjel felőli oldalon nincs ráhagyás.
+23. *(automata)* A Keresd meg! kör indulásakor pontosan K feladat készül; mindegyikben a kártyaszámnyi
+    (vagy az összes elérhető) különböző tétel, csak a kör forrásából. Seedelt `rng`-vel determinisztikus.
+24. *(automata)* ← után ugyanaz a feladat jön vissza, ugyanabban a sorrendben, jelölés nélkül.
+25. *(automata)* Kattintás jelöl, ugyanarra újra lekerül, másikra átkerül; egyszerre legfeljebb egy
+    kártya jelölt; a jelölés nem léptet.
+26. *(automata)* → és Space az utolsó feladaton jutalomra vált; ← az elsőn nincs hatással.
+27. Telefonon (390×844 és 844×390) 8-as beállításnál 6 kártya látszik, a beállítás 8 marad; tableten 8.
+28. Az elrendezés a 4a.3 táblázata szerinti álló és fekvő nézetben; mobil fekvőben a nyilak a rács két
+    oldalán vannak.
+29. Egy feladaton belül minden kártyán azonos a betűméret; a leghosszabb tétel is levágás nélkül elfér.
+30. A nehézség első indításkor 1, újratöltés után a legutóbb választott; a feladatok száma alapból 10.
+31. A Keresd meg! nézetben nincs szöveg, szám, idő- vagy pontjelző; jelöléskor nincs hang és nincs
+    jó/rossz szín. Koppintás a kártyák közé nem léptet.
+32. *(automata)* Két egymást követő feladat horgonya sosem azonos (F-K16), két tételes forrásnál is.
+33. *(automata)* A deploy-kalibrálás kártyaszámonként (4, 6, 8) érvényes görbét ír; a táblázat nélkül a
+    `lists.txt`-ből; hibás `parok.json`-nál nem nulla kilépési kóddal megáll (F-K17, F-K18).
+34. A Keresd meg! minta 320 px széles nézetben is minden tételt teljes egészében, levágás és kilógás nélkül
+    mutat, 8 kártyás beállítással és háromszótagú tételekkel is.
 
 ---
 
@@ -684,6 +831,26 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Az éles tárolási nevei változatlanok | A meglévő felhasználók beállításai és letöltött listái megmaradnak, migráció nélkül. |
 | A táblázat címe repository variable-ből | A cím kódmódosítás és kiadási PR nélkül cserélhető; a repó alapértéke a helyi futtatást és a teszteket szolgálja. |
 | Verziószám a fejlécben | Egy eszközön ránézésre látszik, melyik kiadás fut; a service worker hálózat-először stratégiája miatt a frissítéshez nem kell. |
+
+**Keresd meg! (2.10, 2026-11-10):**
+
+| Döntés | Indok |
+|---|---|
+| A szülő mondja ki a kártyát, a gyerek mutat rá; a program nem tudja a jó választ és nem értékel | A szülő vezeti a tanulást, a program csak eszköz; nincs pontozás és „hibás” állapot. |
+| Csak a kijelölt listákból, ugyanazzal a forrásválasztóval | A gyerek azt látja, amit a könyvben már tanult. |
+| A szülői felületen egy jobb panel, két fül, egyetlen Indítás | Egy mentális modell; a külön panel két Indítással (A koncepció) zavaró volt. |
+| Nehézség: 5 fokozatú csúszka, első használatkor a legkönnyebb, utána megmarad | A Meixner-módszer a hasonló betűket időben távol tanítja; a tájékoztató ezt indokolja, a szülő tudatosan lép feljebb. |
+| A felületen „Feladatok száma”, a Nehézség fölött | A „Rácsok a körben” nehezen érthető volt; a kör hosszát ez adja, ezért kiemelt helyen van. |
+| Játéknézet: egyszerre látható rács (B koncepció) | A felvillanó tételből nyíló rács (C koncepció) a léptetéssel, takarással, idővel bonyolult állapotot adna. |
+| Telefonon legfeljebb 6 kártya, a beállítás megmarad | 8 kártyánál a kártya álló nézetben ~130 px széles, fekvőben ~100 px magas: egy 7 évesnek túl kicsi. |
+| Mobil fekvőben a nyilak oldalt | Alul nem maradna elég magasság a kártyáknak. |
+| Játékonkénti „Így játsszátok” súgó | A két játék vezérlése eltér; az általános Súgó nem nőhet tovább. |
+| Alapértelmezett kártyaszám 4; feladatok száma 1–30; egyszerre egy jelölés; a kártyák közé koppintás nem léptet; a 2–4. fokozat szövege (U-A8) | A 11. fejezet javaslatai, a tartalomgazda megerősítette. |
+| Két egymást követő feladat horgonya nem azonos (F-K16) | Ugyanaz a kimondható kártya egymás után unalmas, és a gyerek a helyéből is kitalálhatja. |
+| A nehézségi görbe kiadáskor a táblázat listáján, kártyaszámonként (F-K17) | A lépcsők a tényleges listán legyenek egyenletesek; a görbe nem kerül a repóba, mert a lista a táblázatban változik. |
+| Kalibrálás tartaléka a `lists.txt`, a deploy nem áll meg | A táblázat átmeneti elérhetetlensége ne akadályozza a kiadást. |
+| A mintasor mobil fekvőben (E10) rejtve | Nem fér el; a beállítás e nélkül is érthető. |
+| A minta tördelődő címkesor, nem fix rács | Keskeny nézetben (360–390 px) a 6 oszlopos rács ~55 px-es cellájából a háromszótagú szavak kilógtak; a betű kicsinyítése 11–12 px-et adna, ami olvashatatlan. |
 
 ---
 
@@ -794,8 +961,8 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
 - **U-A4** Forrássor: frissítési állapot, „Frissítés” gomb, szerkesztő link (F-L11); alatta szükség esetén
   a tartalék jelzése (F-L13), 13 px, `--ink-2`, `--warn` színű nyitójellel.
 - **U-A5** Figyelmeztető sáv a fejléc alatt, `--warn` bal szegéllyel, egyenként bezárható.
-- **U-A6** Jobb panel (keskeny nézetben a tartalom alatt): módfülek (Felolvasás; Keresd meg! inaktív,
-  „Hamarosan érkezik” címkével; ha bármelyik fül tartalma nem fér el a keretben, mindkét fülön csak az
+- **U-A6** Jobb panel (keskeny nézetben a tartalom alatt): módfülek (Felolvasás; Keresd meg!, amely csak
+  hibás `parok.json`-nál inaktív, „Nem elérhető” címkével, F-K18; ha bármelyik fül tartalma nem fér el a keretben, mindkét fülön csak az
   ikon látszik, a fül méretéhez igazítva, a név a felolvasónak és súgószövegként megmarad), leírás + „Így játsszátok” súgógomb, a beállítások, alul a mindig látható
   Indítás-blokk: becslés („10 tétel · kb. 40 mp”, kézi léptetésnél „10 tétel · kézi léptetés”), az
   oldal egyetlen elsődleges gombja, alatta csak hiba vagy figyelmeztetés. Állapotai:
@@ -820,6 +987,36 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   érintőképernyőn és 600 px alatt a jelölőnégyzeteket és a gombokat írja le. Telefonon szinte
   teljes képernyős, a gomb teljes szélességű. Egy mondatban említi a szótag-takarást is
   (kattintás/koppintás a szótagra, illetve `↓`).
+- **U-A8 Keresd meg! fül** (a tervezői vásznon E4, E5, E7–E10). Leírás: „Te felolvasod az egyiket,
+  a gyerek megmutatja a képernyőn.” A Tételek forrása alatt sorrendben:
+  1. **Kártyák:** 4 · 6 · 8 szegmens. Telefonon (F-K10) a 8 szürke, `aria-disabled`, a címke
+     „Kártyák · telefonon max. 6”.
+  2. **Feladatok száma:** stepper (1–30), félkövér címkével.
+  3. **Nehézség:** 5 lépéses csúszka; fölötte jobbra az aktuális fokozat: 1 „jól megkülönböztethető”,
+     2 „inkább eltérő”, 3 „vegyes”, 4 „inkább hasonló”, 5 „nagyon hasonló”; alatta a skála két vége
+     („1 eltérő”, „5 nagyon hasonló”). Közvetlenül alatta tájékoztató doboz (`--paper` háttér,
+     információ-ikon, 12,5 px, desktopon legfeljebb 5 sor):
+     > A Meixner-módszer szerint a hasonló betűket (pl. b–d, m–n) időben egymástól távol érdemes
+     > tanulni, hogy a gyerek ne keverje össze őket. Ezért a legkönnyebb fokozattal kezdjetek.
+     > A program megjegyzi a beállítást.
+  4. **Minta:** egy lehetséges feladat tételei tördelődő címkesorban („Másik minta” gombbal); minden tétel
+     teljes szélességben látszik, a sorok száma a tételek hosszától függ. Beállítás-változásra frissül.
+     Mobil fekvőben (`max-height: 500px`) rejtve.
+
+  Az Indítás-blokk becslése: „10 feladat · 4 kártya”. Ha a panel nem fér ki, csak a beállítások
+  görgetnek, az Indítás látszik.
+
+  Az „Így játsszátok” (U-A7b) tartalma:
+  > **Keresd meg! – így játsszátok**
+  > 1. Válassz ki fejben egy kártyát, és mondd ki hangosan – ne mutass rá.
+  > 2. A gyerek megkeresi, és rámutat vagy rákoppint.
+  > 3. Te döntöd el, hogy jó-e: a program nem értékel, csak megjelöli a koppintott kártyát.
+  > 4. Egy feladaton belül többet is kérhetsz, mielőtt továbblépsz.
+
+  Billentyűs eszközön: Space, → következő feladat · ← előző feladat · kattintás: megjelöl, újra
+  kattintva leveszi · Esc kilépés. Érintőn: „A gyerek a kártyára koppint, te a lenti nyilakkal lépsz a
+  következő feladatra. A kör végén lufipukkasztás a jutalom.” Alsó lapon (E8) a lépések alatt három
+  képes magyarázó: koppintás jelöl · újra koppintás leveszi · nyilak lapoznak.
 
 ### 12.4 Gyakorlónézet
 - **U-P1** Háttér: sík `--paper`, enyhe vignetta, három statikus `--paper-2` folt a sarkokban.
@@ -837,6 +1034,21 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   kurzor nem változik (a tétel a gyereké, nem „gomb”); a kurzor elrejtése (F-P11) változatlan.
   A takaró nem kap `aria-label`-t; a szótagok állapota a tétel `aria-label`-jében nem jelenik meg.
 
+### 12.4a Keresd meg! nézet
+- **U-K1** Háttér, dekoráció, ✕ és haladásjelző, mint a gyakorlónézetben (U-P1, U-P5, U-P6); a
+  haladásjelző pöttyei a feladatok.
+- **U-K2 Kártya:** `--field` háttér, 2 px `--line` keret, 24 px sarok (telefonon 16–18 px), a tétel
+  `--ink`. Rés: desktopon 28 px, telefonon 12–14 px. A rács a haladásjelző és a vezérlők közti területet
+  tölti ki; desktopon legfeljebb 1040 px széles.
+- **U-K3 Jelölt kártya:** `--sky` háttér, 4–5 px `--accent` keret, azonnali váltás. Piros és zöld nincs,
+  mert a jelölés nem jelent jót vagy rosszat.
+- **U-K4 Vezérlők:** ◀ ▶ alul középen (U-P4, ⏸ nélkül). Mobil fekvőben (`max-height: 500px`) a két nyíl
+  a rács két oldalán, függőlegesen középen.
+- **U-K5 Referenciaméretek** (6 kártya): desktop 1280×800 → ~330×250 px kártya, ~112 px betű; mobil álló
+  390×844 → ~173×190 px, ~84 px; mobil fekvő 844×390 → ~192×140 px, ~76 px. A tényleges betűméretet
+  F-K13 adja.
+- **U-K6** Egeres eszközön a kártya fölött mutató kurzor; külön hover-kiemelés nincs.
+
 ### 12.5 Jutalomnézet
 - **U-R1** Lufi: tojásdad (sz/m ≈ 0,82), háromszög csomó, 1 px madzag (`--ink` 25%), egy fényfolt;
   nincs arc, szöveg, minta. Csökkentett mozgásnál rács alapú elhelyezés véletlen eltolással, max. 30% átfedés;
@@ -847,5 +1059,7 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
 - Kontraszt: tétel ≥ 7:1, admin szöveg ≥ 4,5:1, ikonok és keretek ≥ 3:1.
 - Az admin minden funkciója billentyűzettel elérhető; fókuszgyűrű 2 px `--accent`, csak `:focus-visible`.
 - Az ikon gombok `aria-label`-t kapnak („Szünet”, „Folytatás”, „Előző”, „Következő”, „Kilépés”).
+- Keresd meg!: a kártyák `button`-ok, `aria-label` a tétel, a jelölés `aria-pressed`; a rács `role="group"`,
+  `aria-label` „3. feladat a 10-ből”; a nyilak „Előző feladat”, „Következő feladat”.
 - Elsődleges képernyő: 1366×768 és 1920×1080; támogatott minimum: 1024×600. Tablet és telefon
   álló és fekvő tájolásban is támogatott; a 9.9-es kritérium ott is teljesül.

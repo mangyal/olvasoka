@@ -42,11 +42,13 @@ Ha a kijelölt listákban összesen N-nél kevesebb egyedi tétel van, a rács a
 
 A rács tételenként épül: horgony, majd N−1 súlyozott véletlen húzás visszatevés nélkül.
 
-1. **Forrás.** Minden tétel, a horgonyt is beleértve, csak a kijelölt listákból jöhet. A horgonyt a program húzza, egyenletes véletlennel.
+1. **Forrás.** Minden tétel, a horgonyt is beleértve, csak a kijelölt listákból jöhet. A horgonyt a program húzza, egyenletes véletlennel. Egy körön belül két egymást követő rács horgonya nem lehet azonos (ha legalább két egyedi tétel van): az előző horgony ilyenkor kimarad a húzásból.
 2. **Típus és feltöltés.** Elsődleges készlet: a horgonnyal azonos típusú tételek; szónál a szótagszám is egyezik. Ha ez elfogy, a feltöltés más típusból jön, ebben a sorrendben:
    - betű → szótag → szó
    - szótag → betű → szó
    - szó → szótag → betű
+
+   Szónál az eltérő szótagszámú szavak a szótagok előtt jönnek: azonos szótagszámú szó → más szótagszámú szó → szótag → betű.
 3. **Tokenizálás.** Normalizálás után mohó leghosszabb egyezés: előbb `dzs`, majd a kétjegyűek, végül az egyes karakterek.
 4. **Távolság.** Súlyozott Levenshtein a betűsorozatokon. Beszúrás, törlés, csere költsége a konfigurációból jön (lásd Konfiguráció); ha egy pár több kategóriában is szerepel, a legkisebb költség érvényes.
 5. **Súly.** Minden jelölt két 0–1 közötti pontszámot kap, ezeket a fokozat keveri (képletek lent).
@@ -91,7 +93,7 @@ A repóbeli `parok.json` az egyetlen forrás minden párra, költségre és rác
 | `csuszka_szintek` | A választható fokozatok, 0 és 1 között, növekvő sorrendben | A UI ezekből kínál választást |
 | `csuszka_alapertelmezett` | A kezdő fokozat | A `csuszka_szintek` egyik eleme |
 | `csuszka_elesites` | A súlyképlet p kitevője; nagyobb = markánsabb végletek | Nem fokozat; csak a heurisztika hangolásához |
-| `csuszka_gorbe` | A kiegyenlítő görbe töréspontjai: egy közös lista, vagy kártyaszámonként külön lista, az N értékével kulcsolva | Annyi elem, ahány fokozat; 0-val kezdődik, 1-gyel végződik, monoton nő. A deploy-kalibrálás írja, kézzel nem szerkesztendő |
+| `csuszka_gorbe` | A kiegyenlítő görbe töréspontjai: egy közös lista, vagy kártyaszámonként külön lista, az N értékével kulcsolva | Annyi elem, ahány fokozat; 0-val kezdődik, 1-gyel végződik, monoton nő. A deploy-kalibrálás írja (kártyaszámonként), kézzel nem szerkesztendő; a repóbeli érték csak a helyi futtatás alapértéke. Hiányzó kártyaszámnál a legközelebbi N görbéje érvényes |
 
 ### Betöltés
 
@@ -100,10 +102,12 @@ A repóbeli `parok.json` az egyetlen forrás minden párra, költségre és rác
 
 ## Kalibrálás deploy-kor
 
-A kiegyenlítő görbe deploy-kor készül a teljes listára, hogy a fokozatok közel egyenlő lépésekben nehezedjenek. A görbe a `racs.csuszka_gorbe` kulcsba kerül.
+A kiegyenlítő görbe deploy-kor készül a teljes listára, hogy a fokozatok közel egyenlő lépésekben nehezedjenek. A görbe kártyaszámonként (N = 4, 6, 8) a kiadott `parok.json` `racs.csuszka_gorbe` kulcsába kerül; a repóba nem.
+
+A teljes lista a környezet Google táblázatából jön (ugyanaz a cím, amit az app is olvas). Ha a táblázat nem érhető el, nem CSV-t ad vagy nincs benne lista, a repó `lists.txt`-je a tartalék, figyelmeztetéssel; a deploy ilyenkor nem áll meg. A szkript: `.github/scripts/calibrate.mjs`.
 
 1. **Mutató:** a rács tételeinek átlagos távolsága a horgonytól (kisebb = nehezebb).
-2. **Mintavétel:** véletlen horgonyok a teljes listából, típusarányosan; horgonyonként legalább 20 rács, N = 8.
+2. **Mintavétel:** a teljes lista minden tétele egyszer horgony (ez pontosan típusarányos); horgonyonként 20 rács, kártyaszámonként külön.
 3. **Mérés:** a mutató a belső arány 21 pontján (0, 0.05 … 1).
 4. **Lépcsők:** a két végponti érték közti tartományt a fokozatok számának megfelelő egyenlő részre osztjuk.
 5. **Visszakeresés:** lineáris interpolációval megkeressük, milyen belső arány adja az egyes lépcsőket; ezek a töréspontok.
@@ -114,7 +118,7 @@ Szűk kijelölésnél a teljes listára készült görbe egyenetlenebb lépcsők
 
 ## Elfogadási kritériumok és tesztvektorok
 
-A tesztek egy rögzített teszt-konfigurációval (fixture) és teszt-listával futnak, nem az éles `parok.json` fájllal; így a párok hangolása nem töri el őket. Az alábbi értékek a fixture-re vonatkoznak, amely a prototípus konfigurációjának és listájának pillanatképe.
+A tesztek egy rögzített teszt-konfigurációval (fixture) és teszt-listával futnak, nem az éles `parok.json` fájllal; így a párok hangolása nem töri el őket. A fixture: `test/fixtures/parok.json` (a prototípus konfigurációja, az elavult kulcsokkal együtt) és `test/fixtures/lista.txt` (a repó `lists.txt`-jének 2026-11-10-i pillanatképe, 124 egyedi tétel; a prototípus 165 tételes listája nem maradt meg).
 
 **Szabálytesztek (minden rácsra igaz):**
 
@@ -139,6 +143,8 @@ A tesztek egy rögzített teszt-konfigurációval (fixture) és teszt-listával 
 | d(`ma`, `al`) | 2.0 |
 
 **Statisztikai tesztek (rögzített seed, a fixture-listán, N = 8):**
+
+Az alábbi táblázat a prototípus mérése a 165 tételes listán, tájékoztatásul. A fixture-listán (124 tétel, a prototípus görbéjével) a mért értékek: 1.92 · 1.67 · 1.51 · 1.31 · 1.06, illetve 0.03 · 0.29 · 0.72 · 1.13 · 1.80 közeli pár rácsonként. A tesztek az elfogadási feltételeket ellenőrzik, nem a pontos számokat; a lépcsők egyenletességét a fixture-listán kalibrált görbével, a kalibrálásból kihagyott (más seedű) horgonyokon.
 
 | Fokozat | Átl. távolság a horgonytól | Közeli párok (≤ 0.5) / rács |
 | --- | --- | --- |

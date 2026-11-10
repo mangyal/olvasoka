@@ -79,3 +79,29 @@
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:0s!important;animation:none!important}
 }
+
+/* ---------- Keresd meg! nézet (spec 12.4a) ---------- */
+/* A rács a haladásjelző és a vezérlők közti területet tölti ki (js/ui/find.js számolja: left/top/width/height,
+   --cw/--ch kártyaméret, --gap, --fs betűméret). Kevesebb kártyánál az utolsó sor középre igazítva (F-K3). */
+.stage[data-mode=find]{cursor:default}
+.find-grid{position:absolute;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:var(--gap,28px)}
+.card{width:var(--cw);height:var(--ch);flex:none;display:flex;align-items:center;justify-content:center;padding:0;margin:0;background:var(--field);border:2px solid var(--line);border-radius:24px;color:var(--ink);font:400 var(--fs,100px)/1 var(--f-item);cursor:pointer;overflow:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.card-text{white-space:pre;pointer-events:none}
+/* U-K3: jelölt kártya, azonnali váltás; nincs piros és zöld, mert a jelölés nem jó vagy rossz */
+.card[aria-pressed=true]{background:var(--sky);border:5px solid var(--accent)}
+.card:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+/* U-K6: külön hover-kiemelés nincs */
+@media (max-width:499px),(max-height:499px){
+  .card{border-radius:16px}
+  .card[aria-pressed=true]{border-width:4px}
+}
+/* a vezérlők Keresd meg!-ben mindig látszanak (E6); szünet gomb nincs (U-K4) */
+.stage[data-mode=find] .controls{opacity:1}
+.stage[data-mode=find] .controls .cbtn{pointer-events:auto}
+.stage[data-mode=find] #cPlay{display:none}
+.stage[data-mode=find] .pause-ind{display:none}
+/* U-K4: mobil fekvőben a két nyíl a rács két oldalán, függőlegesen középen */
+@media (max-height:500px) and (orientation:landscape){
+  .stage[data-mode=find] .navbar{left:0;right:0;top:50%;bottom:auto;transform:translateY(-50%);justify-content:space-between;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));pointer-events:none}
+  .stage[data-mode=find] .navbar .cbtn{pointer-events:auto}
+}
