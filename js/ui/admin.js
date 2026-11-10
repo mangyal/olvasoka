@@ -269,9 +269,8 @@ export function createAdmin(el, app, act) {
     el.sampleBox.hidden = false;
     const pool = createPool(items, cc);
     const g = buildGrid(pool, n, levelToDegree(app.find.level, cc.levels), Math.random);
-    el.sample.style.setProperty('--n', String(n));
     el.sample.replaceChildren(...g.items.map((t) => {
-      const c = document.createElement('span'); c.className = 'sample-card'; c.textContent = t; return c;
+      const c = document.createElement('span'); c.className = 'sample-card'; c.textContent = t; c.title = t; return c;
     }));
   }
 

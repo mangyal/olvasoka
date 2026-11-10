@@ -415,8 +415,10 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 .ctl-sample{display:flex;flex-direction:column;gap:6px}
 .ctl-sample .ctl-head{align-items:center}
 .sample-btn{color:var(--accent);font-size:13px;padding:0}
-.sample{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:4px;font:400 17px/1.2 var(--f-item);text-align:center}
-.sample-card{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 2px;white-space:pre;overflow:hidden;text-overflow:clip}
+.ctl-sample{min-width:0}
+/* 2.11: tördelődő címkesor; minden címke a tétel szélességével, szón belül nem törik; minden nézetben 17 px Arial */
+.sample{display:flex;flex-wrap:wrap;gap:6px;min-width:0;font:400 17px/1.2 var(--f-item)}
+.sample-card{flex:none;max-width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:5px 10px;white-space:pre;overflow:hidden;text-overflow:ellipsis}
 /* „Így játsszátok” – Keresd meg! (E5, E8) */
 .how-steps{margin:0;padding-left:20px;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
 .how-read,.how-find{display:flex;flex-direction:column;gap:12px}
@@ -442,12 +444,9 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .settings-find .ctl-tasks,.settings-find .ctl-level,.settings-find .ctl-sample{grid-column:1/-1;grid-row:auto}
   .ctl-tasks label{font-size:16px}
   .info-box p{font-size:14px}
-  .sample{font-size:22px;gap:6px}
-  .sample-card{padding:10px 2px;border-radius:8px}
 }
 @media (max-width:600px){
   .settings-find .seg-src,.settings-find .seg-cards{grid-column:1;grid-row:auto}
-  .sample{font-size:18px}
 }
 /* mobil fekvő (E10): a minta nem fér el, rejtve */
 @media (max-height:500px) and (orientation:landscape){
