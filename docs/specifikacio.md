@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.10** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.11** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,12 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.11 (a 2.10-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Keresd meg! minta | A minta nem fix 6 oszlopos rács, hanem tördelődő címkesor: minden címke a tétel szélességével, egy sorban (nincs sortörés a szón belül), ha nem fér ki, új sorba kerül. Azonos betűméret (17 px, Arial), `--line` keret, `--field` háttér. Utolsó védőháló: ha egy tétel szélesebb a panelnél, `text-overflow: ellipsis`. | U-A8 |
 
 ### 2.10 (a 2.9-hez képest)
 
@@ -742,6 +748,8 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 32. *(automata)* Két egymást követő feladat horgonya sosem azonos (F-K16), két tételes forrásnál is.
 33. *(automata)* A deploy-kalibrálás kártyaszámonként (4, 6, 8) érvényes görbét ír; a táblázat nélkül a
     `lists.txt`-ből; hibás `parok.json`-nál nem nulla kilépési kóddal megáll (F-K17, F-K18).
+34. A Keresd meg! minta 320 px széles nézetben is minden tételt teljes egészében, levágás és kilógás nélkül
+    mutat, 8 kártyás beállítással és háromszótagú tételekkel is.
 
 ---
 
@@ -842,6 +850,7 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | A nehézségi görbe kiadáskor a táblázat listáján, kártyaszámonként (F-K17) | A lépcsők a tényleges listán legyenek egyenletesek; a görbe nem kerül a repóba, mert a lista a táblázatban változik. |
 | Kalibrálás tartaléka a `lists.txt`, a deploy nem áll meg | A táblázat átmeneti elérhetetlensége ne akadályozza a kiadást. |
 | A mintasor mobil fekvőben (E10) rejtve | Nem fér el; a beállítás e nélkül is érthető. |
+| A minta tördelődő címkesor, nem fix rács | Keskeny nézetben (360–390 px) a 6 oszlopos rács ~55 px-es cellájából a háromszótagú szavak kilógtak; a betű kicsinyítése 11–12 px-et adna, ami olvashatatlan. |
 
 ---
 
@@ -990,8 +999,9 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
      > A Meixner-módszer szerint a hasonló betűket (pl. b–d, m–n) időben egymástól távol érdemes
      > tanulni, hogy a gyerek ne keverje össze őket. Ezért a legkönnyebb fokozattal kezdjetek.
      > A program megjegyzi a beállítást.
-  4. **Minta:** egy sorban kis kártyák egy lehetséges feladatból, „Másik minta” gombbal; beállítás-
-     változásra frissül. Mobil fekvőben (`max-height: 500px`) rejtve.
+  4. **Minta:** egy lehetséges feladat tételei tördelődő címkesorban („Másik minta” gombbal); minden tétel
+     teljes szélességben látszik, a sorok száma a tételek hosszától függ. Beállítás-változásra frissül.
+     Mobil fekvőben (`max-height: 500px`) rejtve.
 
   Az Indítás-blokk becslése: „10 feladat · 4 kártya”. Ha a panel nem fér ki, csak a beállítások
   görgetnek, az Indítás látszik.

@@ -395,3 +395,37 @@ test('Keresd meg!: koppintás a kártyák közé nem léptet (F-K8)', async () =
   await page.mouse.click(8, 400);                                           // a rács mellett
   assert.equal(await findTask(), 1);
 });
+
+test('Keresd meg! minta: 320 px-en, 8 kártyás beállítással, háromszótagú tételekkel sincs levágás (34.)', async () => {
+  const LONG = ['ka-la-pács', 'te-le-fon', 'ba-ná-nok', 'vi-rá-gok', 'pa-pu-csok', 'ma-ka-ró-ni', 'ka-ka-dú', 'cse-re-sznye'];
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: ['Hosszú', ...LONG].join('\r\n') }));
+  // a 8 kártyás beállítás desktopon választható; telefonon a 8 inaktív, a tárolt érték marad (F-K10)
+  await page.reload();
+  await page.locator('#tabFind').click();
+  await page.locator('label:has(#cards8)').click();
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.reload();
+  await page.locator('#sample .sample-card').first().waitFor();
+  assert.equal(await page.getAttribute('#cards8', 'aria-disabled'), 'true');
+  for (let k = 0; k < 5; k++) {
+    const r = await page.evaluate(() => {
+      const box = document.getElementById('sample').getBoundingClientRect();
+      const cs = [...document.querySelectorAll('#sample .sample-card')];
+      return {
+        n: cs.length,
+        fs: [...new Set(cs.map((c) => getComputedStyle(c).fontSize))],
+        clipped: cs.filter((c) => c.scrollWidth > c.clientWidth).map((c) => c.textContent),
+        out: cs.filter((c) => { const b = c.getBoundingClientRect(); return b.left < box.left - 0.5 || b.right > box.right + 0.5 || b.right > innerWidth; }).map((c) => c.textContent),
+        oneLine: cs.every((c) => c.getBoundingClientRect().height < 40),
+        pageScrollX: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    assert.equal(r.n, 6, 'telefonon 8 helyett 6 tétel');
+    assert.deepEqual(r.fs, ['17px'], 'azonos betűméret');
+    assert.deepEqual(r.clipped, [], 'nincs levágott tétel');
+    assert.deepEqual(r.out, [], 'nincs kilógó tétel');
+    assert.ok(r.oneLine, 'szón belül nincs sortörés');
+    assert.equal(r.pageScrollX, false, 'nincs vízszintes görgetés');
+    await page.locator('#sampleBtn').click();
+  }
+});
