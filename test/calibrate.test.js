@@ -26,6 +26,7 @@ test('kalibrálás: kártyaszámonkénti görbe a lists.txt tartalékból; érv�
     const cfg = JSON.parse(readFileSync(join(d, 'parok.json'), 'utf8'));
     assert.deepEqual(Object.keys(cfg.racs.csuszka_gorbe), ['4', '6', '8']);
     assert.deepEqual(validateConfig(cfg), []);
+    assert.equal(cfg.racs.kezdet_suly, 0.5, 'a kezdet súlya megmarad a kiadott példányban');
     // a repó parok.json-ja nem változik
     assert.ok(Array.isArray(JSON.parse(readFileSync(join(ROOT, 'parok.json'), 'utf8')).racs.csuszka_gorbe));
   } finally { rmSync(d, { recursive: true, force: true }); }
@@ -41,6 +42,20 @@ test('kalibrálás: hibás parok.json → kilépési kód 1 (a deploy megáll)',
     assert.equal(r.status, 1);
     assert.match(r.stderr, /parok\.json hibás/);
   } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test('kalibrálás: hibás kezdet_suly → kilépési kód 1 (a deploy megáll)', () => {
+  for (const bad of [-0.1, 1.5, '0.5']) {
+    const d = tree();
+    try {
+      const cfg = JSON.parse(readFileSync(join(d, 'parok.json'), 'utf8'));
+      cfg.racs.kezdet_suly = bad;
+      writeFileSync(join(d, 'parok.json'), JSON.stringify(cfg));
+      const r = spawnSync(process.execPath, [SCRIPT, d, 'dev'], { env, encoding: 'utf8' });
+      assert.equal(r.status, 1, JSON.stringify(bad));
+      assert.match(r.stderr, /kezdet_suly/);
+    } finally { rmSync(d, { recursive: true, force: true }); }
+  }
 });
 
 test('kalibrálás: parok.json nélkül (Keresd meg! előtti fa) nem csinál semmit', () => {
