@@ -234,6 +234,24 @@ export function createAdmin(el, app, act) {
   /* ---------- módfülek (4.1): a Keresd meg! még inaktív, nem vált ---------- */
   el.tabFind.addEventListener('click', (e) => e.preventDefault());
 
+  /* Ha bármelyik fül tartalma (ikon, név, „Hamarosan érkezik”) nem fér el a keretben, mindkét fülön csak
+     az ikon marad, a kerethez méretezve (css: .mode-tabs.icon-only). A név a felolvasóé és a title-é marad.
+     Méréskor a teljes tartalommal mérünk, így szélesedéskor a felirat visszajön. */
+  const tabs = [el.tabRead, el.tabFind];
+  const overflows = (box, c) => {
+    const b = box.getBoundingClientRect(), r = c.getBoundingClientRect(), bw = box.clientLeft;
+    return r.width > 0 && (r.left < b.left + bw - 0.5 || r.right > b.right - bw + 0.5 || r.top < b.top + bw - 0.5 || r.bottom > b.bottom - bw + 0.5);
+  };
+  function fitTabs() {
+    el.modeTabs.classList.remove('icon-only');
+    const over = tabs.some((t) => t.scrollWidth > t.clientWidth + 0.5
+      || [...t.querySelectorAll('.mode-icon, .mode-name, .mode-soon')].some((c) => overflows(t, c) || c.scrollWidth > c.clientWidth + 0.5));
+    el.modeTabs.classList.toggle('icon-only', over);
+  }
+  if ('ResizeObserver' in window) new ResizeObserver(fitTabs).observe(el.modeTabs);
+  document.fonts?.ready.then(fitTabs);
+  fitTabs();
+
   /* ---------- „Így játsszátok” (6.) ---------- */
   let howReturn = false;            // bezáráskor vissza a fókusz a súgógombra
   function openHow() {
