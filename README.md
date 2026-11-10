@@ -62,7 +62,10 @@ szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd á
 
 A beállítások a szülői felület jobb oldali paneljén vannak (tableten és telefonon a listák alatt), az
 Indítás gomb mindig látszik. A gyakorlás billentyűit a panel **Így játsszátok** gombja mutatja.
-A **Keresd meg!** játék fülön látszik, de még nem választható. Érintőképernyőn (pl. fekvő iPad) az
+A **Keresd meg!** fülön a program 4, 6 vagy 8 kártyát mutat a kijelölt listákból (telefonon legfeljebb 6).
+Te kimondod az egyiket, a gyerek rábök; a program csak megjelöli, amire bökött, nem értékel. A nehézség
+1–5 (1 = jól megkülönböztethető, 5 = nagyon hasonló elemek), alapból 1, utána a legutóbbi marad.
+Billentyűk: `Space`/`→` következő feladat, `←` előző, kattintás jelöl, `Esc` kilépés. Érintőképernyőn (pl. fekvő iPad) az
 oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy lenyíló sorból nyíló lapon
 választhatók.
 
@@ -80,6 +83,7 @@ Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
 ```
 index.html          markup
 lists.txt           a listák
+parok.json          Keresd meg!: hasonló betűpárok, költségek, nehézségi görbe (docs/keresd-meg-heurisztika.md)
 css/                tokens · szülői felület · gyakorló és jutalom nézet
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
 js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
@@ -94,10 +98,12 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
   progress.js         a gyakorlás haladásjelzője (pöttysor / sáv)
+  grid.js             Keresd meg!: rácsösszeállító heurisztika és kalibrálás
+  find.js             Keresd meg!: feladatok és a kör lépés-logikája
   env.js              éles/dev környezet, tárolási nevek
   config.js           a táblázat címei környezetenként (kiadáskor repository variable-ökből)
 js/data/            localStorage és a listák letöltése
-js/ui/              szülői felület, gyakorlás, jutalom
+js/ui/              szülői felület, gyakorlás, Keresd meg!, jutalom
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
 test/               node --test
