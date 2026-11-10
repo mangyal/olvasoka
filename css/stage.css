@@ -75,6 +75,45 @@
 @media (max-width:600px){.reward-count{font-size:28px;right:calc(16px + env(safe-area-inset-right,0px))}}
 .confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .wind{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity 600ms ease-out}
+/* ---------- Panda-ugrálás (spec 5a., 12.5a) ---------- */
+.hop{position:absolute;inset:0;overflow:hidden;pointer-events:none;transition:opacity 600ms ease-out}
+.hop.fade{opacity:0}
+.hop-world{position:absolute;inset:0;will-change:transform}
+.hop-cloud{position:absolute;left:0;top:0;opacity:.7}
+.hop-cloud svg{display:block;width:100%;height:auto}
+.hop-pad{position:absolute;animation:hop-in 500ms cubic-bezier(.2,.7,.3,1) both}
+.hop-pad>svg{display:block;width:100%;height:100%;overflow:visible}
+.hop-goal{position:absolute;left:0;bottom:55%;width:100%}
+.hop-goal svg{display:block;width:100%;height:auto}
+.hop-goal .leaves{transform-box:fill-box;transform-origin:50% 100%;animation:hop-sway 2.2s ease-in-out infinite alternate}
+@keyframes hop-in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes hop-sway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+.hop-panda{position:absolute;left:0;top:0;width:var(--P);height:calc(var(--P) * 1.1);transform-origin:50% 60%;will-change:transform}
+.hop-panda .squash{width:100%;height:100%;transform-origin:50% 100%}
+.hop-panda svg{display:block;width:100%;height:100%;overflow:visible}
+.hop-panda.landed .squash{animation:hop-land 260ms ease-out}
+@keyframes hop-land{0%{transform:scale(1.14,.84)}55%{transform:scale(.95,1.06)}100%{transform:none}}
+.hop-panda .arm{transform-box:view-box;transition:transform 160ms ease-out}
+.hop-panda .arm.l{transform-origin:31px 70px}
+.hop-panda .arm.r{transform-origin:69px 70px}
+.hop-panda.air .arm.l{transform:rotate(115deg)}
+.hop-panda.air .arm.r{transform:rotate(-115deg)}
+.hop-panda .happy-eyes,.hop-panda .mouth-open{display:none}
+.hop-panda.air .mouth,.hop-panda.happy .mouth,.hop-panda.happy .eyes{display:none}
+.hop-panda.air .mouth-open,.hop-panda.happy .mouth-open,.hop-panda.happy .happy-eyes{display:inline}
+.hop-panda.happy .arm.l{animation:hop-wave-l 500ms ease-in-out infinite alternate}
+.hop-panda.happy .arm.r{animation:hop-wave-r 500ms ease-in-out infinite alternate}
+.hop-panda.happy .squash{animation:hop-cheer 500ms ease-in-out infinite alternate}
+@keyframes hop-wave-l{from{transform:rotate(95deg)}to{transform:rotate(140deg)}}
+@keyframes hop-wave-r{from{transform:rotate(-95deg)}to{transform:rotate(-140deg)}}
+@keyframes hop-cheer{from{transform:none}to{transform:translateY(-8%)}}
+.hop-hint{position:absolute;width:40px;height:40px;color:var(--ink);opacity:0;transform:rotate(var(--rot,0deg));transition:opacity 300ms ease-out}
+.hop-hint.on{opacity:.45}
+.hop-hint svg{display:block;width:100%;height:100%}
+.hop-hint .icon{stroke-width:3}
+.hop-hint.on svg{animation:hop-nudge 700ms ease-in-out infinite alternate}
+@keyframes hop-nudge{from{transform:translateX(-4px)}to{transform:translateX(5px)}}
+.hop-dust{position:absolute;border-radius:50%;background:#FFFFFF}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:0s!important;animation:none!important}
