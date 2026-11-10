@@ -187,8 +187,11 @@
         <button type="button" class="btn-text" id="listsNone">Egyik sem</button>
       </span>
     </div>
-    <div class="ls-rows" id="listsRows"></div>
-    <a class="ext ls-edit" id="listsEdit" href="#" target="_blank" rel="noopener">Listák szerkesztése a táblázatban ↗</a>
+    <!-- a listák és alattuk a szerkesztő link együtt görgetnek; a fejléc és a Kész mindig látszik -->
+    <div class="ls-scroll" id="listsScroll">
+      <div class="ls-rows" id="listsRows"></div>
+      <a class="ext ls-edit" id="listsEdit" href="#" target="_blank" rel="noopener">Listák szerkesztése a táblázatban ↗</a>
+    </div>
     <div class="ls-foot">
       <span class="muted num" id="listsSum"></span>
       <button type="button" class="btn btn-primary" id="listsDone">Kész</button>

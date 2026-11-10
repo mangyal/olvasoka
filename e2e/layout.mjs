@@ -332,6 +332,45 @@ test('568×256: marad a két oszlopos fekvő elrendezés (valódi telefon fekve)
   await ctx.close();
 });
 
+// ---------- listaválasztó lap: a listák és alattuk a szerkesztő link együtt görgetnek ----------
+const sheetState = (page) => page.evaluate(() => {
+  const sc = document.getElementById('listsScroll').getBoundingClientRect();
+  const rows = [...document.querySelectorAll('#listsRows label')].map((r) => r.getBoundingClientRect());
+  const link = document.getElementById('listsEdit').getBoundingClientRect(), done = document.getElementById('listsDone').getBoundingClientRect();
+  const dlg = document.getElementById('dlgLists').getBoundingClientRect();
+  return {
+    rows: rows.length,
+    visibleRows: rows.filter((r) => r.top >= sc.top - 0.5 && r.bottom <= sc.bottom + 0.5).length,
+    firstRowFirst: rows.length > 0 && rows[0].top >= sc.top - 0.5 && rows[0].bottom <= sc.bottom + 0.5,
+    linkBelowRows: link.top >= rows.at(-1).bottom - 0.5,
+    linkInScroll: !!document.querySelector('#listsScroll #listsEdit'),
+    linkVisible: link.top >= sc.top - 0.5 && link.bottom <= sc.bottom + 0.5,
+    overflow: document.getElementById('listsScroll').scrollHeight > document.getElementById('listsScroll').clientHeight + 1,
+    doneIn: done.top >= 0 && done.bottom <= innerHeight + 0.5,
+    dlgIn: dlg.top >= 0 && dlg.bottom <= innerHeight + 0.5,
+  };
+});
+
+for (const [w, h, touch, minRows, font] of [[823, 287, false, 2], [568, 256, true, 2], [320, 256, true, 2], [320, 256, true, 2, WIDE_FONT], [844, 390, true, 4], [390, 844, true, 5]]) {
+  test(`listalap ${w}×${h}${font ? ' széles betűvel' : ''}: legalább ${minRows} lista látszik, a szerkesztő link alattuk, görgetéssel elérhető`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch }, {}, { font });
+    await page.click('#listsBtn');
+    await page.waitForFunction(() => document.getElementById('dlgLists').open);
+    const st = await sheetState(page);
+    assert.ok(st.dlgIn, 'a lap a képernyőn belül');
+    assert.ok(st.doneIn, 'a Kész görgetés nélkül látszik');
+    assert.ok(st.firstRowFirst, 'elöl az első lista, nem a link');
+    assert.ok(st.visibleRows >= Math.min(minRows, st.rows), `legalább ${minRows} lista látszik (${st.visibleRows})`);
+    assert.ok(st.linkInScroll && st.linkBelowRows, 'a link a görgető részben, a listák alatt');
+    if (st.overflow) {
+      assert.equal(st.linkVisible, false, 'sok listánál a link csak legörgetve látszik');
+      await page.$eval('#listsScroll', (e) => { e.scrollTop = e.scrollHeight; });
+      assert.equal((await sheetState(page)).linkVisible, true, 'legörgetve a link látszik');
+    }
+    await ctx.close();
+  });
+}
+
 // ---------- módfülek: ha a felirat nem fér el, csak az ikon marad, a kerethez méretezve ----------
 const tabState = (page) => page.evaluate(() => {
   const inside = (b, r) => r.left >= b.left - 0.5 && r.right <= b.right + 0.5 && r.top >= b.top - 0.5 && r.bottom <= b.bottom + 0.5;
