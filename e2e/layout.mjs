@@ -276,7 +276,8 @@ const covers = (page) => page.evaluate(() => {
 });
 
 for (const [name, opts, rotate] of [
-  ['álló, 319 px széles', { viewport: { width: 319, height: 700 }, hasTouch: true, isMobile: true }, false],
+  ['álló, 319 px széles', { viewport: { width: 319, height: 640 }, hasTouch: true, isMobile: true }, false],
+  ['hajlítható telefon külső kijelzője, 280 px széles', { viewport: { width: 280, height: 653 }, hasTouch: true, isMobile: true }, false],
   ['fekvő telefon, 255 px magas', { viewport: { width: 568, height: 255 }, hasTouch: true, isMobile: true }, true],
   ['desktop ablak, 255 px magas', { viewport: { width: 1270, height: 255 } }, false],
 ]) {
@@ -287,6 +288,16 @@ for (const [name, opts, rotate] of [
     assert.equal(await page.textContent('.ts-title'), 'Túl kicsi a képernyő');
     assert.equal(await shown(page, '.ts-rotate'), rotate, 'elforgatást csak fekvő érintőképernyőn kér');
     assert.equal(await shown(page, '.ts-other'), !rotate);
+    const fit = await page.evaluate(() => {
+      const vw = visualViewport.width, vh = visualViewport.height;
+      return {
+        layout: document.documentElement.scrollWidth <= innerWidth && innerWidth <= vw + 1,
+        text: [...document.querySelectorAll('#tooSmall > *')].filter((e) => e.offsetParent)
+          .every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= vw + 0.5 && r.top >= 0 && r.bottom <= vh + 0.5; }),
+      };
+    });
+    assert.ok(fit.layout, 'az oldal nem szélesebb a látható ablaknál');
+    assert.ok(fit.text, 'a tájékoztató minden sora a látható ablakban van');
     await ctx.close();
   });
 }
