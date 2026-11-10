@@ -396,3 +396,60 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .ts-rotate{display:block}
   .ts-other{display:none}
 }
+
+/* ================= Keresd meg! beállítások (U-A8, E4/E7) ================= */
+.settings-find{gap:12px}
+/* Kártyák: a címke balra, a szegmens jobbra (E4) */
+.seg-cards{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.seg-cards legend{float:left;padding:0;font-size:14px;color:var(--ink)}
+.seg-cards .seg-opts{width:168px;flex:none}
+.seg-opts label.off span{color:var(--ink-2);background:var(--paper-2);cursor:not-allowed}
+.seg-opts label.off input{cursor:not-allowed}
+.ctl-tasks label{font-size:15px;font-weight:600}
+.ctl-level{display:flex;flex-direction:column;gap:6px}
+.ctl-level input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
+.level-ends{display:flex;justify-content:space-between;padding:0 2px}
+.info-box{display:flex;gap:10px;background:var(--paper);border-radius:8px;padding:10px 12px;margin-top:4px}
+.info-box .icon{width:18px;height:18px;flex:none;margin-top:1px;color:var(--accent)}
+.info-box p{margin:0;font-size:12.5px;line-height:1.4;color:var(--ink)}
+.ctl-sample{display:flex;flex-direction:column;gap:6px}
+.ctl-sample .ctl-head{align-items:center}
+.sample-btn{color:var(--accent);font-size:13px;padding:0}
+.sample{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:4px;font:400 17px/1.2 var(--f-item);text-align:center}
+.sample-card{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 2px;white-space:pre;overflow:hidden;text-overflow:clip}
+/* „Így játsszátok” – Keresd meg! (E5, E8) */
+.how-steps{margin:0;padding-left:20px;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+.how-read,.how-find{display:flex;flex-direction:column;gap:12px}
+.how-pics{display:none}
+.how:modal .how-steps{font-size:17px;padding-left:22px;gap:6px}
+.how:modal .how-pics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;margin:0;padding:0}
+.how-pics li{background:var(--paper-2);border-radius:12px;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;font-size:15px}
+.how-pics .pic{width:88px;height:64px;border-radius:12px;border:2px solid var(--line);background:var(--field);display:grid;place-items:center;font:400 30px/1 var(--f-item)}
+.how-pics .pic-on{border:4px solid var(--accent);background:var(--sky)}
+.how-pics .pic-nav{border:0;background:none;display:flex;gap:8px;width:auto}
+.how-pics .pic-nav .icon{width:28px;height:28px;stroke-width:2.4}
+@media (max-width:480px){.how-pics li{padding:12px 4px;font-size:13px}.how-pics .pic{width:64px;height:48px;font-size:22px}}
+
+@media (max-width:899px),(hover:none) and (pointer:coarse),(max-height:500px) and (orientation:landscape){
+  .sample-btn{min-height:44px}
+}
+/* álló tablet (E7): Tételek és Kártyák egymás mellett, alattuk a többi teljes szélességben */
+@media (max-width:899px){
+  .settings-find .seg-src{grid-column:1;grid-row:1}
+  .settings-find .seg-cards{grid-column:2;grid-row:1;display:block}
+  .settings-find .seg-cards legend{float:none;padding:0 0 6px;font-size:13px;color:var(--ink-2)}
+  .settings-find .seg-cards .seg-opts{width:auto}
+  .settings-find .ctl-tasks,.settings-find .ctl-level,.settings-find .ctl-sample{grid-column:1/-1;grid-row:auto}
+  .ctl-tasks label{font-size:16px}
+  .info-box p{font-size:14px}
+  .sample{font-size:22px;gap:6px}
+  .sample-card{padding:10px 2px;border-radius:8px}
+}
+@media (max-width:600px){
+  .settings-find .seg-src,.settings-find .seg-cards{grid-column:1;grid-row:auto}
+  .sample{font-size:18px}
+}
+/* mobil fekvő (E10): a minta nem fér el, rejtve */
+@media (max-height:500px) and (orientation:landscape){
+  .ctl-sample{display:none!important}
+}

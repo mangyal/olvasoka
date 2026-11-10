@@ -1,8 +1,10 @@
 // Szülői felület: a listák csak olvashatók; forrásuk a Google táblázat, tartalékként a repó lists.txt-je.
 
-import { GAPS, estimate, fmtNum } from '../core/settings.js';
+import { GAPS, estimate, fmtNum, CARDS, LEVEL_LABELS, findEstimate, levelToDegree } from '../core/settings.js';
 import { nameKey } from '../core/items.js';
 import { itemsOf } from '../core/selection.js';
+import { distinctCount, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
+import { createPool, buildGrid } from '../core/grid.js';
 
 const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 // érintős elsődleges mutató: az oldalsávban koppintás = hozzáad/elvesz (Ctrl nélkül)
@@ -10,6 +12,13 @@ const COARSE = matchMedia('(hover:none) and (pointer:coarse)');
 // a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)
 const SHEET = matchMedia('(max-width:899px), (hover:none) and (pointer:coarse), (max-height:500px) and (orientation:landscape)');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
+const DESC = {
+  read: 'A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.',
+  find: 'Te felolvasod az egyiket, a gyerek megmutatja a képernyőn.',
+};
+const HOW_TITLE = { read: 'Felolvasás – így játsszátok', find: 'Keresd meg! – így játsszátok' };
+/** F-K10: a nézet most telefon-e (a rövidebb oldal 500 px alatt). */
+const phoneCards = (n) => effectiveCards(n, innerWidth, innerHeight);
 
 export function createAdmin(el, app, act) {
   const dismissed = new Set();
@@ -23,8 +32,11 @@ export function createAdmin(el, app, act) {
     return itemsOf(app.lists, app.selected, nameKey);
   }
 
+  const findMode = () => app.mode === 'find';
+
   function startState() {
     if (app.font.state === 'loading') return { enabled: false, label: 'Betűtípus töltődik…' };
+    if (findMode() && app.pairs.state === 'loading') return { enabled: false, label: 'Töltődik…' };
     if (!app.lists.length) {
       return app.listsState === 'loading'
         ? { enabled: false, label: 'Listák töltődnek…' }
@@ -36,6 +48,8 @@ export function createAdmin(el, app, act) {
     if (!n) {
       return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
     }
+    // F-S8: a Keresd meg!-hez legalább két különböző tétel kell
+    if (findMode() && distinctCount(roundItems()) < 2) return { enabled: false, msg: 'Legalább két különböző tétel kell.' };
     // a gomb alatt csak hiba vagy figyelmeztetés (a lista- és tételszámot a fejléc mutatja)
     const fontWarn = app.font.state === 'failed';
     return { enabled: true, msg: fontWarn ? 'A betűk alakja eltérhet.' : '', warn: fontWarn };
@@ -190,9 +204,75 @@ export function createAdmin(el, app, act) {
   }
 
   function renderEstimate() {
+    if (findMode()) {
+      // a becslés a kör tényleges kártyaszámát mutatja (telefonon legfeljebb 6, F-K10)
+      const [tasks, cards] = findEstimate({ ...app.find, cards: phoneCards(app.find.cards) }).split(' · ');
+      el.estCount.textContent = tasks; el.estTime.textContent = cards;
+      return;
+    }
     const e = estimate(app.settings);
     el.estCount.textContent = e.count;
     el.estTime.textContent = e.time;
+  }
+
+  /* ---------- játékfülek és a Keresd meg! beállításai (U-A8) ---------- */
+  function renderMode() {
+    const find = findMode();
+    const ok = app.pairs.state !== 'failed';
+    el.tabRead.setAttribute('aria-selected', String(!find));
+    el.tabFind.setAttribute('aria-selected', String(find));
+    el.tabRead.tabIndex = find ? -1 : 0;
+    el.tabFind.tabIndex = find && ok ? 0 : -1;
+    // hibás vagy betölthetetlen parok.json: a fül inaktív, a Felolvasás érintetlen
+    if (ok) el.tabFind.removeAttribute('aria-disabled'); else el.tabFind.setAttribute('aria-disabled', 'true');
+    el.tabFind.title = ok ? 'Keresd meg!' : 'A Keresd meg! most nem érhető el.';
+    el.findSoon.hidden = ok;
+    if (ok) el.tabFind.removeAttribute('aria-describedby'); else el.tabFind.setAttribute('aria-describedby', 'findSoon');
+    el.panelRead.hidden = find;
+    el.panelFind.hidden = !find;
+    el.modeDesc.textContent = DESC[app.mode];
+    el.howH.textContent = HOW_TITLE[app.mode];
+    el.howRead.hidden = find;
+    el.howFind.hidden = !find;
+  }
+
+  function renderFind() {
+    const f = app.find;
+    el.srcListF.checked = app.settings.source !== 'all';
+    el.srcAllF.checked = app.settings.source === 'all';
+    // F-K10: telefonon a 8 szürke és nem választható; a tárolt beállítás nem változik
+    const phone = phoneCards(8) < 8;
+    el.cardsLegend.textContent = phone ? `Kártyák · telefonon max. ${PHONE_MAX_CARDS}` : 'Kártyák';
+    for (const r of el.cardOpts.querySelectorAll('input')) {
+      const n = +r.value, off = phone && n > PHONE_MAX_CARDS;
+      r.checked = n === phoneCards(f.cards);
+      if (off) r.setAttribute('aria-disabled', 'true'); else r.removeAttribute('aria-disabled');
+      r.closest('label').classList.toggle('off', off);
+    }
+    el.tasksIn.value = f.tasks;
+    el.levelIn.value = f.level;
+    el.levelOut.textContent = `${f.level} · ${LEVEL_LABELS[f.level]}`;
+    el.levelIn.setAttribute('aria-valuetext', `${f.level}, ${LEVEL_LABELS[f.level]}`);
+    renderSample();
+  }
+
+  /* Minta: egy lehetséges feladat kis kártyákon; beállítás-változásra és a „Másik minta” gombra frissül. */
+  let sampleKey = '';
+  function renderSample(force = false) {
+    const cc = app.pairs.cc;
+    const items = roundItems();
+    const n = phoneCards(app.find.cards);
+    const key = [cc ? 1 : 0, n, app.find.level, items.join('\u0001')].join('|');
+    if (!force && key === sampleKey) return;
+    sampleKey = key;
+    if (!cc || distinctCount(items) < 2) { el.sampleBox.hidden = true; el.sample.replaceChildren(); return; }
+    el.sampleBox.hidden = false;
+    const pool = createPool(items, cc);
+    const g = buildGrid(pool, n, levelToDegree(app.find.level, cc.levels), Math.random);
+    el.sample.style.setProperty('--n', String(n));
+    el.sample.replaceChildren(...g.items.map((t) => {
+      const c = document.createElement('span'); c.className = 'sample-card'; c.textContent = t; return c;
+    }));
   }
 
   function renderStart() {
@@ -205,7 +285,9 @@ export function createAdmin(el, app, act) {
   }
 
   function render() {
-    renderWarnings(); renderNav(); renderList(); renderSource(); renderSettings(); renderStart();
+    renderWarnings(); renderNav(); renderList(); renderSource(); renderMode(); renderSettings();
+    if (findMode()) renderFind();
+    renderStart();
   }
 
   /* ---------- események ---------- */
@@ -231,10 +313,55 @@ export function createAdmin(el, app, act) {
   el.refreshBtn.addEventListener('click', act.refresh);
   el.modKey.textContent = MOD;
 
-  /* ---------- módfülek (4.1): a Keresd meg! még inaktív, nem vált ---------- */
-  el.tabFind.addEventListener('click', (e) => e.preventDefault());
+  /* ---------- módfülek (4.1): Felolvasás · Keresd meg! ---------- */
+  const pick = (m) => {
+    if (m === 'find' && app.pairs.state === 'failed') return;
+    if (m !== app.mode) { closeHow(false); act.mode(m); }
+  };
+  el.tabRead.addEventListener('click', () => pick('read'));
+  el.tabFind.addEventListener('click', () => pick('find'));
+  // nyilakkal a fülek között (WAI-ARIA tabs); az inaktív fül kimarad
+  el.modeTabs.addEventListener('keydown', (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const to = e.key === 'Home' || (e.key === 'ArrowLeft') ? 'read' : 'find';
+    pick(to);
+    (app.mode === 'find' ? el.tabFind : el.tabRead).focus();
+  });
 
-  /* Ha bármelyik fül tartalma (ikon, név, „Hamarosan érkezik”) nem fér el a keretben, mindkét fülön csak
+  /* Keresd meg! beállítások */
+  el.cardOpts.replaceChildren(...CARDS.map((n) => {
+    const lab = document.createElement('label');
+    const r = document.createElement('input'); r.type = 'radio'; r.name = 'cards'; r.value = n; r.id = 'cards' + n;
+    const sp = document.createElement('span'); sp.textContent = n;
+    lab.append(r, sp);
+    r.addEventListener('change', () => {
+      if (!r.checked) return;
+      if (r.getAttribute('aria-disabled') === 'true') { renderFind(); return; }
+      act.find({ cards: n });
+    });
+    return lab;
+  }));
+  for (const r of [el.srcListF, el.srcAllF]) r.addEventListener('change', () => { if (r.checked) act.setting({ source: r.value }); });
+  const setTasks = (v) => act.find({ tasks: Number.isFinite(+v) && String(v).trim() !== '' ? +v : app.find.tasks });
+  el.tasksIn.addEventListener('change', () => setTasks(el.tasksIn.value));
+  el.tasksIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setTasks(el.tasksIn.value); } });
+  el.tasksDec.addEventListener('click', () => setTasks(app.find.tasks - 1));
+  el.tasksInc.addEventListener('click', () => setTasks(app.find.tasks + 1));
+  el.levelIn.addEventListener('input', () => {
+    const l = +el.levelIn.value;
+    el.levelOut.textContent = `${l} · ${LEVEL_LABELS[l]}`;
+  });
+  el.levelIn.addEventListener('change', () => act.find({ level: +el.levelIn.value }));
+  el.sampleBtn.addEventListener('click', () => renderSample(true));
+  // forgatás / átméretezés: a telefonos korlát (F-K10) a becslésben, a kártyaszámban és a mintában
+  let phoneNow = phoneCards(8) < 8;
+  addEventListener('resize', () => {
+    const p = phoneCards(8) < 8;
+    if (p !== phoneNow) { phoneNow = p; if (findMode()) { renderFind(); renderEstimate(); } }
+  });
+
+  /* Ha bármelyik fül tartalma (ikon, név, „Nem elérhető”) nem fér el a keretben, mindkét fülön csak
      az ikon marad, a kerethez méretezve (css: .mode-tabs.icon-only). A név a felolvasóé és a title-é marad.
      Méréskor a teljes tartalommal mérünk, így szélesedéskor a felirat visszajön. */
   const tabs = [el.tabRead, el.tabFind];

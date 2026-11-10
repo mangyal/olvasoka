@@ -1,9 +1,10 @@
-// Indítás és állapotváltás: ADMIN ⇄ PRACTICE → REWARD → ADMIN.
+// Indítás és állapotváltás: ADMIN ⇄ PRACTICE → REWARD → ADMIN, Keresd meg! módban ADMIN ⇄ FIND → REWARD → ADMIN.
 
 import { createStore } from './data/store.js';
-import { fetchLists } from './data/remote.js';
+import { fetchLists, fetchPairs } from './data/remote.js';
 import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
-import { clampSettings, normalizeMode } from './core/settings.js';
+import { clampSettings, clampFind, normalizeMode, levelToDegree } from './core/settings.js';
+import { buildTasks, effectiveCards } from './core/find.js';
 import { nameKey } from './core/items.js';
 import { clickSelect, reconcile, sourceFor, applySource } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
@@ -22,8 +23,9 @@ const app = {
   lists: [], problems: [], selected: [], anchor: null,
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
-  mode: saved.mode,                 // a kiválasztott játék; amíg a Keresd meg! inaktív, mindig 'read'
-  settings: saved.settings, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
+  mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
+  settings: saved.settings, find: saved.find, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
+  pairs: { state: 'loading', cc: null },  // a Keresd meg! konfigurációja (parok.json); 'failed': a fül inaktív
   kind: saved.cache?.kind || null,  // amiből a látható listák jöttek
   fallback: '',                     // miért nem a táblázatból jöttek (F-L13)
   font: { state: 'loading', name: 'Arial' },
@@ -38,7 +40,9 @@ if (cache) {
 }
 
 function persist() {
-  store.write({ v: 4, mode: normalizeMode(app.mode), settings: app.settings, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
+  // amíg a parok.json nem jött meg (vagy hibás), a tárolt mód nem íródik felül: legközelebb újra próbálja
+  const mode = app.pairs.state === 'ok' ? app.mode : saved.mode;
+  store.write({ v: 4, mode: normalizeMode(mode), settings: app.settings, find: app.find, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
 }
 const listKeys = () => app.lists.map((l) => nameKey(l.name));
 
@@ -77,6 +81,14 @@ const admin = createAdmin(el, app, {
     setSelection(all ? keys : []);
     persist(); admin.render();
   },
+  mode(m) {
+    app.mode = normalizeMode(m, app.pairs.state === 'failed' ? ['read'] : undefined);
+    persist(); admin.render();
+  },
+  find(patch) {
+    app.find = clampFind({ ...app.find, ...patch });
+    persist(); admin.render();
+  },
   setting(patch) {
     app.settings = clampSettings({ ...app.settings, ...patch });
     if ('source' in patch && app.lists.length) setSelection(applySource(app.settings.source, app.selected, listKeys()));
@@ -88,6 +100,14 @@ const admin = createAdmin(el, app, {
     if (practice.active || !admin.canStart() || document.querySelector('dialog:modal')) return;
     admin.closeHow();
     el.admin.hidden = true;
+    if (app.mode === 'find') {
+      // F-K1, F-K10: minden feladat a kör indulásakor készül; telefonon legfeljebb 6 kártya
+      const cards = effectiveCards(app.find.cards, innerWidth, innerHeight);
+      const cc = app.pairs.cc;
+      const tasks = buildTasks(admin.roundItems(), { cards, tasks: app.find.tasks, level: levelToDegree(app.find.level, cc.levels) }, cc);
+      practice.startFind(tasks, cards, ev);
+      return;
+    }
     practice.start(admin.roundItems(), app.settings, ev);
   },
   fontTest() {
@@ -117,6 +137,19 @@ async function refresh() {
   }
   pickSelected();
   admin.render();
+}
+
+/* ---------- Keresd meg! konfiguráció (parok.json) ---------- */
+// Hibás vagy betölthetetlen konfigurációval a Keresd meg! fül inaktív, a Felolvasás érintetlen.
+async function loadPairs() {
+  try {
+    app.pairs = { state: 'ok', cc: await fetchPairs() };
+  } catch (e) {
+    console.warn('Keresd meg!: a parok.json nem használható.', e.message);
+    app.pairs = { state: 'failed', cc: null };
+    app.mode = 'read';
+  }
+  if (!practice.active) admin.render();
 }
 
 /* ---------- billentyűk ---------- */
@@ -154,6 +187,7 @@ if (!app.hideHelp) openHelp();
 initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();
+loadPairs();
 
 // PWA: offline indulás (sw.js). Csak https-en vagy localhoston; hiba esetén a program ugyanúgy fut.
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
