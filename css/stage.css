@@ -37,9 +37,18 @@
 .navbar{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:16px}
 .stage[data-mode=reward] .navbar{display:none}
 .icon{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.counter{position:absolute;right:calc(24px + env(safe-area-inset-right,0px));top:calc(24px + env(safe-area-inset-top,0px));height:28px;display:flex;align-items:center;font:500 20px/1 var(--f-ui);font-variant-numeric:tabular-nums;color:var(--ink-2);pointer-events:none}
-.stage[data-mode=reward] .counter{display:none}
-.pause-ind{position:absolute;right:calc(24px + 92px + env(safe-area-inset-right,0px));top:calc(24px + env(safe-area-inset-top,0px));width:28px;height:28px;color:var(--ink);opacity:0;transition:opacity var(--d-fade) ease-out;pointer-events:none}
+.progress{position:absolute;left:50%;top:calc(42px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;pointer-events:none}
+.progress .dot{width:12px;height:12px;border-radius:6px;background:var(--line);transition:width var(--d-fast) ease-out,background-color var(--d-fast) ease-out}
+.progress .dot.is-done{background:var(--accent)}
+.progress .dot.is-current{width:28px;background:var(--accent)}
+.progress .track{display:block;width:240px;max-width:calc(100vw - 140px);height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.progress .fill{display:block;height:100%;width:0;border-radius:3px;background:var(--accent);transition:width var(--d-fast) ease-out}
+.progress .ptext{font:500 14px/1 var(--f-ui);color:var(--ink-2)}
+.stage[data-mode=reward] .progress{display:none}
+@media (prefers-reduced-motion:reduce){.progress .dot,.progress .fill{transition:none}}
+/* 20 pötty mobilon is kiférjen (390 px) */
+@media (max-width:600px){.progress{gap:6px}.progress .dot{width:8px;height:8px;border-radius:4px}.progress .dot.is-current{width:20px}}
+.pause-ind{position:absolute;right:calc(24px + env(safe-area-inset-right,0px));top:calc(24px + env(safe-area-inset-top,0px));width:28px;height:28px;color:var(--ink);opacity:0;transition:opacity var(--d-fade) ease-out;pointer-events:none}
 .pause-ind.on{opacity:.35}
 .balloons,.particles{position:absolute;inset:0;pointer-events:none}
 .balloon{position:absolute;animation:rise 1200ms cubic-bezier(.2,.7,.3,1) both}
@@ -63,7 +72,7 @@
 .stage[data-mode=reward] .reward-count{display:block}
 .reward-count:empty{opacity:0}
 .stage.back .reward-count{opacity:0}
-@media (max-width:599px){.reward-count{font-size:28px;right:calc(16px + env(safe-area-inset-right,0px))}}
+@media (max-width:600px){.reward-count{font-size:28px;right:calc(16px + env(safe-area-inset-right,0px))}}
 .confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .wind{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity 600ms ease-out}
 

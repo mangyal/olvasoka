@@ -27,8 +27,14 @@
     <h1>Olvasóka</h1>
     <span class="app-version muted num" id="appVersion"></span>
     <span class="top-actions">
-      <button type="button" class="btn-text" id="helpBtn">Súgó</button>
-      <button type="button" class="btn-text" id="fontBtn">Betűteszt</button>
+      <button type="button" class="btn-text top-btn" id="helpBtn" title="Súgó">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <span class="top-label">Súgó</span>
+      </button>
+      <button type="button" class="btn-text top-btn" id="fontBtn" title="Betűteszt">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19 8 5l5 14M4.8 14h6.4"/><path d="M20.5 19v-6a3 3 0 0 0-5.6-1.5M20.5 15.5c-1.2-.8-5.5-1.3-5.5 1.5 0 2.4 4 2.5 5.5.3"/></svg>
+        <span class="top-label">Betűteszt</span>
+      </button>
     </span>
   </header>
 
@@ -41,13 +47,24 @@
       <p class="nav-hint muted" id="navHint" hidden></p>
     </nav>
 
+    <!-- keskeny nézet: álló tableten pipálható chipek, mobilon lenyíló sor + alsó lap -->
+    <div class="picker pad" id="picker" hidden>
+      <fieldset class="narrow-pick" id="listPick">
+        <legend class="label-sm">Listák</legend>
+        <div class="picks" id="listChecks"></div>
+        <span class="muted pick-sum num" id="pickSum"></span>
+      </fieldset>
+      <button type="button" class="lists-btn" id="listsBtn" aria-haspopup="dialog" aria-controls="dlgLists">
+        <span class="lists-btn-text">
+          <span class="lists-btn-label num" id="listsBtnLabel">Listák</span>
+          <span class="lists-btn-names" id="listsBtnNames"></span>
+        </span>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+
     <section class="editor pad">
       <div class="ed-inner">
-        <fieldset class="narrow-pick" id="listPick" hidden>
-          <legend class="muted">Listák</legend>
-          <div class="picks" id="listChecks"></div>
-        </fieldset>
-
         <div id="listView" class="ed-inner" hidden>
           <div class="ed-head">
             <h2 id="listName"></h2>
@@ -68,44 +85,120 @@
         </details>
       </div>
     </section>
+
+    <!-- ================= JOBB PANEL: játék, beállítások, Indítás ================= -->
+    <aside class="panel" id="panel" aria-label="Játék és beállítások">
+      <div class="panel-scroll" id="panelScroll">
+        <div class="mode-tabs" role="tablist" aria-label="Játék" id="modeTabs">
+          <button type="button" class="mode-tab" role="tab" id="tabRead" aria-selected="true" aria-controls="panelRead" tabindex="0" title="Felolvasás">
+            <svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 21v-4h1.6a2.2 2.2 0 0 0 2.2-2.2v-1.9l1.5-.5c.4-.1.5-.5.3-.8L12.3 9A5.6 5.6 0 0 0 1.5 9.8c0 2.3.9 3.6 1.6 4.8.4.7.6 1.5.6 2.3V21"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M19.3 7a7.5 7.5 0 0 1 0 10"/></svg>
+            <span class="mode-name">Felolvasás</span>
+          </button>
+          <button type="button" class="mode-tab" role="tab" id="tabFind" aria-selected="false" aria-disabled="true" aria-describedby="findSoon" tabindex="-1" title="Ez a játék hamarosan érkezik">
+            <svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+            <span class="mode-name">Keresd meg!</span>
+            <span class="mode-soon" id="findSoon">Hamarosan érkezik</span>
+          </button>
+        </div>
+
+        <div class="mode-head">
+          <p class="mode-desc" id="modeDesc">A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.</p>
+          <button type="button" class="how-btn" id="howBtn" aria-expanded="false" aria-controls="howPop">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.4M12 17h.01"/></svg>
+            <span>Így játsszátok</span>
+          </button>
+        </div>
+
+        <div class="settings" role="tabpanel" id="panelRead" aria-labelledby="tabRead">
+          <fieldset class="seg seg-src">
+            <legend>Tételek</legend>
+            <span class="seg-opts">
+              <label><input type="radio" name="src" value="list" id="srcList"><span>Kijelölt listák</span></label>
+              <label><input type="radio" name="src" value="all" id="srcAll"><span>Összes lista</span></label>
+            </span>
+          </fieldset>
+          <div class="ctl ctl-flash">
+            <span class="ctl-head"><label for="flashIn">Felvillanás</label><output id="flashOut" for="flashIn" class="num"></output></span>
+            <input type="range" id="flashIn" min="0" max="25" step="0.5" aria-describedby="flashHint">
+            <span class="hint" id="flashHint">0 = te lépteted a tételeket</span>
+          </div>
+          <fieldset class="seg seg-gap">
+            <legend>Szünet a tételek között (mp)</legend>
+            <span class="seg-opts" id="gapOpts"></span>
+          </fieldset>
+          <div class="ctl ctl-count">
+            <label for="countIn">Tételek a körben</label>
+            <span class="stepper">
+              <button type="button" id="countDec" aria-label="Kevesebb tétel">−</button>
+              <input type="number" id="countIn" min="1" max="50" step="1" inputmode="numeric">
+              <button type="button" id="countInc" aria-label="Több tétel">+</button>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-start" id="panelStart">
+        <p class="estimate num" id="estimate" aria-live="polite"><span id="estCount"></span><span class="est-sep"> · </span><span id="estTime"></span></p>
+        <button type="button" class="btn btn-primary btn-start" id="startBtn" disabled>Indítás</button>
+        <p class="start-msg" id="startMsg" aria-live="polite"></p>
+        <p class="start-keys only-keys"><kbd id="modKey">Ctrl</kbd>+<kbd>Enter</kbd> indít</p>
+      </div>
+
+      <dialog class="how" id="howPop" aria-labelledby="howH">
+        <div class="how-body">
+          <div class="sheet-grip" aria-hidden="true"></div>
+          <div class="how-head">
+            <h2 id="howH">Felolvasás – így játsszátok</h2>
+            <button type="button" class="icon-btn how-x" id="howClose" aria-label="Bezárás"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <p class="how-lead">Üljetek együtt a képernyő elé. A gyerek hangosan olvas, te figyelsz – nem kell minden tételt értékelned.</p>
+          <div class="how-keys only-keys">
+            <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő tétel</span>
+            <span><kbd>←</kbd></span><span>előző tétel</span>
+            <span><kbd>↓</kbd></span><span>szótagok letakarása sorban</span>
+            <span><kbd>P</kbd></span><span>szünet</span>
+            <span><kbd>Esc</kbd></span><span>kilépés</span>
+          </div>
+          <p class="how-touch">Tableten: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles tételnél a szótagra koppintva letakarod. A kör végén lufipukkasztás a jutalom.</p>
+          <button type="button" class="btn btn-primary sheet-ok" id="howOk">Értem</button>
+        </div>
+      </dialog>
+    </aside>
   </main>
 
-  <footer class="roundbar pad">
-    <div class="rb-row">
-      <fieldset class="seg">
-        <legend>Tételek</legend>
-        <span class="seg-opts">
-          <label><input type="radio" name="src" value="list" id="srcList"><span>Kijelölt listák</span></label>
-          <label><input type="radio" name="src" value="all" id="srcAll"><span>Összes lista</span></label>
-        </span>
-      </fieldset>
-      <div class="ctl">
-        <label for="flashIn">Felvillanás</label>
-        <input type="range" id="flashIn" min="0" max="25" step="0.5" title="0 = kézi léptetés: a tétel addig látszik, amíg Space-t vagy →-t nem nyomsz">
-        <output id="flashOut" for="flashIn" class="num"></output>
-      </div>
-      <fieldset class="seg">
-        <legend>Szünet</legend>
-        <span class="seg-opts" id="gapOpts"></span>
-        <span class="muted">mp</span>
-      </fieldset>
-      <div class="ctl">
-        <label for="countIn">Tétel</label>
-        <span class="stepper">
-          <button type="button" id="countDec" aria-label="Kevesebb tétel">−</button>
-          <input type="number" id="countIn" min="1" max="50" step="1" inputmode="numeric">
-          <button type="button" id="countInc" aria-label="Több tétel">+</button>
-        </span>
-      </div>
-    </div>
-    <div class="rb-row">
-      <span class="num" id="estimate"></span>
-      <span class="keys" aria-label="Billentyűk"><span><kbd>Space</kbd> tovább</span> <span><kbd>←</kbd> <kbd>→</kbd> lépés</span> <span><kbd>↓</kbd> takar</span> <span><kbd>P</kbd> szünet</span> <span><kbd>Esc</kbd> kilép</span> <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> indít</span></span>
-      <span class="start-msg" id="startMsg" aria-live="polite"></span>
-      <button type="button" class="btn btn-primary" id="startBtn" disabled>Indítás</button>
-    </div>
-  </footer>
+  <!-- WCAG 1.4.10 alatti ablak (< 320 px széles vagy < 256 px magas): a szülői felület helyett tájékoztató.
+       Csak CSS (admin.css, „túl kicsi képernyő”); a #admin-nal együtt rejtett, így játék közben sosem jelenik meg. -->
+  <div class="too-small" id="tooSmall" role="status">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>
+    <p class="ts-title">Túl kicsi a képernyő</p>
+    <p class="ts-rotate">Fordítsd álló helyzetbe a telefont.</p>
+    <p class="ts-other">Az Olvasóka ekkora képernyőn nem használható. Nyisd meg nagyobb képernyőn, vagy nagyítsd meg az ablakot.</p>
+  </div>
 </div>
+
+<!-- mobil: listaválasztó alsó lap -->
+<dialog class="sheet lists-sheet" id="dlgLists" aria-labelledby="listsH">
+  <div class="sheet-body">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="ls-head">
+      <h2 id="listsH">Listák</h2>
+      <span class="ls-bulk">
+        <button type="button" class="btn-text" id="listsAll">Mind</button>
+        <button type="button" class="btn-text" id="listsNone">Egyik sem</button>
+      </span>
+    </div>
+    <!-- a listák és alattuk a szerkesztő link együtt görgetnek; a fejléc és a Kész mindig látszik -->
+    <div class="ls-scroll" id="listsScroll">
+      <div class="ls-rows" id="listsRows"></div>
+      <a class="ext ls-edit" id="listsEdit" href="#" target="_blank" rel="noopener">Listák szerkesztése a táblázatban ↗</a>
+    </div>
+    <div class="ls-foot">
+      <span class="muted num" id="listsSum"></span>
+      <button type="button" class="btn btn-primary" id="listsDone">Kész</button>
+    </div>
+  </div>
+</dialog>
+
 
 <!-- ================= GYAKORLÓ + JUTALOM ================= -->
 <div id="stage" class="stage" hidden data-mode="practice">
@@ -120,7 +213,7 @@
   <div class="particles" id="particles"></div>
   <div class="reward-count" id="rewardCount" aria-hidden="true"></div>
 
-  <div class="counter" id="counter" aria-hidden="true"></div>
+  <div class="progress" id="progress" role="img" aria-label=""></div>
   <svg class="pause-ind" id="pauseInd" viewBox="0 0 24 24" aria-hidden="true"><path class="icon" d="M9 6v12M15 6v12" stroke-width="3"/></svg>
 
   <div class="controls">
@@ -139,9 +232,9 @@
   <h3>Így használd</h3>
   <ol class="help-steps">
     <li><span class="only-keys">Válassz listát bal oldalt. Ctrl+kattintással többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be, melyik listákból gyakoroltok.</span></li>
-    <li>Lent állítsd be, mennyi ideig látszódjon egy tétel (0 = te lépteted), és hány tétel legyen a körben.</li>
+    <li><span class="only-wide">A jobb oldali panelen</span><span class="only-narrow">Lent</span> állítsd be, mennyi ideig látszódjon egy tétel (0 = te lépteted), és hány tétel legyen a körben.</li>
     <li>Üljetek le együtt a képernyő elé, és indítsd el a játékot!</li>
-    <li><span class="only-keys">Gyakorlás közben: <kbd>Space</kbd> vagy <kbd>→</kbd> a következő, <kbd>←</kbd> az előző, <kbd>P</kbd> szünet, <kbd>Esc</kbd> kilépés. Kötőjeles tételnél egy szótagra kattintva letakarhatod, a <kbd>↓</kbd> pedig sorban takarja a szótagokat.</span><span class="only-touch">Gyakorlás közben koppints bárhová a következő tételhez. A lenti gombokkal vissza is léphetsz, vagy megállíthatod a kört, a bal felső ✕-szel pedig kiléphetsz. Kötőjeles tételnél egy szótagra koppintva letakarhatod, újabb koppintásra előjön.</span></li>
+    <li><span class="only-keys">Gyakorlás közben <kbd>Space</kbd> a következő tétel, <kbd>Esc</kbd> kilépés. A többi billentyűt az „Így játsszátok” gomb mutatja.</span><span class="only-touch">Gyakorlás közben koppints bárhová a következő tételhez. A lenti gombokkal vissza is léphetsz, vagy megállíthatod a kört, a bal felső ✕-szel pedig kiléphetsz. Kötőjeles tételnél egy szótagra koppintva letakarhatod, újabb koppintásra előjön.</span></li>
     <li>A kör végén lufipukkasztás a jutalom!</li>
   </ol>
   <p class="muted help-install">Telefonra vagy tabletre telepítve teljes képernyőn, hálózat nélkül is fut. iPhone-on és iPaden: Safari, Megosztás, Főképernyőhöz adás.</p>
