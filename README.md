@@ -1,7 +1,7 @@
 # Olvasóka
 
 Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak. A szülő kiválaszt egy listát, a program
-egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör végén lufipukkasztás a jutalom.
+egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör végén jutalomjáték jön: lufipukkasztás vagy panda-ugrálás.
 Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
 
 **Élő oldal:** https://mangyal.github.io/olvasoka/
@@ -95,6 +95,8 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   source.js           forrás: táblázat, tartalékként lists.txt
   selection.js        listák kijelölése
   drift.js            a jutalom lufijainak mozgása
+  hop.js              a panda-ugrálás pályája és mozgása
+  rewards.js          melyik jutalomjáték jön (váltakozva; ?jutalom=lufi|panda)
   cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
   progress.js         a gyakorlás haladásjelzője (pöttysor / sáv)
@@ -103,7 +105,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   env.js              éles/dev környezet, tárolási nevek
   config.js           a táblázat címei környezetenként (kiadáskor repository variable-ökből)
 js/data/            localStorage és a listák letöltése
-js/ui/              szülői felület, gyakorlás, Keresd meg!, jutalom
+js/ui/              szülői felület, gyakorlás, Keresd meg!, jutalmak (lufi, panda, konfetti)
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
 test/               node --test

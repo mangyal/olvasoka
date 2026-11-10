@@ -7,6 +7,8 @@ import { syllables, rulerGeometry } from '../core/cover.js';
 import { progressModel, dotState } from '../core/progress.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
+import { createPandaReward } from './panda.js';
+import { pickReward } from '../core/rewards.js';
 import { startFind as newFind, step as findStep, canPrev as findCanPrev } from '../core/find.js';
 import { createFindView } from './find.js';
 
@@ -35,7 +37,13 @@ export function createPractice(el, { onExit }) {
   coverG.setAttribute('class', 'covers');
   el.itemText.after(coverG);
   const measure = document.createElement('canvas').getContext('2d');
-  const reward = createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit });
+  // 5., 5a.: a jutalomjátékok; körönként váltakoznak, a `?jutalom=lufi|panda` cím rögzíti
+  const rewards = {
+    lufi: createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit }),
+    panda: createPandaReward({ stage: el.stage, layerEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit }),
+  };
+  const forced = new URLSearchParams(location.search).get('jutalom');
+  let rewardName = null, reward = null;
   const findView = createFindView({ grid: el.findGrid }, { onMark: (i) => findDispatch('MARK', i) });
 
   /* ---------- kör ---------- */
@@ -111,12 +119,16 @@ export function createPractice(el, { onExit }) {
     mode = 'reward';
     el.stage.dataset.mode = 'reward';
     render();
+    rewardName = pickReward(rewardName, Math.random, forced);
+    reward = rewards[rewardName];
+    el.stage.dataset.reward = rewardName;
     reward.start();
   }
 
   function exit() {
     clearTimeout(timer); clearTimeout(uiTimer);
-    reward.stop();
+    if (reward) { reward.stop(); reward = null; }
+    delete el.stage.dataset.reward;
     mode = 'off'; st = null; fst = null;
     findView.clear(); el.findGrid.hidden = true;
     el.cPrev.setAttribute('aria-label', 'Előző'); el.cNext.setAttribute('aria-label', 'Következő');
@@ -331,6 +343,11 @@ export function createPractice(el, { onExit }) {
       if (!FIND_KEYS[e.code]) return;   // Tab, Enter: natív fókusz és jelölés a kártyákon
       e.preventDefault();
       if (!e.repeat) findDispatch(FIND_KEYS[e.code]);
+      return;
+    }
+    if (mode === 'reward' && e.code !== 'Escape') {
+      // 5a.: a panda a nyilakkal ugrik; a lufiknál a gyerek-billentyűk csak elnyelődnek
+      if ((reward.key && reward.key(e)) || KID_KEYS[e.code]) e.preventDefault();
       return;
     }
     if (e.code !== 'Escape' && !KID_KEYS[e.code]) return;

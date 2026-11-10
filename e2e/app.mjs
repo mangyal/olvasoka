@@ -9,6 +9,7 @@
 //   - kézi kör (0): nincs időjelző, és a tétel magától nem vált
 //   - léptetés: közép → elejére vissza → utolsó előtti; a haladásjelző és a tétel közben változik
 //   - Esc: gyakorlásból és jutalomból is a szülői nézetbe
+//   - panda-ugrálás (?jutalom=panda): nyilakkal a célig, ↑ nem ejt le, rossz irány leejt, koppintás
 //
 // Az elrendezést (képernyőméretek, panelek, pöttysor/sáv váltása) az e2e/layout.mjs teszteli; ez a
 // fájl a felhasználói folyamatokat.
@@ -255,6 +256,81 @@ test('Esc a jutalomból is a szülői nézetbe visz', async () => {
   await page.keyboard.press('Escape');
   await page.locator('#admin').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#stage').isHidden(), true);
+});
+
+/* ---------- Panda-ugrálás (spec 5a., ellenőrzés 35–37.) ---------- */
+/** A panda állása és a következő pad iránya a képernyőn (a teszt „szeme”). */
+const hopState = () => page.evaluate(() => {
+  const p = document.querySelector('.hop-panda');
+  if (!p || p.hidden) return null;
+  const pr = p.getBoundingClientRect(), x = pr.left + pr.width / 2;
+  const [cur, of] = document.getElementById('rewardCount').textContent.split('/').map(Number);
+  const next = document.querySelectorAll('.hop-pad')[cur + 1];
+  const nx = next ? next.getBoundingClientRect() : null;
+  const dx = nx ? nx.left + nx.width / 2 - x : 0;
+  return { cur, of, x, y: pr.top, P: pr.width, dir: dx < -0.6 * pr.width ? -1 : dx > 0.6 * pr.width ? 1 : 0 };
+});
+async function toPanda() {
+  await page.goto(base + '?jutalom=panda');
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 1 });
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => document.getElementById('stage').dataset.reward === 'panda');
+  await page.waitForFunction(() => document.getElementById('rewardCount').textContent.startsWith('0/'), null, { timeout: 6000 });
+  await standing();                                   // a panda a kiinduló padra pottyant
+}
+/** Ugrás közben a bemenet nem számít (F-J3): megvárjuk, hogy a panda álljon. */
+const standing = () => page.waitForFunction(() => {
+  const p = document.querySelector('.hop-panda');
+  return p && !p.classList.contains('air') && !p.classList.contains('happy');
+});
+const KEY = { '-1': 'ArrowLeft', 0: 'ArrowUp', 1: 'ArrowRight' };
+
+test('Panda-ugrálás: nyilakkal a célig, konfetti, majd a szülői nézet (F-J3, F-J7, 37.)', async () => {
+  await toPanda();
+  let s = await hopState();
+  assert.ok(s.of >= 7 && s.of <= 9, `7–9 ugrás (${s.of})`);
+  while (s.cur < s.of) {
+    const before = s.cur;
+    await page.keyboard.press(KEY[s.dir]);
+    await page.waitForFunction((b) => +document.getElementById('rewardCount').textContent.split('/')[0] > b, before);
+    if (s.cur + 1 < s.of) await standing();
+    s = await hopState();
+  }
+  assert.equal(await page.locator('.confetti').count(), 1, 'konfetti a célon');
+  assert.equal(await page.locator('.hop-panda.happy').count(), 1);
+  await page.locator('#admin').waitFor({ state: 'visible', timeout: 8000 });
+  assert.equal(await page.locator('.hop').count(), 0, 'a játék eltakarítva');
+});
+
+test('Panda-ugrálás: ↑ nem ejt le; rossz oldal → leesik, csendben vissza (F-J5, F-J6)', async () => {
+  await toPanda();
+  let s = await hopState();
+  // egy-két jó ugrás, amíg a következő pad oldalt van
+  while (s.dir === 0) {
+    await page.keyboard.press('ArrowUp');
+    await page.waitForFunction((b) => +document.getElementById('rewardCount').textContent.split('/')[0] > b, s.cur);
+    await standing(); s = await hopState();
+  }
+  await page.keyboard.press('ArrowUp');                // nincs fölötte pad: helyben ugrik
+  await page.waitForFunction(() => document.querySelector('.hop-panda.air'));
+  await standing();
+  const after = await hopState();
+  assert.equal(after.cur, s.cur, '↑ után ugyanazon a padon');
+  assert.ok(Math.abs(after.x - s.x) < 2, 'vízszintesen nem mozdult');
+  await page.keyboard.press(KEY[-s.dir]);              // rossz oldalra
+  await page.locator('#admin').waitFor({ state: 'visible', timeout: 8000 });
+  assert.equal(await page.locator('.confetti').count(), 0, 'leesésnél nincs konfetti');
+});
+
+test('Panda-ugrálás: koppintással is ugrik; Esc bármikor kilép (F-J3, F-R6)', async () => {
+  await toPanda();
+  const s = await hopState();
+  await page.mouse.click(s.x + s.dir * s.P * 1.2, s.y + 10);
+  await page.waitForFunction(() => document.getElementById('rewardCount').textContent.startsWith('1/'));
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('.hop').count(), 0);
 });
 
 /* ---------- Keresd meg! (spec 4a., ellenőrzés 23–31.) ---------- */

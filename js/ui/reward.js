@@ -4,14 +4,13 @@
 
 import { shuffledIdx } from '../core/sequence.js';
 import { launch, stepBalloon, isOut, nozzle } from '../core/drift.js';
+import { confetti, CONFETTI_MS } from './confetti.js';
 
 const COLORS = ['#F2B5A7', '#F5D58F', '#B5D5BB', '#A7C8E0', '#CBB8DE', '#EFC2D3'];
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BLOWER = 128;                                   // px
 const ENTRY_MS = 2500;                                // ennyi idő alatt jön be az összes lufi
 const TILT = 12;                                      // a fúvó ennyi fokkal fordul felfelé
-const CONFETTI_MS = 3000;                             // F-R5: konfettieső, utána vissza
-const CONFETTI_COLORS = ['#F2B5A7', '#F5D58F', '#B5D5BB', '#A7C8E0', '#CBB8DE', '#EFC2D3', '#E8590C', '#2E6B66', '#FFD43B'];
 
 const balloonHTML = (bw, bh, color, period) =>
   `<div class="bob" style="--dur:${(period / 2).toFixed(2)}s;--delay:-${(Math.random() * period).toFixed(2)}s">` +
@@ -27,7 +26,7 @@ const balloonHTML = (bw, bh, color, period) =>
   `</div>`;
 
 export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }) {
-  let timers = [], balloons = [], active = false, raf = 0, cf = 0, wf = 0, blower = null, wind = null, windCv = null;
+  let timers = [], balloons = [], active = false, raf = 0, cf = null, wf = 0, blower = null, wind = null, windCv = null;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
   const showCount = () => {
     if (countEl) countEl.textContent = balloons.length ? `${balloons.filter((b) => b.popped).length}/${balloons.length}` : '';
@@ -45,7 +44,7 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
     active = false;
     timers.forEach(clearTimeout); timers = [];
     cancelAnimationFrame(raf); raf = 0;
-    cancelAnimationFrame(cf); cf = 0;
+    if (cf) { cf(); cf = null; }
     cancelAnimationFrame(wf); wf = 0;
     if (blower) { blower.remove(); blower = null; }
     if (windCv) { windCv.remove(); windCv = null; }
@@ -229,53 +228,13 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
     showCount();
     if (balloons.every((x) => x.popped)) {
       cancelAnimationFrame(raf); raf = 0;
-      confetti();                                     // F-R5: 3 mp konfettieső, majd vissza papírszínre
+      cf = confetti(particlesEl);                     // F-R5: 3 mp konfettieső, majd vissza papírszínre
       later(CONFETTI_MS, () => {
         stage.classList.add('back'); stage.classList.remove('sky');
         cancelAnimationFrame(wf); wf = 0; if (windCv) windCv.style.opacity = '0';
         later(reduced() ? 0 : 600, onDone);
       });
     }
-  }
-
-  // Konfettieső vásznon: a darabok a képernyő teteje fölül hullanak, lengve, forogva.
-  // Csökkentett mozgásnál álló, szétszórt konfetti.
-  function confetti() {
-    const W = innerWidth, H = innerHeight, dpr = Math.min(2, devicePixelRatio || 1);
-    const cv = document.createElement('canvas');
-    cv.className = 'confetti'; cv.width = W * dpr; cv.height = H * dpr;
-    particlesEl.append(cv);
-    const g = cv.getContext('2d'); g.scale(dpr, dpr);
-    const n = Math.round(Math.min(320, Math.max(140, (W * H) / 4500)));
-    const rnd = (a, b) => a + Math.random() * (b - a);
-    const bits = Array.from({ length: n }, () => ({
-      x: rnd(0, W), y: reduced() ? rnd(0, H) : rnd(-H * 0.7, -10),
-      vy: rnd(H * 0.35, H * 0.6), sway: rnd(20, 60), ph: rnd(0, 6.3), f: rnd(1.5, 3.5),
-      rot: rnd(0, 6.3), vr: rnd(-6, 6), w: rnd(9, 15), h: rnd(5, 8),
-      c: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-    }));
-    const draw = (t) => {
-      g.clearRect(0, 0, W, H);
-      g.globalAlpha = Math.min(1, Math.max(0, (CONFETTI_MS - t * 1000) / 500));  // az utolsó fél mp-ben elhalványul
-      for (const b of bits) {
-        const x = b.x + Math.sin(b.ph + t * b.f) * b.sway, y = b.y + b.vy * t;
-        if (y < -20 || y > H + 20) continue;
-        g.save(); g.translate(x, y); g.rotate(b.rot + b.vr * t);
-        g.scale(1, Math.abs(Math.cos(b.ph + t * b.f * 1.7)) * 0.8 + 0.2);    // billegés: a lap fordul
-        g.fillStyle = b.c; g.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
-        g.restore();
-      }
-    };
-    if (reduced()) { draw(0); return; }
-    let t0 = 0;
-    const frame = (now) => {
-      if (!active) return;
-      t0 ||= now;
-      const t = (now - t0) / 1000;
-      draw(t);
-      if (t * 1000 < CONFETTI_MS) cf = requestAnimationFrame(frame);
-    };
-    cf = requestAnimationFrame(frame);
   }
 
   return { start, stop, pointerDown };
