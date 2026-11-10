@@ -249,6 +249,23 @@ test('nagyon alacsony fekvő (740×320): a becslés az Indítás mellett, nem cs
   await ctx.close();
 });
 
+for (const [w, h] of [[740, 256], [568, 256]]) {
+  test(`legalacsonyabb fekvő (${w}×${h}): nincs külön fejlécsor, az Indítás látszik (#40)`, async () => {
+    const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: w, height: h } });
+    assert.ok(await inViewport(page, '#startBtn'), 'az Indítás görgetés nélkül látszik');
+    await startOnRight(page);
+    const [top, set, pick] = await Promise.all(['.top', '#panelRead', '#picker'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+    assert.ok(top.right <= set.left, 'a fejléc a bal oszlopban, nem a teljes szélességben');
+    assert.ok(top.bottom <= pick.top + 1, 'a fejléc a listaválasztó fölött');
+    for (const id of ['#helpBtn', '#fontBtn', '#appVersion']) assert.ok(await inViewport(page, id), `${id} elérhető`);
+    assert.equal(await page.getAttribute('#helpBtn', 'title'), 'Súgó');
+    assert.equal((await page.textContent('#helpBtn')).trim(), 'Súgó', 'a felolvasó a feliratot kapja');
+    await page.tap('#helpBtn');
+    assert.equal(await page.$eval('#dlgHelp', (d) => d.open), true, 'a Súgó nyílik');
+    await ctx.close();
+  });
+}
+
 test('érintős oldalsáv (fekvő iPad): koppintás hozzáad és elvesz, Ctrl nélkül', async () => {
   const { page, ctx } = await open(IPAD_LAND, { lastLists: [] });
   const items = page.locator('.nav-item');
