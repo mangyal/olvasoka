@@ -22,7 +22,7 @@ test('pwa: a tárolólista minden eleme létezik', () => {
 
 test('pwa: minden program-fájl a tárolólistán van (offline induláshoz)', () => {
   const list = new Set(assets());
-  const need = [...walk('js'), ...walk('css'), ...walk('fonts').filter((f) => f.endsWith('.woff2')), 'index.html', 'img/hoslegfuvo.svg'];
+  const need = [...walk('js'), ...walk('css'), ...walk('fonts').filter((f) => f.endsWith('.woff2')), 'index.html', 'img/hoslegfuvo.svg', 'parok.json'];
   for (const f of need) assert.ok(list.has(f), `nincs az sw.js ASSETS listáján: ${f}`);
 });
 

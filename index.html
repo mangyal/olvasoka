@@ -94,10 +94,11 @@
             <svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 21v-4h1.6a2.2 2.2 0 0 0 2.2-2.2v-1.9l1.5-.5c.4-.1.5-.5.3-.8L12.3 9A5.6 5.6 0 0 0 1.5 9.8c0 2.3.9 3.6 1.6 4.8.4.7.6 1.5.6 2.3V21"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M19.3 7a7.5 7.5 0 0 1 0 10"/></svg>
             <span class="mode-name">Felolvasás</span>
           </button>
-          <button type="button" class="mode-tab" role="tab" id="tabFind" aria-selected="false" aria-disabled="true" aria-describedby="findSoon" tabindex="-1" title="Ez a játék hamarosan érkezik">
+          <button type="button" class="mode-tab" role="tab" id="tabFind" aria-selected="false" aria-controls="panelFind" tabindex="-1" title="Keresd meg!">
             <svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
             <span class="mode-name">Keresd meg!</span>
-            <span class="mode-soon" id="findSoon">Hamarosan érkezik</span>
+            <!-- csak ha a parok.json nem tölthető be: a fül inaktív, a Felolvasás érintetlen -->
+            <span class="mode-soon" id="findSoon" hidden>Nem elérhető</span>
           </button>
         </div>
 
@@ -135,6 +136,42 @@
             </span>
           </div>
         </div>
+
+        <!-- Keresd meg! beállítások (spec 3.3a, U-A8) -->
+        <div class="settings settings-find" role="tabpanel" id="panelFind" aria-labelledby="tabFind" hidden>
+          <fieldset class="seg seg-src">
+            <legend>Tételek</legend>
+            <span class="seg-opts">
+              <label><input type="radio" name="srcF" value="list" id="srcListF"><span>Kijelölt listák</span></label>
+              <label><input type="radio" name="srcF" value="all" id="srcAllF"><span>Összes lista</span></label>
+            </span>
+          </fieldset>
+          <fieldset class="seg seg-cards">
+            <legend id="cardsLegend">Kártyák</legend>
+            <span class="seg-opts" id="cardOpts"></span>
+          </fieldset>
+          <div class="ctl ctl-count ctl-tasks">
+            <label for="tasksIn">Feladatok száma</label>
+            <span class="stepper">
+              <button type="button" id="tasksDec" aria-label="Kevesebb feladat">−</button>
+              <input type="number" id="tasksIn" min="1" max="30" step="1" inputmode="numeric">
+              <button type="button" id="tasksInc" aria-label="Több feladat">+</button>
+            </span>
+          </div>
+          <div class="ctl ctl-level">
+            <span class="ctl-head"><label for="levelIn">Nehézség</label><output id="levelOut" for="levelIn"></output></span>
+            <input type="range" id="levelIn" min="1" max="5" step="1" aria-describedby="levelInfo">
+            <span class="level-ends hint" aria-hidden="true"><span>1 eltérő</span><span>2</span><span>3</span><span>4</span><span>5 nagyon hasonló</span></span>
+            <div class="info-box" id="levelInfo">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>
+              <p>A Meixner-módszer szerint a hasonló betűket (pl. b–d, m–n) időben egymástól távol érdemes tanulni, hogy a gyerek ne keverje össze őket. Ezért a legkönnyebb fokozattal kezdjetek. A program megjegyzi a beállítást.</p>
+            </div>
+          </div>
+          <div class="ctl ctl-sample" id="sampleBox">
+            <span class="ctl-head"><span>Minta</span><button type="button" class="btn-text sample-btn" id="sampleBtn">Másik minta</button></span>
+            <div class="sample" id="sample" aria-label="Egy lehetséges feladat"></div>
+          </div>
+        </div>
       </div>
 
       <div class="panel-start" id="panelStart">
@@ -151,15 +188,38 @@
             <h2 id="howH">Felolvasás – így játsszátok</h2>
             <button type="button" class="icon-btn how-x" id="howClose" aria-label="Bezárás"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
-          <p class="how-lead">Üljetek együtt a képernyő elé. A gyerek hangosan olvas, te figyelsz – nem kell minden tételt értékelned.</p>
-          <div class="how-keys only-keys">
-            <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő tétel</span>
-            <span><kbd>←</kbd></span><span>előző tétel</span>
-            <span><kbd>↓</kbd></span><span>szótagok letakarása sorban</span>
-            <span><kbd>P</kbd></span><span>szünet</span>
-            <span><kbd>Esc</kbd></span><span>kilépés</span>
+          <div class="how-read" id="howRead">
+            <p class="how-lead">Üljetek együtt a képernyő elé. A gyerek hangosan olvas, te figyelsz – nem kell minden tételt értékelned.</p>
+            <div class="how-keys only-keys">
+              <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő tétel</span>
+              <span><kbd>←</kbd></span><span>előző tétel</span>
+              <span><kbd>↓</kbd></span><span>szótagok letakarása sorban</span>
+              <span><kbd>P</kbd></span><span>szünet</span>
+              <span><kbd>Esc</kbd></span><span>kilépés</span>
+            </div>
+            <p class="how-touch">Tableten: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles tételnél a szótagra koppintva letakarod. A kör végén lufipukkasztás a jutalom.</p>
           </div>
-          <p class="how-touch">Tableten: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles tételnél a szótagra koppintva letakarod. A kör végén lufipukkasztás a jutalom.</p>
+          <div class="how-find" id="howFind" hidden>
+            <ol class="how-steps">
+              <li>Válassz ki fejben egy kártyát, és mondd ki hangosan – ne mutass rá.</li>
+              <li>A gyerek megkeresi, és rámutat vagy rákoppint.</li>
+              <li>Te döntöd el, hogy jó-e: a program nem értékel, csak megjelöli a koppintott kártyát.</li>
+              <li>Egy feladaton belül többet is kérhetsz, mielőtt továbblépsz.</li>
+            </ol>
+            <div class="how-keys only-keys">
+              <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő feladat</span>
+              <span><kbd>←</kbd></span><span>előző feladat</span>
+              <span>kattintás</span><span>kártya megjelölése, újra kattintva levétele</span>
+              <span><kbd>Esc</kbd></span><span>kilépés</span>
+            </div>
+            <p class="how-touch">Tableten: a gyerek a kártyára koppint, te a lenti nyilakkal lépsz a következő feladatra. A kör végén lufipukkasztás a jutalom.</p>
+            <!-- alsó lapon (E8): képes magyarázó a lépések alatt; a popoverben nem látszik -->
+            <ul class="how-pics" aria-label="Vezérlés érintőképernyőn">
+              <li><span class="pic pic-on" aria-hidden="true">kor</span><span>Koppintás: megjelöl</span></li>
+              <li><span class="pic" aria-hidden="true">kor</span><span>Újra koppintás: leveszi</span></li>
+              <li><span class="pic pic-nav" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg><svg class="icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span><span>Lenti nyilak: előző / következő feladat</span></li>
+            </ul>
+          </div>
           <button type="button" class="btn btn-primary sheet-ok" id="howOk">Értem</button>
         </div>
       </dialog>
@@ -212,6 +272,9 @@
   <div class="balloons" id="balloons"></div>
   <div class="particles" id="particles"></div>
   <div class="reward-count" id="rewardCount" aria-hidden="true"></div>
+
+  <!-- Keresd meg! (spec 4a., 12.4a): a kártyák rácsa; a kártyák gombok, a jelölés aria-pressed -->
+  <div class="find-grid" id="findGrid" role="group" aria-label="" hidden></div>
 
   <div class="progress" id="progress" role="img" aria-label=""></div>
   <svg class="pause-ind" id="pauseInd" viewBox="0 0 24 24" aria-hidden="true"><path class="icon" d="M9 6v12M15 6v12" stroke-width="3"/></svg>

@@ -37,3 +37,7 @@ test('haladás: -ból/-ből rag a szám kiejtése szerint', () => {
     20: 'ból', 26: 'ból', 30: 'ból', 40: 'ből', 50: 'ből', 60: 'ból', 70: 'ből', 80: 'ból', 90: 'ből', 100: 'ból' };
   for (const [n, s] of Object.entries(want)) assert.equal(fromSuffix(+n), s, `${n}`);
 });
+
+test('haladásjelző: Keresd meg!-ben a feladatokat számolja', () => {
+  assert.equal(progressModel(2, 10, 'feladat').label, '3. feladat a 10-ből');
+});

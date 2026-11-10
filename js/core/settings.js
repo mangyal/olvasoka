@@ -5,9 +5,19 @@ export const GAPS = [0, 500, 1000, 2000, 3000];
 export const FLASH_MAX = 25000;
 export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count: 10, source: 'list' });
 
-/** A játékok. A 'find' (Keresd meg!) még nem választható; a normalizálás 'read'-re állítja. */
+/** A játékok: Felolvasás és Keresd meg!. */
 export const MODES = ['read', 'find'];
-export const ACTIVE_MODES = ['read'];
+export const ACTIVE_MODES = ['read', 'find'];
+
+/** Keresd meg! beállítások (spec 3.3a). level: 1 = jól megkülönböztethető … 5 = nagyon hasonló. */
+export const CARDS = [4, 6, 8];
+export const TASKS_MIN = 1, TASKS_MAX = 30;
+export const LEVELS = [1, 2, 3, 4, 5];
+export const DEFAULT_FIND = Object.freeze({ cards: 4, tasks: 10, level: 1 });
+/** A nehézség fokozatainak szövege (U-A8). */
+export const LEVEL_LABELS = Object.freeze({
+  1: 'jól megkülönböztethető', 2: 'inkább eltérő', 3: 'vegyes', 4: 'inkább hasonló', 5: 'nagyon hasonló',
+});
 
 const num = (v, d) => (Number.isFinite(+v) ? +v : d);
 
@@ -29,13 +39,29 @@ export function clampSettings(s) {
   return { flashMs: f, gapMs: snapGap(s.gapMs), count: c, source: s.source === 'all' ? 'all' : 'list' };
 }
 
+/** Bármilyen bemenetből érvényes Keresd meg! beállítás; hiányzó vagy érvénytelen mezőnél az alapérték. */
+export function clampFind(f) {
+  f = f && typeof f === 'object' ? f : {};
+  const int = (v) => (Number.isFinite(+v) && String(v).trim() !== '' ? Math.round(+v) : NaN);
+  const cards = CARDS.includes(int(f.cards)) ? int(f.cards) : DEFAULT_FIND.cards;
+  const t = int(f.tasks);
+  const tasks = Number.isFinite(t) ? Math.min(TASKS_MAX, Math.max(TASKS_MIN, t)) : DEFAULT_FIND.tasks;
+  const level = LEVELS.includes(int(f.level)) ? int(f.level) : DEFAULT_FIND.level;
+  return { cards, tasks, level };
+}
+
+/** A szülő 1–5 fokozata a heurisztika fokozatára (0 · 0,25 · 0,5 · 0,75 · 1; F-S6). */
+export const levelToDegree = (level, levels = [0, 0.25, 0.5, 0.75, 1]) =>
+  levels[Math.min(levels.length, Math.max(1, Math.round(level))) - 1];
+
 /** A kiválasztható játék; inaktív vagy ismeretlen játék helyett a Felolvasás. */
-export const normalizeMode = (m) => (ACTIVE_MODES.includes(m) ? m : 'read');
+export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ? m : 'read');
 
 /**
- * Helyi állapot: { v: 4, mode, settings, lastLists: string[], hideHelp: boolean,
+ * Helyi állapot: { v: 4, mode, settings, find, lastLists: string[], hideHelp: boolean,
  *                  cache: { text, fetchedAt, kind: 'sheet'|'txt' } | null }.
- * mode: a kiválasztott játék ('read' | 'find'; amíg a Keresd meg! inaktív, mindig 'read').
+ * mode: a kiválasztott játék ('read' | 'find').
+ * find: a Keresd meg! beállításai (clampFind); a mező csak hozzáadás, ezért a v marad 4.
  * hideHelp: a súgó ne jelenjen meg magától induláskor.
  * lastLists: a legutóbb kijelölt listák neve. A cache a legutóbb letöltött lista szövege
  * (táblázat CSV vagy lists.txt, `kind` szerint; a kind nélküli régi cache lists.txt).
@@ -43,7 +69,7 @@ export const normalizeMode = (m) => (ACTIVE_MODES.includes(m) ? m : 'read');
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 4, mode: 'read', settings: clampSettings(null), lastLists: [], hideHelp: false, cache: null };
+  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), lastLists: [], hideHelp: false, cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -51,6 +77,7 @@ export function normalizeState(o) {
     v: 4,
     mode: normalizeMode(o.mode),
     settings: clampSettings(o.settings),
+    find: clampFind(o.find),
     lastLists,
     hideHelp: o.hideHelp === true,
     cache: o.cache && typeof o.cache === 'object' && typeof o.cache.text === 'string' && Number.isFinite(o.cache.fetchedAt)
@@ -73,3 +100,6 @@ export function estimate(s) {
     : `kb. ${Math.floor(total / 60)} perc${total % 60 ? ` ${total % 60} mp` : ''}`;
   return { count, time };
 }
+
+/** A Keresd meg! becslése a szülői felületre: „10 feladat · 4 kártya”. */
+export const findEstimate = (f) => `${f.tasks} feladat · ${f.cards} kártya`;

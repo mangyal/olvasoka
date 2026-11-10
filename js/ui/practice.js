@@ -1,5 +1,5 @@
-// Gyakorló- és jutalomnézet vezérlése. A logika a core/round.js reducerben van;
-// ez a modul csak rajzol, időzítőt állít és eseményeket fordít le.
+// Gyakorló-, Keresd meg!- és jutalomnézet vezérlése. A logika a core/round.js és a core/find.js
+// reducerekben van; ez a modul csak rajzol, időzítőt állít és eseményeket fordít le.
 
 import { buildSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
@@ -7,13 +7,18 @@ import { syllables, rulerGeometry } from '../core/cover.js';
 import { progressModel, dotState } from '../core/progress.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
+import { startFind as newFind, step as findStep, canPrev as findCanPrev } from '../core/find.js';
+import { createFindView } from './find.js';
 
 const KID_KEYS = { Space: 'SPACE', ArrowRight: 'NEXT', ArrowLeft: 'PREV', KeyP: 'PAUSE', ArrowDown: 'COVER_DOWN' };
+// Keresd meg! (4a.4): P és ↓ itt nem csinál semmit; a Tab és az Enter a kártyák között natív
+const FIND_KEYS = { Space: 'NEXT', ArrowRight: 'NEXT', ArrowLeft: 'PREV' };
 const SVG = 'http://www.w3.org/2000/svg';
 const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem lép és nem takar
 
 export function createPractice(el, { onExit }) {
-  let mode = 'off';                 // 'off' | 'practice' | 'reward'
+  let mode = 'off';                 // 'off' | 'practice' | 'find' | 'reward'
+  let fst = null;                   // a Keresd meg! kör állapota (core/find.js)
   let wake = null;                  // F-P17: a képernyő ne sötétüljön el gyakorlás közben
 
   async function keepAwake() {
@@ -31,6 +36,7 @@ export function createPractice(el, { onExit }) {
   el.itemText.after(coverG);
   const measure = document.createElement('canvas').getContext('2d');
   const reward = createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit });
+  const findView = createFindView({ grid: el.findGrid }, { onMark: (i) => findDispatch('MARK', i) });
 
   /* ---------- kör ---------- */
   function start(roundItems, settings, ev) {
@@ -42,11 +48,46 @@ export function createPractice(el, { onExit }) {
     el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
     st = startRound(seq, settings.flashMs, settings.gapMs, performance.now());
-    buildProgress();
+    buildProgress(st.seq.length);
     layout();
     render(); arm();                // S1: azonnal az első tétel, teljes idővel
     requestAnimationFrame(barFrame);
     keepAwake();
+  }
+
+  /* ---------- Keresd meg! kör (4a.) ---------- */
+  /** @param {string[][]} tasks  a kör feladatai; @param {number} cards  a beállított (F-K10 utáni) kártyaszám */
+  function startFind(tasks, cards, ev) {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    mode = 'find';
+    if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
+    el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'find'; el.stage.hidden = false;
+    fst = newFind(tasks);
+    findCards = cards;
+    el.findGrid.hidden = false;
+    el.cPrev.setAttribute('aria-label', 'Előző feladat');
+    el.cNext.setAttribute('aria-label', 'Következő feladat');
+    buildProgress(fst.tasks.length);
+    renderFind(true);
+    keepAwake();
+  }
+  let findCards = 4;
+
+  function findDispatch(ev, i) {
+    if (mode !== 'find') return;
+    const prev = fst;
+    fst = findStep(fst, ev, i);
+    if (fst.done) { toReward(); return; }
+    renderFind(fst.index !== prev.index);
+  }
+
+  function renderFind(newTask) {
+    if (newTask) findView.show(fst.tasks[fst.index], findCards);
+    findView.mark(fst.marked);
+    const m = progressModel(fst.index, fst.tasks.length, 'feladat');
+    el.findGrid.setAttribute('aria-label', m.label);
+    renderProgress(m);
+    el.cPrev.disabled = !findCanPrev(fst);
   }
 
   function dispatch(ev, arg) {
@@ -66,6 +107,7 @@ export function createPractice(el, { onExit }) {
 
   function toReward() {
     clearTimeout(timer);
+    if (mode === 'find') { findView.clear(); el.findGrid.hidden = true; fst = null; }
     mode = 'reward';
     el.stage.dataset.mode = 'reward';
     render();
@@ -75,7 +117,9 @@ export function createPractice(el, { onExit }) {
   function exit() {
     clearTimeout(timer); clearTimeout(uiTimer);
     reward.stop();
-    mode = 'off'; st = null;
+    mode = 'off'; st = null; fst = null;
+    findView.clear(); el.findGrid.hidden = true;
+    el.cPrev.setAttribute('aria-label', 'Előző'); el.cNext.setAttribute('aria-label', 'Következő');
     letSleep();
     el.itemText.textContent = ''; coverG.replaceChildren(); geo = null;
     el.progress.replaceChildren(); prog = null;
@@ -118,7 +162,7 @@ export function createPractice(el, { onExit }) {
     const text = showing ? items[st.seq[st.index]] : '';
     if (el.itemText.textContent !== text) { el.itemText.textContent = text; geo = null; }
     drawCovers();
-    if (practice) renderProgress();
+    if (practice) renderProgress(progressModel(st.index, st.seq.length));
     el.pauseInd.classList.toggle('on', practice && st.paused);
     if (!practice) return;
     el.cPrev.disabled = !canPrev(st);
@@ -129,8 +173,8 @@ export function createPractice(el, { onExit }) {
   /* ---------- haladásjelző (design spec 7.) ---------- */
   // A DOM a kör indulásakor épül fel egyszer; lépésenként csak az osztályok és a felirat változnak.
   let prog = null;                  // { kind, dots: [], fill, text }
-  function buildProgress() {
-    const m = progressModel(0, st.seq.length);
+  function buildProgress(total) {
+    const m = progressModel(0, total);
     el.progress.className = 'progress ' + m.kind;
     if (m.kind === 'dots') {
       const dots = Array.from({ length: m.total }, () => document.createElement('span'));
@@ -145,8 +189,7 @@ export function createPractice(el, { onExit }) {
       prog = { kind: 'bar', fill, text };
     }
   }
-  function renderProgress() {
-    const m = progressModel(st.index, st.seq.length);
+  function renderProgress(m) {
     el.progress.setAttribute('aria-label', m.label);
     if (prog.kind === 'dots') {
       prog.dots.forEach((d, k) => {
@@ -276,12 +319,20 @@ export function createPractice(el, { onExit }) {
     btn.addEventListener('click', (e) => { e.stopPropagation(); btn.blur(); fn(); showUI(); });
   };
   ctl(el.cClose, exit);
-  ctl(el.cPrev, () => dispatch('PREV'));
+  ctl(el.cPrev, () => (mode === 'find' ? findDispatch('PREV') : dispatch('PREV')));
   ctl(el.cPlay, () => dispatch('PAUSE'));
-  ctl(el.cNext, () => dispatch('NEXT'));
+  ctl(el.cNext, () => (mode === 'find' ? findDispatch('NEXT') : dispatch('NEXT')));
 
   /* ---------- billentyűk és ablak ---------- */
   function key(e) {
+    if (mode === 'find') {
+      if (e.code === 'Escape') { e.preventDefault(); exit(); return; }
+      if (e.code === 'KeyP' || e.code === 'ArrowDown') { e.preventDefault(); return; }
+      if (!FIND_KEYS[e.code]) return;   // Tab, Enter: natív fókusz és jelölés a kártyákon
+      e.preventDefault();
+      if (!e.repeat) findDispatch(FIND_KEYS[e.code]);
+      return;
+    }
     if (e.code !== 'Escape' && !KID_KEYS[e.code]) return;
     e.preventDefault();
     if (e.repeat) return;           // egy lenyomás = egy lépés
@@ -290,7 +341,10 @@ export function createPractice(el, { onExit }) {
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) dispatch('BLUR'); else keepAwake(); });
   addEventListener('blur', () => dispatch('BLUR'));
-  addEventListener('resize', () => { if (mode === 'practice') { layout(); render(); } });
+  addEventListener('resize', () => {
+    if (mode === 'practice') { layout(); render(); }
+    if (mode === 'find') findView.layout();   // forgatás: az elrendezés vált, a kártyaszám marad (F-K12)
+  });
 
-  return { start, key, get active() { return mode !== 'off'; } };
+  return { start, startFind, key, get active() { return mode !== 'off'; }, findSizes: () => findView.sizes() };
 }

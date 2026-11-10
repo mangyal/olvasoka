@@ -67,16 +67,21 @@ const inViewport = (page, sel) => page.$eval(sel, (e) => {
 });
 const stored = (page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
 
-test('desktop 1280×800: nincs alsó sor, jobb panel két füllel, a Keresd meg! inaktív', async () => {
+test('desktop 1280×800: nincs alsó sor, jobb panel két füllel, fülváltás', async () => {
   const { page, ctx, errors } = await open(DESKTOP);
   assert.equal(await page.$('footer.roundbar'), null, 'nincs alsó beállítósáv');
   assert.ok(await page.isVisible('aside.panel'));
   assert.equal(await page.getAttribute('#tabRead', 'aria-selected'), 'true');
-  assert.equal(await page.getAttribute('#tabFind', 'aria-disabled'), 'true');
-  assert.match(await page.textContent('#tabFind'), /Hamarosan érkezik/);
-  await page.click('#tabFind', { force: true });
-  assert.equal(await page.getAttribute('#tabRead', 'aria-selected'), 'true', 'kattintásra nem vált');
-  assert.equal(await page.getAttribute('#tabFind', 'aria-selected'), 'false');
+  assert.equal(await page.getAttribute('#tabFind', 'aria-disabled'), null);
+  await page.click('#tabFind');
+  assert.equal(await page.getAttribute('#tabFind', 'aria-selected'), 'true', 'kattintásra vált');
+  assert.ok(await page.isVisible('#panelFind'));
+  assert.equal(await page.isVisible('#panelRead'), false);
+  // U-A8: ha a panel nem fér ki, csak a beállítások görgetnek, az Indítás látszik
+  assert.ok(await inViewport(page, '#startBtn'), 'Keresd meg!: az Indítás látszik');
+  assert.ok(await page.isVisible('#sample .sample-card'), 'a minta látszik');
+  await page.click('#tabRead');
+  assert.equal(await page.getAttribute('#tabRead', 'aria-selected'), 'true');
   assert.equal(await page.$$eval('#startBtn, .btn-primary', (b) => b.filter((x) => /Indítás/.test(x.textContent)).length), 1, 'egy Indítás gomb');
   assert.ok(await inViewport(page, '#startBtn'));
   assert.ok(await page.$eval('#panelScroll', (e) => e.scrollHeight <= e.clientHeight + 1), '1280×800-on a panel nem görget');
@@ -110,10 +115,11 @@ test('beállítások: ugyanúgy mentődnek és töltődnek vissza; becslés mind
   await ctx.close();
 });
 
-test('tárolt mode: "find" esetén is a Felolvasás nyílik', async () => {
+test('tárolt mode: "find" esetén a Keresd meg! nyílik', async () => {
   const { page, ctx } = await open(DESKTOP, { v: 4, mode: 'find' });
-  assert.equal(await page.getAttribute('#tabRead', 'aria-selected'), 'true');
-  assert.equal((await stored(page)).mode, 'read');
+  await page.waitForFunction(() => !document.getElementById('startBtn').disabled);
+  assert.equal(await page.getAttribute('#tabFind', 'aria-selected'), 'true');
+  assert.equal((await stored(page)).mode, 'find');
   await ctx.close();
 });
 
@@ -249,7 +255,6 @@ test('nagyon alacsony fekvő (740×320): a becslés az Indítás mellett, nem cs
   const [est, btn, how] = await Promise.all(['#estimate', '#startBtn', '#howBtn'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
   assert.ok(est.left > how.right, 'a becslés a súgógombtól jobbra');
   assert.ok(est.right <= btn.left && btn.left - est.right <= 24, 'a becslés jobbra zárva az Indítás mellett');
-  assert.equal(await page.$eval('#findSoon', (e) => e.scrollWidth <= e.clientWidth + 1), true, 'a „Hamarosan érkezik” nem vágódik le');
   await ctx.close();
 });
 
@@ -403,7 +408,7 @@ for (const [w, iconOnly] of [[320, null], [568, true], [740, false]]) {
       if (st.iconOnly) assert.ok(t.iconRatio >= 0.5, `az ikon kitölti a fület (${t.iconRatio.toFixed(2)})`);
     }
     assert.match(st.tabs[0].text, /Felolvasás/, 'a név a felolvasónak megmarad');
-    assert.match(st.tabs[1].text, /Keresd meg!.*Hamarosan érkezik/);
+    assert.match(st.tabs[1].text, /Keresd meg!/);
     assert.equal(await page.getAttribute('#tabRead', 'title'), 'Felolvasás');
     await ctx.close();
   });
@@ -523,5 +528,88 @@ test('egérrel az oldalsáv a régi: sima kattintás egyet jelöl, Ctrl/Shift t�
   assert.equal(await page.locator('.nav-item.sel').count(), 3);
   await items.nth(5).click({ modifiers: ['Control'] });
   assert.equal(await page.locator('.nav-item.sel').count(), 4);
+  await ctx.close();
+});
+
+// ---------- Keresd meg! (spec 4a.3, 12.4a; ellenőrzés 27–29.) ----------
+const FIND = (cards) => ({ v: 4, mode: 'find', find: { cards, tasks: 3, level: 1 }, settings: { source: 'all' } });
+/** Kör indítása, és a rács adatai: kártyák száma, oszlopok/sorok, a nyilak helye. */
+async function findGrid(page) {
+  await page.click('#startBtn');
+  await page.waitForSelector('#findGrid .card');
+  return page.evaluate(() => {
+    const cs = [...document.querySelectorAll('#findGrid .card')].map((c) => c.getBoundingClientRect());
+    const near = (a, b) => Math.abs(a - b) < 2;
+    const cols = cs.filter((r) => near(r.top, cs[0].top)).length;
+    const rows = new Set(cs.map((r) => Math.round(r.top))).size;
+    const g = document.getElementById('findGrid').getBoundingClientRect();
+    const [p, n] = ['cPrev', 'cNext'].map((id) => document.getElementById(id).getBoundingClientRect());
+    const fs = [...document.querySelectorAll('#findGrid .card')].map((c) => getComputedStyle(c).fontSize);
+    const inView = cs.every((r) => r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth);
+    return { n: cs.length, cols, rows, w: cs[0].width, h: cs[0].height, grid: g.toJSON(), prev: p.toJSON(), next: n.toJSON(), fs: new Set(fs).size, inView };
+  });
+}
+
+for (const [name, opts, cards, want] of [
+  ['desktop 1280×800, 6 kártya', DESKTOP, 6, { n: 6, cols: 3, rows: 2 }],
+  ['desktop 1280×800, 8 kártya', DESKTOP, 8, { n: 8, cols: 4, rows: 2 }],
+  ['desktop 1280×800, 4 kártya', DESKTOP, 4, { n: 4, cols: 2, rows: 2 }],
+  ['álló tablet, 8 kártya', TABLET, 8, { n: 8, cols: 2, rows: 4 }],
+  ['mobil álló, 8 → 6 kártya', PHONE, 8, { n: 6, cols: 2, rows: 3 }],
+  ['mobil fekvő, 8 → 6 kártya', PHONE_LAND, 8, { n: 6, cols: 3, rows: 2 }],
+]) {
+  test(`Keresd meg! ${name}: elrendezés (F-K10, F-K12)`, async () => {
+    const { page, ctx, errors } = await open(opts, FIND(cards));
+    const g = await findGrid(page);
+    assert.deepEqual({ n: g.n, cols: g.cols, rows: g.rows }, want);
+    assert.ok(g.inView, 'minden kártya a képernyőn');
+    assert.equal(g.fs, 1, 'egy betűméret a feladaton belül');
+    if (opts === PHONE_LAND) {
+      assert.ok(g.prev.right <= g.grid.left && g.next.left >= g.grid.right, 'a nyilak a rács két oldalán');
+      assert.ok(Math.abs((g.prev.top + g.prev.bottom) / 2 - 195) < 12, 'függőlegesen középen');
+    } else {
+      assert.ok(g.prev.top >= g.grid.bottom - 1, 'a nyilak a rács alatt');
+    }
+    if (opts === DESKTOP) assert.ok(g.grid.width <= 1040, 'desktopon legfeljebb 1040 px széles');
+    if (opts === PHONE || opts === PHONE_LAND) {
+      assert.ok(g.w >= 150 && g.h >= 130, `a kártya elég nagy egy 7 évesnek (${g.w}×${g.h})`);
+      assert.equal((await stored(page)).find.cards, 8, 'a tárolt beállítás 8 marad');
+    }
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+
+test('Keresd meg! mobil: forgatás kör közben – a kártyaszám marad, az elrendezés vált', async () => {
+  const { page, ctx } = await open(PHONE, FIND(6));
+  const a = await findGrid(page);
+  assert.deepEqual([a.cols, a.rows], [2, 3]);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForFunction(() => {
+    const cs = [...document.querySelectorAll('#findGrid .card')];
+    return cs.length === 6 && cs[1].getBoundingClientRect().top === cs[0].getBoundingClientRect().top
+      && cs[2].getBoundingClientRect().top === cs[0].getBoundingClientRect().top;
+  });
+  await ctx.close();
+});
+
+test('Keresd meg! mobil szülői felület: 8 szürke, a címke figyelmeztet; fekvőben nincs minta', async () => {
+  const { page, ctx } = await open(PHONE, FIND(8));
+  assert.equal(await page.textContent('#cardsLegend'), 'Kártyák · telefonon max. 6');
+  assert.equal(await page.getAttribute('#cards8', 'aria-disabled'), 'true');
+  assert.equal(await page.isChecked('#cards6'), true);
+  assert.equal(await page.textContent('#estimate'), '3 feladat · 6 kártya');
+  await ctx.close();
+  const l = await open(PHONE_LAND, FIND(4));
+  assert.equal(await l.page.isVisible('#sampleBox'), false, 'mobil fekvőben a minta rejtve');
+  assert.ok(await inViewport(l.page, '#startBtn'));
+  await l.ctx.close();
+});
+
+test('Keresd meg! tablet: nincs telefonos korlát', async () => {
+  const { page, ctx } = await open(TABLET, FIND(8));
+  assert.equal(await page.textContent('#cardsLegend'), 'Kártyák');
+  assert.equal(await page.getAttribute('#cards8', 'aria-disabled'), null);
+  assert.equal(await page.isChecked('#cards8'), true);
   await ctx.close();
 });

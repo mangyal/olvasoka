@@ -256,3 +256,142 @@ test('Esc a jutalomból is a szülői nézetbe visz', async () => {
   await page.locator('#admin').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#stage').isHidden(), true);
 });
+
+/* ---------- Keresd meg! (spec 4a., ellenőrzés 23–31.) ---------- */
+const cards = () => page.locator('#findGrid .card');
+const cardTexts = () => cards().allTextContents();
+const marked = () => cards().evaluateAll((cs) => cs.map((c) => c.getAttribute('aria-pressed') === 'true'));
+const findTask = () => page.evaluate(() => +(document.getElementById('findGrid').getAttribute('aria-label').match(/^(\d+)\./) || [0, 0])[1]);
+
+async function startFind({ list = 'Szótagok', tasks = 3, cards: n = 4, level } = {}) {
+  await navBtn(list).click();
+  await page.locator('#tabFind').click();
+  await page.locator(`label:has(#cards${n})`).click();
+  await page.locator('#tasksIn').fill(String(tasks));
+  await page.locator('#tasksIn').press('Enter');
+  if (level) await page.$eval('#levelIn', (e, v) => { e.value = v; e.dispatchEvent(new Event('change')); }, String(level));
+  await page.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await page.locator('#startBtn').click();
+  await page.locator('#findGrid .card').first().waitFor();
+}
+
+test('Keresd meg!: alapértékek, becslés, a beállítások megmaradnak (30.)', async () => {
+  await page.locator('#tabFind').click();
+  assert.equal(await page.locator('#cards4').isChecked(), true, 'alapból 4 kártya');
+  assert.equal(await page.inputValue('#tasksIn'), '10');
+  assert.equal(await page.inputValue('#levelIn'), '1');
+  assert.equal(await text('#levelOut'), '1 · jól megkülönböztethető');
+  assert.equal(await text('#estimate'), '10 feladat · 4 kártya');
+  await page.locator('label:has(#cards8)').click();
+  await page.$eval('#levelIn', (e) => { e.value = '4'; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change')); });
+  await page.locator('#tasksInc').click();
+  assert.equal(await text('#levelOut'), '4 · inkább hasonló');
+  assert.equal(await text('#estimate'), '11 feladat · 8 kártya');
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  assert.equal(await page.getAttribute('#tabFind', 'aria-selected'), 'true', 'a választott játék megmarad');
+  assert.equal(await page.locator('#cards8').isChecked(), true);
+  assert.equal(await page.inputValue('#levelIn'), '4');
+  assert.equal(await page.inputValue('#tasksIn'), '11');
+});
+
+test('Keresd meg!: minta a kör tételeiből, „Másik minta” frissíti', async () => {
+  await navBtn('Szótagok').click();
+  await page.locator('#tabFind').click();
+  await page.waitForSelector('#sample .sample-card');
+  const s = await page.locator('#sample .sample-card').allTextContents();
+  assert.equal(s.length, 4);
+  for (const t of s) assert.ok(LISTS['Szótagok'].includes(t), t);
+});
+
+test('Keresd meg!: egyetlen különböző tétel → Indítás inaktív (F-S8)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Egy\r\nma\r\nMa' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await page.locator('#tabFind').click();
+  await page.waitForFunction(() => document.getElementById('startMsg').textContent);
+  assert.equal(await text('#startMsg'), 'Legalább két különböző tétel kell.');
+  assert.equal(await page.locator('#startBtn').isDisabled(), true);
+});
+
+test('Keresd meg!: kör a forrás tételeiből; jelölés, ←, →, jutalom; nincs szöveg és szám (24–26., 31.)', async () => {
+  await startFind({ tasks: 3, cards: 4 });
+  assert.equal(await page.getAttribute('#stage', 'data-mode'), 'find');
+  const first = await cardTexts();
+  assert.equal(first.length, 4);
+  for (const t of first) assert.ok(LISTS['Szótagok'].includes(t), `forrásból: ${t}`);
+  assert.equal(await findTask(), 1);
+  assert.equal(await page.getAttribute('#findGrid', 'aria-label'), '1. feladat a 3-ból');
+  assert.equal(await page.locator('#cPrev').isDisabled(), true, 'az elsőn a ◀ inaktív');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await findTask(), 1, '← az elsőn nincs hatással');
+
+  await cards().nth(2).click();
+  assert.deepEqual(await marked(), [false, false, true, false]);
+  await cards().nth(2).click();
+  assert.deepEqual(await marked(), [false, false, false, false], 'újra kattintva lekerül');
+  await cards().nth(1).click();
+  await cards().nth(3).click();
+  assert.deepEqual(await marked(), [false, false, false, true], 'egyszerre egy jelölt');
+  assert.equal(await findTask(), 1, 'a jelölés nem léptet');
+  // a jelölt kártya: --sky háttér, --accent keret, nincs piros/zöld
+  const bg = await cards().nth(3).evaluate((c) => getComputedStyle(c).backgroundColor);
+  assert.equal(bg, 'rgb(220, 233, 239)');
+  // a nézetben nincs szöveg, szám, idő- vagy pontjelző (31.)
+  assert.equal(await page.evaluate(() => document.getElementById('bar').getAttribute('visibility')), 'hidden');
+  assert.equal(await page.isVisible('#cPlay'), false, 'nincs szünet gomb');
+  assert.equal(await page.isVisible('#rewardCount'), false);
+
+  await page.keyboard.press('Space');
+  assert.equal(await findTask(), 2);
+  assert.deepEqual(await marked(), [false, false, false, false], 'új feladat jelölés nélkül');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await findTask(), 1);
+  assert.deepEqual(await cardTexts(), first, '← után ugyanaz a rács, ugyanabban a sorrendben');
+  assert.deepEqual(await marked(), [false, false, false, false], 'a jelölés törlődött');
+
+  for (const k of ['KeyP', 'ArrowDown']) { await page.keyboard.press(k); assert.equal(await findTask(), 1, `${k}: nincs hatása`); }
+  await page.locator('#cNext').click();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await findTask(), 3);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  assert.equal(await page.getAttribute('#tabFind', 'aria-selected'), 'true');
+});
+
+test('Keresd meg!: Tab és Enter a kártyák között jelöl (akadálymentesség); Esc azonnal kilép', async () => {
+  await startFind({ tasks: 2, cards: 4 });
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  const m = await marked();
+  assert.equal(m.filter(Boolean).length, 1, 'Enterrel pontosan egy jelölt');
+  await page.keyboard.press('Space');
+  assert.equal(await findTask(), 2, 'a Space a következő feladat, nem a fókuszált kártya');
+  assert.equal((await marked()).filter(Boolean).length, 0);
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  assert.equal(await page.isHidden('#stage'), true, 'jutalom nélkül vissza');
+});
+
+test('Keresd meg!: kevesebb tétel, mint a kártyaszám → kevesebb kártya, azonos betűméret (F-K3, 29.)', async () => {
+  await startFind({ list: 'Szavak', tasks: 2, cards: 6 });
+  assert.equal(await cards().count(), 3, 'a Szavak listában 3 tétel');
+  const fs = await cards().evaluateAll((cs) => cs.map((c) => getComputedStyle(c).fontSize));
+  assert.equal(new Set(fs).size, 1, 'azonos betűméret');
+  const clip = await cards().evaluateAll((cs) => cs.every((c) => {
+    const t = c.querySelector('.card-text').getBoundingClientRect(), b = c.getBoundingClientRect();
+    return t.left >= b.left && t.right <= b.right && t.top >= b.top && t.bottom <= b.bottom;
+  }));
+  assert.ok(clip, 'a leghosszabb tétel is levágás nélkül elfér');
+});
+
+test('Keresd meg!: koppintás a kártyák közé nem léptet (F-K8)', async () => {
+  await startFind({ tasks: 3, cards: 4 });
+  const box = await page.locator('#findGrid').boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);   // a rés közepén
+  await page.mouse.click(8, 400);                                           // a rács mellett
+  assert.equal(await findTask(), 1);
+});

@@ -1,0 +1,41 @@
+{
+  "_leiras": "Hasonló betűpárok. Egy csoport ('b-d-p') minden tagja minden taggal párt alkot. Ha egy pár több kategóriában is szerepel, a legkisebb költség érvényes.",
+  "_gorbe": "A csuszka_gorbe itt csak a helyi futtatás alapértéke. Kiadáskor a deploy a lista alapján kártyaszámonként újraszámolja (.github/scripts/calibrate.mjs); kézzel nem szerkesztendő.",
+  "egyeb_maganhangzo": 0.8,
+  "egyeb_massalhangzo": 0.8,
+  "magan_massal_csere": 1.2,
+  "beszuras_torles": 1,
+  "racs": {
+    "csuszka_szintek": [0, 0.25, 0.5, 0.75, 1],
+    "csuszka_alapertelmezett": 0,
+    "csuszka_elesites": 8,
+    "csuszka_gorbe": [0, 0.45, 0.61, 0.72, 1]
+  },
+  "kategoriak": [
+    {
+      "nev": "vizuális",
+      "koltseg": 0.5,
+      "csoportok": ["b-d-p", "m-n", "o-ó-ö-ő", "a-á", "e-é", "u-ú-ü-ű", "a-e", "á-é", "i-l", "i-j", "h-n", "k-h", "c-o", "f-t"]
+    },
+    {
+      "nev": "rövid/hosszú magánhangzó",
+      "koltseg": 0.3,
+      "csoportok": ["a-á", "e-é", "i-í", "o-ó", "ö-ő", "u-ú", "ü-ű"]
+    },
+    {
+      "nev": "közeli magánhangzó (hallás)",
+      "koltseg": 0.5,
+      "csoportok": ["o-ö", "u-ü", "e-i", "o-u"]
+    },
+    {
+      "nev": "zöngés/zöngétlen",
+      "koltseg": 0.5,
+      "csoportok": ["b-p", "d-t", "g-k", "v-f", "z-sz", "zs-s", "gy-ty", "dz-c", "dzs-cs"]
+    },
+    {
+      "nev": "sziszegők",
+      "koltseg": 0.4,
+      "csoportok": ["s-sz", "c-cs", "z-zs"]
+    }
+  ]
+}
