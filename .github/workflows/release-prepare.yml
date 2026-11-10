@@ -3,10 +3,10 @@ name: Kiadás előkészítése
 # Egy gombnyomásos kiadás-előkészítés: Actions → Kiadás előkészítése → Run workflow (ág: main),
 # majd a lépés kiválasztása (patch / minor / major).
 #
-# 1. Az éles (main) verzióból kiszámolja az újat, és a dev ágon beírja a js/version.js-be.
-# 2. Újra kiteszi a dev környezetet (a GitHub saját tokenjével tett push magától nem indít kiadást).
-# 3. Az összefoglalóban linket ad a kiadási PR-hoz (dev → main), kitöltött címmel.
-#    A PR-t a tulajdonos nyitja meg és vonja össze: így futnak le rajta az ellenőrzések.
+# 1. Az éles (main) verzióból kiszámolja az újat, és a dev-ből egy release/vX.Y.Z ágra beírja.
+# 2. Az összefoglalóban két linket ad, kitöltött címmel:
+#    a) verzió-PR: release/vX.Y.Z → dev   b) kiadási PR: dev → main
+#    A PR-okat a tulajdonos nyitja meg és vonja össze: így futnak le rajtuk a kötelező ellenőrzések.
 
 on:
   workflow_dispatch:
@@ -19,8 +19,7 @@ on:
         options: [patch, minor, major]
 
 permissions:
-  contents: write   # verziócommit a dev-re
-  actions: write    # a dev kiadás újraindítása
+  contents: write   # a release/vX.Y.Z ág pusholása
 
 concurrency:
   group: release-prepare
@@ -58,38 +57,54 @@ jobs:
           echo "dev=$dev" >> "$GITHUB_OUTPUT"
           echo "new=$new" >> "$GITHUB_OUTPUT"
 
-      - name: Verzió beírása a dev-re
+      - name: Verzióág (release/vX.Y.Z)
+        # A dev-re közvetlenül nem lehet pusholni (az „e2e tests branch” ruleset kötelező ellenőrzései
+        # miatt, amelyek bot-commiton sosem futnak le), ezért a léptetés külön ágra kerül, és PR-ral
+        # jut a dev-be. A PR-t a tulajdonos nyitja meg, így az ellenőrzések lefutnak rajta.
+        id: br
         env:
           NEW: ${{ steps.v.outputs.new }}
           DEV: ${{ steps.v.outputs.dev }}
         run: |
           if [ "$NEW" = "$DEV" ]; then
             echo "A dev már $NEW; nincs mit léptetni."
+            echo "needed=false" >> "$GITHUB_OUTPUT"
             exit 0
+          fi
+          branch="release/v$NEW"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "::error::A $branch ág már létezik. Ha egy korábbi próbálkozás maradéka, töröld (Branches oldal), és futtasd újra."
+            exit 1
           fi
           sed -i "s/VERSION = '[^']*'/VERSION = '$NEW'/" js/version.js
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Verzió: v$NEW (kiadás előkészítése)"
-          git push origin HEAD:dev
+          git push origin "HEAD:refs/heads/$branch"
+          echo "needed=true" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
 
-      - name: A dev kiadás újraindítása
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run deploy.yml --ref dev
-
-      - name: Link a kiadási PR-hoz
+      - name: Linkek
         env:
           NEW: ${{ steps.v.outputs.new }}
           PROD: ${{ steps.v.outputs.prod }}
+          NEEDED: ${{ steps.br.outputs.needed }}
+          BRANCH: ${{ steps.br.outputs.branch }}
         run: |
-          title=$(python3 -c "import urllib.parse,os;print(urllib.parse.quote('Kiadás v'+os.environ['NEW']))")
-          url="https://github.com/${{ github.repository }}/compare/main...dev?expand=1&title=$title"
+          q() { python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$1"; }
+          repo="https://github.com/${{ github.repository }}"
+          bump="$repo/compare/dev...$BRANCH?expand=1&title=$(q "Verzió: v$NEW")"
+          rel="$repo/compare/main...dev?expand=1&title=$(q "Kiadás v$NEW")"
           {
             echo "## Kiadás előkészítve: v$PROD → v$NEW"
             echo
-            echo "1. Várd meg, amíg a dev oldalon a fejléc **DEV · v$NEW** (+N) lesz, és próbáld ki."
-            echo "2. **[Kiadási PR megnyitása (dev → main)]($url)** – a cím ki van töltve, pipáld ki a listát."
-            echo "3. Összevonás **merge committal**."
+            if [ "$NEEDED" = "true" ]; then
+              echo "1. **[Verzió-PR megnyitása ($BRANCH → dev)]($bump)** – a cím ki van töltve. Ha zöld, vond össze."
+            else
+              echo "1. ~~Verzió-PR~~ – a dev már v$NEW, ez a lépés kimarad."
+            fi
+            echo "2. Várd meg, amíg a dev oldalon a fejléc **DEV · v$NEW** lesz, és próbáld ki."
+            echo "3. **[Kiadási PR megnyitása (dev → main)]($rel)** – pipáld ki a listát, majd **merge committal** vond össze."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "Kiadási PR: $url"
+          echo "Verzió-PR: $bump"
+          echo "Kiadási PR: $rel"
