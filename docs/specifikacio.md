@@ -769,6 +769,12 @@ szélességen a cím elmarad, a verziócímke marad); jobbra a görgethető beá
 A jobb oszlop a teljes magasságot kapja, a bal oszlop tartalma nem tolhatja le az Indítást: 256 px
 magasságig görgetés nélkül látszik (#40).
 
+**Legkisebb támogatott méret (WCAG 1.4.10, Reflow):** 320 CSS px szélesség és 256 CSS px magasság. Ennél
+kisebb ablakban a szülői felület helyett teljes képernyős tájékoztató jelenik meg („Túl kicsi a képernyő”):
+fekvő érintőképernyőn az elforgatást kéri, máshol nagyobb képernyőt vagy ablakot. Csak CSS; a gyakorlás és
+a jutalom közben nem jelenik meg, a nyitott párbeszédablakokat elrejti (elforgatás után visszajönnek), és
+számbevitel közben (felugró billentyűzet) sem jelenik meg.
+
 - **U-A1** Listasáv: névsorban (F-L2), név mellett a tételszám. Kijelölt: `--paper-2` háttér +
   3 px `--accent` bal szegély, `aria-pressed`. Kattintás: csak az a lista. Ctrl/⌘+kattintás: hozzáad vagy
   kivesz; az utolsó kijelölt nem vehető ki. Shift+kattintás: tartomány a legutóbb kattintott listától

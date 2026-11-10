@@ -165,6 +165,15 @@
       </dialog>
     </aside>
   </main>
+
+  <!-- WCAG 1.4.10 alatti ablak (< 320 px széles vagy < 256 px magas): a szülői felület helyett tájékoztató.
+       Csak CSS (admin.css, „túl kicsi képernyő”); a #admin-nal együtt rejtett, így játék közben sosem jelenik meg. -->
+  <div class="too-small" id="tooSmall" role="status">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>
+    <p class="ts-title">Túl kicsi a képernyő</p>
+    <p class="ts-rotate">Fordítsd álló helyzetbe a telefont.</p>
+    <p class="ts-other">Az Olvasóka ekkora képernyőn nem használható. Nyisd meg nagyobb képernyőn, vagy nagyítsd meg az ablakot.</p>
+  </div>
 </div>
 
 <!-- mobil: listaválasztó alsó lap -->
