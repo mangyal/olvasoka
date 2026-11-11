@@ -3,6 +3,8 @@
 // Használat: node write-sheet-config.mjs <js/core/config.js> [további config.js …]
 // Változók (mind opcionális): PROD_SHEET_CSV_URL, PROD_SHEET_EDIT_URL, DEV_SHEET_CSV_URL, DEV_SHEET_EDIT_URL.
 // Ami nincs beállítva: az éles a repó alapértékét tartja, a dev az éles (végleges) címét kapja.
+// Haladás nézet (docs/haladas-specifikacio.md, 10.): DEV_PROGRESS_SKIP_DAY_RULES, PROD_PROGRESS_SKIP_DAY_RULES
+// („true” vagy üres) – a napszámon alapuló szabályok kihagyása teszteléshez. Ha nincs beállítva: kikapcsolva.
 // Minden kapott fájl ugyanazt a tartalmat kapja; a környezetet a futó oldal címe választja ki.
 
 import { writeFileSync, existsSync } from 'node:fs';
@@ -33,9 +35,24 @@ if (/pub\?.*output=csv/.test(prodCsv.url) === false || /pub\?.*output=csv/.test(
   console.error('::warning::A CSV cím nem „…/pub?output=csv” alakú; ellenőrizd, hogy a táblázat CSV-ként van-e közzétéve.');
 }
 
+const flag = (name) => {
+  const v = env(name);
+  if (v && v !== 'true') {
+    console.error(`::error::${name} értéke csak „true” vagy üres lehet, most: ${v}`);
+    process.exit(1);
+  }
+  return v === 'true';
+};
+const skip = { prod: flag('PROD_PROGRESS_SKIP_DAY_RULES'), dev: flag('DEV_PROGRESS_SKIP_DAY_RULES') };
+if (skip.prod) console.log('::warning::PROD_PROGRESS_SKIP_DAY_RULES=true: az éles Haladás nézet a napszabályok nélkül számol.');
+
 const out = { prod: { csv: prodCsv.url, edit: prodEdit.url }, dev: { csv: devCsv.url, edit: devEdit.url } };
+const progress = { prod: { skipDayRules: skip.prod }, dev: { skipDayRules: skip.dev } };
 const text = `// A deploy workflow generálta a GitHub repository variable-ökből; a repóban lévő változat az alapérték.
 export const SHEETS = Object.freeze(${JSON.stringify(out, null, 2)});
+
+// Haladás nézet: a napszabályok kihagyása környezetenként (teszteléshez).
+export const PROGRESS = Object.freeze(${JSON.stringify(progress, null, 2)});
 `;
 
 for (const f of files) {
@@ -46,3 +63,4 @@ for (const f of files) {
 for (const [k, v] of Object.entries({ 'éles CSV': prodCsv, 'éles szerkesztő': prodEdit, 'dev CSV': devCsv, 'dev szerkesztő': devEdit })) {
   console.log(`${k}: ${v.from}`);
 }
+console.log(`napszabályok kihagyása: éles ${skip.prod ? 'BE' : 'ki'}, dev ${skip.dev ? 'BE' : 'ki'}`);
