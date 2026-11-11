@@ -505,3 +505,72 @@ test('Keresd meg! minta: 320 px-en, 8 kártyás beállítással, háromszótagú
     await page.locator('#sampleBtn').click();
   }
 });
+
+/* ---------- robusztusság ---------- */
+test('akadálymentesség: billentyűzettel kijelölt lista gombján marad a fókusz (az elem nem cserélődik)', async () => {
+  const btn = navBtn('Betűk');
+  await btn.focus();
+  const before = await btn.elementHandle();
+  await page.keyboard.press('Enter');
+  assert.deepEqual(await pressed(), NAMES.map((n) => String(n === 'Betűk')));
+  assert.equal(await before.evaluate((b) => b.isConnected && document.activeElement === b), true, 'a fókusz elveszett');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Space');
+  const name = await page.evaluate(() => document.activeElement.textContent);
+  assert.ok(name.startsWith(NAMES[1]), `a fókusz nem a következő listán van: ${name}`);
+  assert.deepEqual(await pressed(), NAMES.map((n, i) => String(i === 1)));
+});
+
+test('tárolás: ha egy későbbi mentés bukik (betelt tárhely), a figyelmeztetés megjelenik (F-S4)', async () => {
+  await ctx.addInitScript(() => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      if (k === 'olvasoka-dev' && sessionStorage.getItem('e2e-fail') === '1') throw new DOMException('tele', 'QuotaExceededError');
+      return orig.call(this, k, v);
+    };
+  });
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  const warn = () => page.locator('#warnings').textContent();
+  assert.ok(!(await warn()).includes('nem maradnak meg'), 'induláskor még működik a tárolás');
+  await page.evaluate(() => sessionStorage.setItem('e2e-fail', '1'));
+  await page.locator('#countInc').click();
+  assert.ok((await warn()).includes('A beállítások nem maradnak meg'), 'a figyelmeztetés nem jelent meg');
+});
+
+/** Hamis Screen Wake Lock: a kérés 400 ms múlva teljesül; window.__wl.held a fogva tartott zárak száma. */
+async function fakeWakeLock() {
+  await ctx.addInitScript(() => {
+    window.__wl = { held: 0, requests: 0 };
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: () => {
+      window.__wl.requests++;
+      return new Promise((resolve) => setTimeout(() => {
+        const lock = new EventTarget(); let released = false;
+        lock.release = async () => { if (!released) { released = true; window.__wl.held--; lock.dispatchEvent(new Event('release')); } };
+        window.__wl.held++; resolve(lock);
+      }, 400));
+    } } });
+  });
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+}
+const wl = () => page.evaluate(() => window.__wl);
+
+test('képernyőzár: kör alatt fogva, kilépéskor elengedve (N9)', async () => {
+  await fakeWakeLock();
+  await startRound({ flash: 0, count: 3 });
+  await page.waitForFunction(() => window.__wl.held === 1);
+  await page.keyboard.press('Escape');
+  assert.equal((await wl()).held, 0);
+});
+
+test('képernyőzár: ha a kör a kérés teljesülése előtt ér véget, a zár nem marad fogva (N9)', async () => {
+  await fakeWakeLock();
+  await startRound({ flash: 0, count: 3 });
+  await page.keyboard.press('Escape');            // a kérés még folyamatban
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  await page.waitForTimeout(700);
+  const s = await wl();
+  assert.equal(s.requests, 1);
+  assert.equal(s.held, 0, 'a szülői felületen is ébren tartja a képernyőt');
+});

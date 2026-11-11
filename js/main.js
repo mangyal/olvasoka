@@ -29,7 +29,8 @@ const app = {
   kind: saved.cache?.kind || null,  // amiből a látható listák jöttek
   fallback: '',                     // miért nem a táblázatból jöttek (F-L13)
   font: { state: 'loading', name: 'Arial' },
-  storageOK: store.available,
+  // élő érték: ha egy későbbi írás bukik (pl. betelt a tárhely), a figyelmeztetés is megjelenik (F-S4)
+  get storageOK() { return store.available; },
 };
 let cache = saved.cache;
 

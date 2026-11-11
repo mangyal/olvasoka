@@ -21,12 +21,20 @@ const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem 
 export function createPractice(el, { onExit }) {
   let mode = 'off';                 // 'off' | 'practice' | 'find' | 'reward'
   let fst = null;                   // a Keresd meg! kör állapota (core/find.js)
-  let wake = null;                  // F-P17: a képernyő ne sötétüljön el gyakorlás közben
+  let wake = null;                  // N9: a képernyő ne sötétüljön el gyakorlás közben
+  let waking = false;               // a kérés folyamatban: ne induljon párhuzamosan még egy
 
+  // A kérés aszinkron: ha közben véget ért a kör (vagy elrejtették a lapot), a megkapott zár
+  // azonnal elengedődik, különben a szülői felületen is ébren tartaná a képernyőt.
   async function keepAwake() {
-    if (mode === 'off' || wake || !('wakeLock' in navigator) || document.hidden) return;
-    try { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
-    catch { wake = null; }
+    if (mode === 'off' || wake || waking || !('wakeLock' in navigator) || document.hidden) return;
+    waking = true;
+    try {
+      const lock = await navigator.wakeLock.request('screen');
+      if (mode === 'off' || document.hidden) { lock.release().catch(() => {}); return; }
+      wake = lock;
+      lock.addEventListener('release', () => { if (wake === lock) wake = null; });
+    } catch { /* nincs engedély vagy támogatás: nem jelez hibát (N9) */ } finally { waking = false; }
   }
   function letSleep() { if (wake) { wake.release().catch(() => {}); wake = null; } }
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
