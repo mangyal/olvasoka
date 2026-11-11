@@ -15,3 +15,10 @@ export const SHEETS = Object.freeze({
     edit: 'https://docs.google.com/spreadsheets/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit?gid=0#gid=0',
   }),
 });
+
+// Haladás nézet: a napszámon alapuló szabályok kihagyása teszteléshez (docs/haladas-specifikacio.md, 10.).
+// Kiadáskor a DEV_PROGRESS_SKIP_DAY_RULES és PROD_PROGRESS_SKIP_DAY_RULES változókból („true” vagy üres).
+export const PROGRESS = Object.freeze({
+  prod: Object.freeze({ skipDayRules: false }),
+  dev: Object.freeze({ skipDayRules: false }),
+});

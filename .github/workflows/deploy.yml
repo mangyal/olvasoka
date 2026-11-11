@@ -68,6 +68,8 @@ jobs:
           cp site/.github/scripts/write-sheet-config.mjs "$RUNNER_TEMP/"
           # az éles fa saját kalibráló szkriptje (ha már van benne Keresd meg!); a dev a sajátját a devsrc-ből futtatja
           if [ -f site/.github/scripts/calibrate.mjs ]; then cp site/.github/scripts/calibrate.mjs "$RUNNER_TEMP/calibrate-prod.mjs"; fi
+          # a Haladás konfigurációjának ellenőrzője ugyanígy fánként (ha már van benne)
+          if [ -f site/.github/scripts/check-haladas.mjs ]; then cp site/.github/scripts/check-haladas.mjs "$RUNNER_TEMP/check-haladas-prod.mjs"; fi
           rm -rf site/.git site/.github
           if [ -d devsrc ]; then
             rm -rf site/dev
@@ -104,6 +106,8 @@ jobs:
           PROD_SHEET_EDIT_URL: ${{ vars.PROD_SHEET_EDIT_URL }}
           DEV_SHEET_CSV_URL: ${{ vars.DEV_SHEET_CSV_URL }}
           DEV_SHEET_EDIT_URL: ${{ vars.DEV_SHEET_EDIT_URL }}
+          PROD_PROGRESS_SKIP_DAY_RULES: ${{ vars.PROD_PROGRESS_SKIP_DAY_RULES }}
+          DEV_PROGRESS_SKIP_DAY_RULES: ${{ vars.DEV_PROGRESS_SKIP_DAY_RULES }}
         run: node "$RUNNER_TEMP/write-sheet-config.mjs" site/js/core/config.js site/dev/js/core/config.js
 
       - name: Keresd meg! nehézségi görbe (kalibrálás a táblázat listáján)
@@ -113,6 +117,14 @@ jobs:
           set -e
           if [ -f "$RUNNER_TEMP/calibrate-prod.mjs" ]; then node "$RUNNER_TEMP/calibrate-prod.mjs" site prod; fi
           if [ -f devsrc/.github/scripts/calibrate.mjs ]; then node devsrc/.github/scripts/calibrate.mjs site/dev dev; fi
+
+      - name: Haladás küszöbei (haladas.json ellenőrzése)
+        # Ismeretlen kulcs, rossz típus vagy értelmetlen érték esetén a kiadás megáll. Ha a fában még nincs
+        # ellenőrző szkript (a Haladás előtti változat), a lépés nem csinál semmit.
+        run: |
+          set -e
+          if [ -f "$RUNNER_TEMP/check-haladas-prod.mjs" ]; then node "$RUNNER_TEMP/check-haladas-prod.mjs" site; fi
+          if [ -f devsrc/.github/scripts/check-haladas.mjs ]; then node devsrc/.github/scripts/check-haladas.mjs site/dev; fi
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

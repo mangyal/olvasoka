@@ -166,6 +166,8 @@ variables → Actions → *Variables* fül → *New repository variable*.
 | `PROD_SHEET_EDIT_URL` | az éles táblázat szerkesztő címe („Listák szerkesztése” link) | a `js/core/config.js` alapértéke |
 | `DEV_SHEET_CSV_URL` | a dev táblázat CSV címe | az éles cím |
 | `DEV_SHEET_EDIT_URL` | a dev táblázat szerkesztő címe | az éles cím |
+| `DEV_PROGRESS_SKIP_DAY_RULES` | `true`: a Haladás nézet napszámon alapuló szabályai kimaradnak (teszteléshez, első gyakorlástól látszik minden) | kikapcsolva |
+| `PROD_PROGRESS_SKIP_DAY_RULES` | ugyanez élesben; ha `true`, a kiadás figyelmeztetést ír | kikapcsolva |
 
 A változó módosítása magától nem ad ki új változatot: utána Actions → *Kiadás (GitHub Pages)* →
 *Run workflow* (ág: `main`). A futás naplójában az *A táblázat címei* lépés kiírja, melyik cím honnan
