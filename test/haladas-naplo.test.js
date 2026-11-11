@@ -13,6 +13,7 @@ import { roundExposures, dailyRecords, mergeDaily, dayOf, listHash, keepEnds, me
 import { reconcileLists, overlap } from '../js/core/list-identity.js';
 import { validate, resolve, DEFAULTS } from '../js/core/haladas-config.js';
 import { createProgressLog } from '../js/data/progress-log.js';
+import { encode, decode } from '../js/data/progress-codec.js';
 import { itemKey } from '../js/core/items.js';
 import { tokenize } from '../js/core/grid.js';
 import { envConfig } from '../js/core/env.js';
@@ -324,8 +325,8 @@ test('30 napnál régebbi nyers események törlődnek, a napi összesítők meg
   play(log, clock, { items: ['me'], start: T0 + 31 * DAY }, [['NEXT', 2000]]);
   assert.ok(log.root.events.every((e) => e.item === 'me'));
   assert.deepEqual(log.root.daily.map((d) => d.item).sort(), ['ma', 'me']);
-  const saved = JSON.parse(storage.getItem('k'));
-  assert.equal(saved.v, 1);
+  const saved = decode(JSON.parse(storage.getItem('k')));
+  assert.equal(saved.v, 2);
   assert.equal(saved.daily.length, 2);
   assert.equal(saved.rounds.length, 2);
 });
@@ -352,16 +353,63 @@ test('a kör-korlát a konfigurációból jön', () => {
   assert.equal(new Set(log.root.events.map((e) => e.round)).size, 2);
 });
 
+/* ---------- tárolt formátum (4.2a) ---------- */
+
+const strip = (r) => ({ ...r, events: r.events.map(({ id, ...e }) => e) });
+
+test('tömör formátum: oda-vissza alakítás után ugyanaz a napló, ugyanazok az összesítők', () => {
+  const { log, clock, storage } = fresh();
+  log.syncLists([{ name: 'L', items: ['ma-ma', 'ke-fe', 'mi'] }]);
+  play(log, clock, { items: ['ma-ma', 'ke-fe', 'mi'], flash: 3000, gap: 500 }, [
+    ['COVER', 500, { i: 1, n: 2 }], ['PAUSE', 900], ['BLUR', 1000], ['TICK', 2000], ['PREV', 2200], ['HIDE', 2500], ['SHOW', 4000],
+    ['TICK', 6000], ['NEXT', 6100], ['NEXT', 7000], ['EXIT', 7500],
+  ]);
+  const stored = JSON.parse(storage.getItem('k'));
+  assert.equal(stored.v, 2);
+  assert.deepEqual(strip(decode(stored)), strip(log.root));
+  assert.deepEqual(decode(encode(log.root)).daily, log.root.daily);
+  const again = createProgressLog({ key: 'k', storage, now: () => clock.t, newId: ids });
+  assert.deepEqual(again.root.daily, log.root.daily, 'újratöltés után ugyanaz');
+});
+
+test('az 1. verzió (olvasható objektumok) betöltéskor átalakul, a következő mentés tömör', () => {
+  const { log, clock } = fresh();
+  play(log, clock, { items: ['ma', 'me'] }, [['NEXT', 2000], ['NEXT', 4000]]);
+  const v1 = { ...structuredClone(log.root), v: 1, rounds: log.root.rounds.map(({ items, ...r }) => r) };
+  const storage = memStorage();
+  storage.setItem('k', JSON.stringify(v1));
+  const l2 = createProgressLog({ key: 'k', storage, now: () => clock.t, newId: ids });
+  assert.deepEqual(l2.root.daily, log.root.daily);
+  assert.deepEqual(l2.root.rounds[0].items, ['ma', 'me'], 'a kör tételei az eseményekből');
+  play(l2, clock, { items: ['mi'], start: T0 + 60000 }, [['NEXT', 2000]]);
+  const saved = JSON.parse(storage.getItem('k'));
+  assert.equal(saved.v, 2);
+  assert.equal(decode(saved).events.filter((e) => e.item === 'ma').length, 2, 'a régi események is átkerültek');
+});
+
+test('méret: 19 darab 16 tételes kör: körönként 0,4 kB alatt, napi 19 olvasásos összesítő 130 karakter alatt', () => {
+  const { log, clock, storage } = fresh();
+  const items = ['ma', 'me', 'mi', 'mo', 'mu', 'ma-ma', 'ke-fe', 'fó-ka', 'lu-fi', 'fa-lu', 'pi', 'pó', 'sí', 'ló', 'tál', 'kesz-tyű'];
+  const steps = items.flatMap((_, k) => (k % 5 === 0 ? [['COVER', 2000 * k + 500, { i: 1, n: 2 }], ['NEXT', 2000 * (k + 1)]] : [['NEXT', 2000 * (k + 1)]]));
+  for (let r = 0; r < 19; r++) play(log, clock, { items, start: T0 + r * 60000 }, steps);
+  const s = JSON.parse(storage.getItem('k'));
+  const len = (x) => JSON.stringify(x).length;
+  const perRound = len(s.e) / 19, perDaily = len(s.d) / s.d.length;
+  assert.ok(perRound < 400, `kör: ${perRound.toFixed(0)} karakter`);
+  assert.ok(perDaily < 130, `összesítő: ${perDaily.toFixed(0)} karakter`);
+  assert.ok(storage.getItem('k').length < 20000, `19 kör: ${storage.getItem('k').length} karakter`);
+});
+
 test('kvótahiba: előbb a legrégebbi nyers események törlődnek, a napi összesítők soha', () => {
   const storage = memStorage();
   const { log, clock } = fresh({ storage });
   for (let k = 0; k < 6; k++) play(log, clock, { items: ['ma', 'me', 'mi'], start: T0 + k * 600000 }, [['NEXT', 2000], ['NEXT', 4000], ['NEXT', 6000]]);
   const full = storage.getItem('k').length;
-  const tight = memStorage(full - 1500);
+  const tight = memStorage(full - 150);   // kb. két kör nyers eseményei nem férnek el
   const { log: l2, clock: c2 } = fresh({ storage: tight });
   for (let k = 0; k < 6; k++) play(l2, c2, { items: ['ma', 'me', 'mi'], start: T0 + k * 600000 }, [['NEXT', 2000], ['NEXT', 4000], ['NEXT', 6000]]);
   assert.ok(l2.available, 'a mentés sikerült');
-  const saved = JSON.parse(tight.getItem('k'));
+  const saved = decode(JSON.parse(tight.getItem('k')));
   assert.ok(saved.events.length < log.root.events.length);
   assert.equal(saved.daily.find((d) => d.item === 'ma').exposures, 6);
 });
@@ -380,10 +428,10 @@ test('tárolás nélkül a napló memóriában fut, és nem dob', () => {
 
 test('ismeretlen (újabb) verzió: nem írjuk felül', () => {
   const storage = memStorage();
-  storage.setItem('k', JSON.stringify({ v: 2, events: [], daily: [{ x: 1 }] }));
+  storage.setItem('k', JSON.stringify({ v: 3, events: [], daily: [{ x: 1 }] }));
   const { log, clock } = fresh({ storage });
   play(log, clock, { items: ['ma'] }, [['NEXT', 2000]]);
-  assert.equal(JSON.parse(storage.getItem('k')).v, 2);
+  assert.equal(JSON.parse(storage.getItem('k')).v, 3);
   assert.equal(log.available, false);
 });
 

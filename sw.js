@@ -65,6 +65,7 @@ const ASSETS = [
   'js/core/sequence.js',
   'js/core/settings.js',
   'js/core/source.js',
+  'js/data/progress-codec.js',
   'js/data/progress-log.js',
   'js/data/remote.js',
   'js/data/store.js',

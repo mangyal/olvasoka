@@ -577,7 +577,11 @@ test('képernyőzár: ha a kör a kérés teljesülése előtt ér véget, a zá
 
 /* ---------- Haladás: napló (docs/haladas-specifikacio.md, 5., 11.) ---------- */
 const PROGRESS_KEY = 'olvasoka-dev.haladas';   // localhoston a dev kulcs (js/core/env.js)
-const progressRoot = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), PROGRESS_KEY);
+/** A tárolt napló kibontva (a tárolt alak tömör, js/data/progress-codec.js). */
+const progressRoot = () => page.evaluate(async (k) => {
+  const { decode } = await import('./js/data/progress-codec.js');
+  return decode(JSON.parse(localStorage.getItem(k) || 'null'));
+}, PROGRESS_KEY);
 
 test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éles kulcs érintetlen', async () => {
   await startRound({ flash: 0, count: 3 });
@@ -597,8 +601,9 @@ test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éle
   await page.locator('#admin').waitFor({ state: 'visible' });
 
   const root = await progressRoot();
-  assert.equal(root.v, 1);
-  assert.match(root.deviceId, /^r-/);
+  assert.equal(root.v, 2);
+  assert.match(root.deviceId, /^r-[0-9a-z]{10}$/);
+  assert.ok((await page.evaluate((k) => localStorage.getItem(k).length, PROGRESS_KEY)) < 3000, 'tömör tárolt alak');
   const [r] = root.rounds;
   assert.equal(r.mode, 'read'); assert.equal(r.completed, true); assert.equal(r.corrections, 1);
   assert.deepEqual(r.listNames, ['Szótagok']); assert.match(r.listHash, /^[0-9a-f]{8}$/);

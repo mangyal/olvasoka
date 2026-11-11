@@ -2,7 +2,8 @@
 // napi tételösszesítők, listaazonosság. Minden tárolás try/catch között (a js/data/store.js mintájára):
 // ha a tárolás nem elérhető, a gyakorlás változatlanul működik, a napló csak memóriában él.
 //
-// Tárolt gyökér: { v: 1, deviceId, child, events, daily, rounds, lists }
+// Memóriabeli gyökér: { v, deviceId, child, events, daily, rounds, lists } (olvasható objektumok).
+// A tárolt alak tömör (data/progress-codec.js, 2. verzió); az 1. verzió betöltéskor átalakul.
 // - A nyers események a legutóbbi `tarolas.nyers_megorzes_kor` lezárt körből és legfeljebb
 //   `tarolas.nyers_megorzes_nap` napig maradnak (ami bármelyiken túl van, törlődik); addig a napi összesítők
 //   belőlük újraszámolhatók (core/exposures.js). A kör végén a kör megjelenései egyszer hozzáadódnak.
@@ -14,16 +15,19 @@ import { roundExposures, dailyRecords, mergeDaily, dayOf, listHash } from '../co
 import { reconcileLists } from '../core/list-identity.js';
 import { itemKey, nameKey } from '../core/items.js';
 import { DEFAULTS } from '../core/haladas-config.js';
+import { encode, decode, VERSION } from './progress-codec.js';
 
-export const VERSION = 1;
+export { VERSION };
 const DAY = 86400000;
 
+/** Rövid véletlen azonosító: 10 karakter 36-os számrendszerben (kb. 51 bit). */
 export function randomId() {
   const c = globalThis.crypto;
-  if (c?.randomUUID) return c.randomUUID();
-  const b = new Uint8Array(16);
-  if (c?.getRandomValues) c.getRandomValues(b); else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
-  return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  const b = new Uint8Array(8);
+  if (c?.getRandomValues) c.getRandomValues(b); else for (let i = 0; i < 8; i++) b[i] = Math.floor(Math.random() * 256);
+  let n = 0n;
+  for (const x of b) n = (n << 8n) | BigInt(x);
+  return (n % (36n ** 10n)).toString(36).padStart(10, '0');
 }
 
 const emptyRoot = (newId) => ({ v: VERSION, deviceId: `r-${newId()}`, child: 'default', events: [], daily: [], rounds: [], lists: {} });
@@ -49,13 +53,14 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
     try {
       const raw = storage.getItem(key);
       if (!raw) return emptyRoot(newId);
-      const r = JSON.parse(raw);
-      if (r?.v !== VERSION) {
-        console.warn(`Haladás: ismeretlen adatverzió (${r?.v}), a napló most nem mentődik.`);
+      const stored = JSON.parse(raw);
+      const r = decode(stored);
+      if (!r) {
+        console.warn(`Haladás: ismeretlen adatverzió (${stored?.v}), a napló most nem mentődik.`);
         writable = false;
         return emptyRoot(newId);
       }
-      return { ...emptyRoot(newId), ...r };
+      return r;
     } catch {
       return emptyRoot(newId);       // sérült tartalom: újrakezdjük (a régi a következő íráskor felülíródik)
     }
@@ -64,7 +69,7 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
   function save() {
     if (!writable) return false;
     for (;;) {
-      try { storage.setItem(key, JSON.stringify(root)); return true; } catch (e) {
+      try { storage.setItem(key, JSON.stringify(encode(root))); return true; } catch (e) {
         if (!isQuota(e) || !dropOldestEvents()) { writable = false; return false; }
       }
     }
@@ -112,7 +117,7 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
 
   function push(type, i, extra = {}) {
     if (!cur) return;
-    root.events.push({ id: newId(), round: cur.round.id, t: now(), i, item: cur.items[i], type, ...extra });
+    root.events.push({ id: `${cur.round.id}:${cur.n++}`, round: cur.round.id, t: now(), i, item: cur.items[i], type, ...extra });
   }
 
   // indulás: a korábban félbemaradt (pl. bezárt lappal véget ért) körök lezárása
@@ -145,9 +150,10 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
         id: newId(), child: root.child, t0: now(), mode: 'read',
         listNames: [...listNames], listIds: listNames.map((n) => ids.get(nameKey(n)) || null),
         listHash: listHash(items), flashMs, gapMs, count, completed: false, abandonedAt: null, corrections: 0, folded: false,
+        items: seq.map((k) => itemKey(items[k])),
       };
       root.rounds.push(round);
-      cur = { round, items: seq.map((k) => itemKey(items[k])) };
+      cur = { round, items: round.items, n: 0 };
       push('show', 0);
       save();
     },

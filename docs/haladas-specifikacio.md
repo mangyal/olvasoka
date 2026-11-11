@@ -1,9 +1,12 @@
 # Olvasóka: Haladás (tétel-elsajátítás) specifikáció
 
-Verzió: 1.4 · 2026. november 11.
+Verzió: 1.5 · 2026. november 11.
 Mellékletek: a jóváhagyott képernyőtervek képernyőképei (lásd 8. fejezet).
 
 ## 0. Változások
+
+### 1.5 (az 1.4-hez képest)
+- Tömör tárolt formátum (2. verzió, 4.2a): a valós dev adatokon 156 kB → 23 kB, ugyanazokkal az állapotokkal. Az 1. verzió betöltéskor átalakul. Az olvasási idők 100 ms-os felbontással tárolódnak.
 
 ### 1.4 (az 1.3-hoz képest)
 - A nyers napló korlátja a napok mellett a körök száma is: a legutóbbi 30 kör (`tarolas.nyers_megorzes_kor`) (4.3, 7.1).
@@ -113,10 +116,18 @@ Alapelvek, amelyek minden döntést felülírnak:
 - A tétel **szövegét** tároljuk, sosem a lista indexét.
 - A kör a lista nevét **és tartalmi hash-ét** is tárolja (rövid, pl. 8 hexa karakter a rendezett tételkulcsokból).
 
+### 4.2a Tárolt formátum (2. verzió)
+A 4.2 rekordjai a program memóriájában ilyen olvasható alakban vannak; a localStorage-be tömör alak kerül (`js/data/progress-codec.js`):
+- a körök és a napi összesítők mezőnevek nélküli tömbök; a napi összesítő azonosítója (eszköz|gyerek|tétel|nap) és mediánja betöltéskor áll elő;
+- a kör a tételeit egyszer tárolja (pozíció szerint); az események körönként egy szövegben vannak (`eltelt idő,pozíció,kód`), tétel és saját azonosító nélkül;
+- az olvasási idők 100 ms-os egységben;
+- az azonosítók rövidek (10 karakter, véletlen).
+Az 1. verziójú (olvasható) adat betöltéskor átalakul; ismeretlen, újabb verziót a program nem ír felül.
+
 ### 4.3 Tömörítés és méret
 - A nyers események a legutóbbi 30 körből (`nyers_megorzes_kor`) és legfeljebb 30 napig (`nyers_megorzes_nap`) maradnak meg; ami bármelyik korláton túl van, törlődik. Így a nyers napló mérete a használat gyakoriságától függetlenül korlátos (kb. 150 kB). Törlés előtt bekerülnek a napi összesítőkbe: minden kör a lezárásakor (vagy ha a lap közben bezárult, a következő induláskor) egyszer hozzáadódik. Az összesítő az eseményekből újraszámolható, amíg azok megvannak (`js/core/exposures.js`).
 - `dwellMs` és `help`: legfeljebb 20 elem; ha több, az első és az utolsó 10 marad (a kiindulás az elejéből, a legutóbbiak a végéből számolnak).
-- Becslés (mért, 1.4): egy esemény kb. 150 bájt, egy 10 tételes kör kb. 4,5 kB nyers napló, így a 30 körös korlát kb. 150 kB. Egy napi összesítő jelenleg kb. 300 bájt (napi 20 tétel×nap mellett évi kb. 2 MB); a tömörebb formátum a kiadás előtt jön.
+- Mért méretek (2. verzió): egy 16 tételes kör nyers naplója kb. 0,3 kB (a 30 körös korláttal legfeljebb kb. 10 kB); egy napi összesítő kb. 50–130 karakter az aznapi olvasások számától függően (napi 20 tétel×nap mellett évi kb. 0,5 MB). Valós dev adat 19 kör után: 23 kB (az 1. verzióban 156 kB).
 - Ha az írás kvótahiba miatt sikertelen: előbb a legrégebbi nyers események törlődnek (összesítés után), a napi összesítők sosem.
 
 ## 5. Naplózás és mellényomás-szűrés
