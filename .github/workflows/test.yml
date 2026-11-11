@@ -1,8 +1,11 @@
 name: Tesztek
 
+# Csak PR-on fut (és kézzel): ugyanarra a commitra a push- és a PR-futás ugyanazt tesztelte kétszer.
+# A kötelező ellenőrzéseket (test, e2e, layout) a PR-futás teljesíti; a dev/main pusht a deploy saját
+# `test` jobja is ellenőrzi kiadás előtt. Ág PR nélkül: Actions → Tesztek → Run workflow.
 on:
-  push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
