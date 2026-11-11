@@ -17,9 +17,13 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/admin.css">
 <link rel="stylesheet" href="css/stage.css">
+<link rel="stylesheet" href="css/haladas.css">
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
+
+<!-- ================= HALADÁS (docs/haladas-specifikacio.md, 8.) ================= -->
+<main id="haladas" class="haladas" hidden aria-label="Haladás"></main>
 
 <!-- ================= SZÜLŐI FELÜLET ================= -->
 <div id="admin" class="admin">
@@ -27,6 +31,10 @@
     <h1>Olvasóka</h1>
     <span class="app-version muted num" id="appVersion"></span>
     <span class="top-actions">
+      <button type="button" class="btn-text top-btn" id="progressBtn" title="Haladás">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-7M12 20V5M19 20v-10M3 20h18"/></svg>
+        <span class="top-label">Haladás</span>
+      </button>
       <button type="button" class="btn-text top-btn" id="helpBtn" title="Súgó">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
         <span class="top-label">Súgó</span>
@@ -80,7 +88,7 @@
           <a id="editLink" class="ext" href="#" target="_blank" rel="noopener">Listák szerkesztése a táblázatban ↗</a>
         </div>
         <details class="fallback muted" id="fallbackInfo" hidden>
-          <summary>Tartalék lista: lists.txt</summary>
+          <summary>Tartaléklisták láthatók (a táblázat nem elérhető)</summary>
           <p id="fallbackWhy"></p>
         </details>
       </div>
@@ -151,7 +159,7 @@
             <span class="seg-opts" id="cardOpts"></span>
           </fieldset>
           <div class="ctl ctl-count ctl-tasks">
-            <label for="tasksIn">Feladatok száma</label>
+            <label for="tasksIn">Feladatok a körben</label>
             <span class="stepper">
               <button type="button" id="tasksDec" aria-label="Kevesebb feladat">−</button>
               <input type="number" id="tasksIn" min="1" max="30" step="1" inputmode="numeric">
@@ -161,10 +169,10 @@
           <div class="ctl ctl-level">
             <span class="ctl-head"><label for="levelIn">Nehézség</label><output id="levelOut" for="levelIn"></output></span>
             <input type="range" id="levelIn" min="1" max="5" step="1" aria-describedby="levelInfo">
-            <span class="level-ends hint" aria-hidden="true"><span>1 eltérő</span><span>2</span><span>3</span><span>4</span><span>5 nagyon hasonló</span></span>
+            <span class="level-ends hint" aria-hidden="true"><span>1 nagyon eltérő</span><span>2</span><span>3</span><span>4</span><span>5 nagyon hasonló</span></span>
             <div class="info-box" id="levelInfo">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>
-              <p>A Meixner-módszer szerint a hasonló betűket (pl. b–d, m–n) időben egymástól távol érdemes tanulni, hogy a gyerek ne keverje össze őket. Ezért a legkönnyebb fokozattal kezdjetek. A program megjegyzi a beállítást.</p>
+              <p>A Meixner-módszer szerint a hasonló betűket (pl. b–d, m–n) érdemes egymástól távol tanulni, hogy ne keveredjenek. Kezdjetek a legkönnyebbel, és csak akkor lépjetek feljebb, ha már biztosan megy.</p>
             </div>
           </div>
           <div class="ctl ctl-sample" id="sampleBox">
@@ -197,22 +205,22 @@
               <span><kbd>P</kbd></span><span>szünet</span>
               <span><kbd>Esc</kbd></span><span>kilépés</span>
             </div>
-            <p class="how-touch">Tableten: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles tételnél a szótagra koppintva letakarod. A kör végén jutalomjáték: lufipukkasztás vagy panda-ugrálás.</p>
+            <p class="how-touch">Érintőképernyőn: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles tételnél a szótagra koppintva letakarod. A kör végén jutalomjáték: lufipukkasztás vagy panda-ugrálás.</p>
           </div>
           <div class="how-find" id="howFind" hidden>
             <ol class="how-steps">
               <li>Válassz ki fejben egy kártyát, és mondd ki hangosan – ne mutass rá.</li>
               <li>A gyerek megkeresi, és rámutat vagy rákoppint.</li>
               <li>Te döntöd el, hogy jó-e: a program nem értékel, csak megjelöli a koppintott kártyát.</li>
-              <li>Egy feladaton belül többet is kérhetsz, mielőtt továbblépsz.</li>
+              <li>Egy feladatnál több kártyát is kérhetsz, mielőtt továbblépsz.</li>
             </ol>
             <div class="how-keys only-keys">
               <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő feladat</span>
               <span><kbd>←</kbd></span><span>előző feladat</span>
-              <span>kattintás</span><span>kártya megjelölése, újra kattintva levétele</span>
+              <span>kattintás</span><span>megjelöli, újabb kattintásra leveszi</span>
               <span><kbd>Esc</kbd></span><span>kilépés</span>
             </div>
-            <p class="how-touch">Tableten: a gyerek a kártyára koppint, te a lenti nyilakkal lépsz a következő feladatra. A kör végén jutalomjáték: lufipukkasztás vagy panda-ugrálás.</p>
+            <p class="how-touch">Érintőképernyőn: a gyerek a kártyára koppint, te a lenti nyilakkal lépsz a következő feladatra. A kör végén jutalomjáték: lufipukkasztás vagy panda-ugrálás.</p>
             <!-- alsó lapon (E8): képes magyarázó a lépések alatt; a popoverben nem látszik -->
             <ul class="how-pics" aria-label="Vezérlés érintőképernyőn">
               <li><span class="pic pic-on" aria-hidden="true">kor</span><span>Koppintás: megjelöl</span></li>
@@ -291,16 +299,16 @@
 
 <dialog id="dlgHelp" class="dlg-help" aria-labelledby="helpH">
   <h2 id="helpH">Olvasóka</h2>
-  <p>Hangtalan olvasásgyakorló kisiskolásoknak. A program felvillant egy betűt, szótagot vagy szót, a gyerek hangosan felolvassa, te pedig mellette figyeled a kiejtést.</p>
+  <p>Hangtalan olvasásgyakorló kisiskolásoknak, két játékkal. Felolvasás: a gyerek felolvassa a felvillanó tételt. Keresd meg!: te mondasz egy tételt, a gyerek megkeresi.</p>
   <h3>Így használd</h3>
   <ol class="help-steps">
-    <li><span class="only-keys">Válassz listát bal oldalt. Ctrl+kattintással többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be, melyik listákból gyakoroltok.</span></li>
-    <li><span class="only-wide">A jobb oldali panelen</span><span class="only-narrow">Lent</span> állítsd be, mennyi ideig látszódjon egy tétel (0 = te lépteted), és hány tétel legyen a körben.</li>
+    <li><span class="only-keys">Válassz listát bal oldalt. Ctrl/⌘+kattintással többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be, melyik listákból gyakoroltok.</span></li>
+    <li><span class="only-wide">A jobb oldali panelen</span><span class="only-narrow">Lent</span> válaszd ki a játékot, és állítsd be a kört: hány tétel legyen, milyen gyors vagy milyen nehéz.</li>
     <li>Üljetek le együtt a képernyő elé, és indítsd el a játékot!</li>
-    <li><span class="only-keys">Gyakorlás közben <kbd>Space</kbd> a következő tétel, <kbd>Esc</kbd> kilépés. A többi billentyűt az „Így játsszátok” gomb mutatja.</span><span class="only-touch">Gyakorlás közben koppints bárhová a következő tételhez. A lenti gombokkal vissza is léphetsz, vagy megállíthatod a kört, a bal felső ✕-szel pedig kiléphetsz. Kötőjeles tételnél egy szótagra koppintva letakarhatod, újabb koppintásra előjön.</span></li>
-    <li>A kör végén jutalomjáték jön: lufipukkasztás vagy panda-ugrálás (nyilakkal vagy koppintással)!</li>
+    <li><span class="only-keys">Gyakorlás közben <kbd>Space</kbd> a következő tétel, <kbd>Esc</kbd> kilépés. A többi billentyűt az „Így játsszátok” gomb mutatja.</span><span class="only-touch">Felolvasáskor koppints bárhová a következő tételhez. Lent visszaléphetsz vagy megállhatsz, a bal felső ✕-szel kiléphetsz. Kötőjeles tételnél a szótagra koppintva letakarod, újabb koppintásra előjön.</span></li>
+    <li>A kör végén jutalomjáték jön: lufipukkasztás vagy panda-ugrálás – a panda nyílra vagy koppintásra ugrik!</li>
   </ol>
-  <p class="muted help-install">Telefonra vagy tabletre telepítve teljes képernyőn, hálózat nélkül is fut. iPhone-on és iPaden: Safari, Megosztás, Főképernyőhöz adás.</p>
+  <p class="muted help-install">Telepítve teljes képernyőn, internet nélkül is fut. iPhone/iPad: Safari › Megosztás › Főképernyőhöz adás. Android: Chrome › Telepítés.</p>
   <div class="dlg-actions help-actions">
     <label class="help-hide"><input type="checkbox" id="helpHide"> Ne jelenjen meg újra</label>
     <button type="button" class="btn btn-primary" data-close autofocus>Kezdjük</button>

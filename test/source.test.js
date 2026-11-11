@@ -69,8 +69,8 @@ test('forrás: a táblázatból jön, tartalék nélkül', async () => {
 test('forrás: a táblázat hibájánál a lists.txt jön, az okkal', async () => {
   const cases = [
     [new Error('A táblázat nem érhető el (HTTP 404).'), /HTTP 404/],
-    [{ text: '<!doctype html><title>Bejelentkezés</title>', type: 'text/html; charset=utf-8' }, /nem CSV-t adott/],
-    [{ text: ' <html>', type: '' }, /nem CSV-t adott/],
+    [{ text: '<!doctype html><title>Bejelentkezés</title>', type: 'text/html; charset=utf-8' }, /nem a várt formában/],
+    [{ text: ' <html>', type: '' }, /nem a várt formában/],
     [',,\n,,', /nincs lista/],
   ];
   for (const [sheet, why] of cases) {

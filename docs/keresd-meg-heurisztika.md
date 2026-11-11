@@ -49,7 +49,7 @@ A rács tételenként épül: horgony, majd N−1 súlyozott véletlen húzás v
    - szó → szótag → betű
 
    Szónál az eltérő szótagszámú szavak a szótagok előtt jönnek: azonos szótagszámú szó → más szótagszámú szó → szótag → betű.
-3. **Tokenizálás.** Normalizálás után mohó leghosszabb egyezés: előbb `dzs`, majd a kétjegyűek, végül az egyes karakterek.
+3. **Tokenizálás.** Normalizálás után mohó leghosszabb egyezés: előbb `dzs`, majd a kétjegyűek, végül az egyes karakterek. A hosszú többjegyű mássalhangzó két betű: `ssz` → `sz`+`sz` (asszony → a-sz-sz-o-ny), `ggy` → `gy`+`gy`.
 4. **Távolság.** Súlyozott Levenshtein a betűsorozatokon. Beszúrás, törlés, csere költsége a konfigurációból jön (lásd Konfiguráció); ha egy pár több kategóriában is szerepel, a legkisebb költség érvényes.
 5. **Súly.** Minden jelölt két 0–1 közötti pontszámot kap, ezeket a fokozat keveri (képletek lent).
 6. **Kalibrált fokozat.** A fokozat nem közvetlenül keveri a pontszámokat: előbb a kiegyenlítő görbén át belső aránnyá alakul (darabonként lineáris, töréspontok a fokozatoknál).

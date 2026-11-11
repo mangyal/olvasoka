@@ -43,7 +43,7 @@ test('Keresd meg! beállítások: alapértékek, korlátok, érvénytelen mezők
 
 test('nehézség: 1–5 → a heurisztika 0 · 0,25 · 0,5 · 0,75 · 1 fokozata (F-S6)', () => {
   assert.deepEqual(LEVELS.map((l) => levelToDegree(l)), [0, 0.25, 0.5, 0.75, 1]);
-  assert.equal(LEVEL_LABELS[1], 'jól megkülönböztethető');
+  assert.equal(LEVEL_LABELS[1], 'nagyon eltérő');
   assert.equal(LEVEL_LABELS[5], 'nagyon hasonló');
   assert.equal(findEstimate({ tasks: 10, cards: 4 }), '10 feladat · 4 kártya');
 });

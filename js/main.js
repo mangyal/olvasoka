@@ -1,7 +1,9 @@
 // Indítás és állapotváltás: ADMIN ⇄ PRACTICE → REWARD → ADMIN, Keresd meg! módban ADMIN ⇄ FIND → REWARD → ADMIN.
 
 import { createStore } from './data/store.js';
-import { fetchLists, fetchPairs } from './data/remote.js';
+import { fetchLists, fetchPairs, fetchProgressConfig } from './data/remote.js';
+import { createProgressLog } from './data/progress-log.js';
+import { resolve as resolveProgress } from './core/haladas-config.js';
 import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
 import { clampSettings, clampFind, normalizeMode, levelToDegree } from './core/settings.js';
 import { buildTasks, effectiveCards } from './core/find.js';
@@ -12,6 +14,7 @@ import { ENV } from './core/env.js';
 import { VERSION } from './version.js';
 import { createAdmin } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
+import { createProgressView } from './ui/haladas.js';
 
 const $ = (id) => document.getElementById(id);
 const el = new Proxy({}, { get: (c, k) => (c[k] ??= $(k)) });
@@ -29,7 +32,8 @@ const app = {
   kind: saved.cache?.kind || null,  // amiből a látható listák jöttek
   fallback: '',                     // miért nem a táblázatból jöttek (F-L13)
   font: { state: 'loading', name: 'Arial' },
-  storageOK: store.available,
+  // élő érték: ha egy későbbi írás bukik (pl. betelt a tárhely), a figyelmeztetés is megjelenik (F-S4)
+  get storageOK() { return store.available; },
 };
 let cache = saved.cache;
 
@@ -64,7 +68,53 @@ function pickSelected() {
   setSelection(reconcile(want, keys));
 }
 
-const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); } });
+// Haladás: a gyakorlás naplója a szülő eszközén (docs/haladas-specifikacio.md). Ha a tárolás nem
+// elérhető, memóriában fut; a gyakorlást semmi nem akasztja meg.
+const progress = createProgressLog({ key: ENV.progressKey, config: resolveProgress(null, { skipDayRules: ENV.skipDayRules }) });
+
+/** A kör listáinak nevei: „Összes lista” módban mind, különben a kijelöltek. */
+const roundListNames = () => (app.settings.source === 'all' ? app.lists.map((l) => l.name) : app.lastLists);
+
+const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); }, progress });
+
+/* ---------- Haladás nézet (8.1): #haladas, #haladas/tetel/<tételkulcs> ---------- */
+// A hash miatt a rendszer vissza gombja és gesztusa is működik. Gyakorlás közben nem érhető el.
+function parseRoute(hash) {
+  if (hash === '#haladas') return { view: 'overview' };
+  const m = /^#haladas\/tetel\/(.+)$/.exec(hash);
+  if (m) { try { return { view: 'item', item: decodeURIComponent(m[1]) }; } catch { return { view: 'overview' }; } }
+  return null;
+}
+const trail = [];                 // a munkamenetben bejárt címek: a „Vissza” a böngésző előzményét használja, ha lehet
+const plainUrl = () => location.pathname + location.search;
+function back(target) {
+  if (trail.length > 1 && trail.at(-2) === target) { history.back(); return; }
+  history.replaceState(null, '', target || plainUrl());
+  route();
+}
+const progressView = createProgressView(el.haladas, {
+  data: () => ({
+    daily: progress.root.daily.filter((d) => d.child === progress.root.child),
+    lists: app.lists, cfg: progress.config, now: Date.now(), available: progress.available,
+  }),
+  back,
+});
+function route() {
+  const hash = location.hash;
+  if (trail.at(-2) === hash) trail.pop(); else if (trail.at(-1) !== hash) trail.push(hash);
+  const r = parseRoute(hash);
+  if (r && practice.active) { history.replaceState(null, '', plainUrl()); trail.pop(); return; }
+  if (r) {
+    el.admin.hidden = true; el.haladas.hidden = false;
+    progressView.show(r);
+  } else if (!el.haladas.hidden) {
+    el.haladas.hidden = true; el.admin.hidden = false;
+    admin.render();
+    el.progressBtn.focus({ preventScroll: true });
+  }
+}
+addEventListener('hashchange', route);
+el.progressBtn.addEventListener('click', () => { if (!practice.active) location.hash = '#haladas'; });
 
 const admin = createAdmin(el, app, {
   // mod: { toggle, range } – Ctrl/Cmd, illetve Shift kattintás
@@ -108,15 +158,15 @@ const admin = createAdmin(el, app, {
       practice.startFind(tasks, cards, ev);
       return;
     }
-    practice.start(admin.roundItems(), app.settings, ev);
+    practice.start(admin.roundItems(), app.settings, ev, { listNames: roundListNames(), undoMs: progress.config.szures.javitott_melle_ms });
   },
   fontTest() {
     const ok = fontLooksRight(app.font);
     el.fontResult.textContent = ok
       ? (app.font.name === 'Arial'
         ? '✓ Rendben – az Arial betűtípus jelenik meg.'
-        : '✓ Rendben – az Arimo jelenik meg (az Ariallal azonos betűalakú helyettesítő, mert ezen a gépen nincs Arial).')
-      : app.font.state === 'loading' ? 'A betűtípus még töltődik…' : '✕ Nem az Arial jelenik meg.';
+        : '✓ Rendben – az Arimo látszik, ami az Arial pontos megfelelője (ezen a gépen nincs Arial).')
+      : app.font.state === 'loading' ? 'A betűtípus még töltődik…' : '✕ Nem az Arial látszik – a gyerek nem a tanult betűalakokat fogja látni (pl. ő, ű)!';
     el.fontResult.className = ok ? '' : 'err';
     el.dlgFont.showModal();
   },
@@ -131,6 +181,8 @@ async function refresh() {
     app.kind = r.kind; app.fallback = r.fallback;
     cache = { text: r.text, fetchedAt: app.fetchedAt, kind: r.kind };
     persist();
+    if (app.lists.length) progress.syncLists(app.lists);
+    progressView.refresh();
   } catch (e) {
     app.loadError = e.message;
     app.listsState = app.lists.length ? 'stale' : 'error';
@@ -152,9 +204,20 @@ async function loadPairs() {
   if (!practice.active) admin.render();
 }
 
+/* ---------- Haladás küszöbei (haladas.json) ---------- */
+// Hiányzó vagy hibás fájlnál a beépített alapértékekkel fut, és a konzolra figyelmeztet (7.1).
+async function loadProgressConfig() {
+  try {
+    progress.setConfig(resolveProgress(await fetchProgressConfig(), { skipDayRules: ENV.skipDayRules }));
+  } catch (e) {
+    console.warn('Haladás: a haladas.json nem használható, az alapértékekkel fut.', e.message);
+  }
+}
+
 /* ---------- billentyűk ---------- */
 document.addEventListener('keydown', (e) => {
   if (practice.active) { practice.key(e); return; }
+  if (!el.haladas.hidden) { progressView.key(e); return; }
   if (admin.key(e)) return;
   if ((e.ctrlKey || e.metaKey) && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
     e.preventDefault();
@@ -183,11 +246,13 @@ if (ENV.env === 'dev') {
 /* ---------- indulás ---------- */
 pickSelected();
 admin.render();
-if (!app.hideHelp) openHelp();
+route();                          // ha a cím #haladas…, rögtön a Haladás nézet
+if (!app.hideHelp && el.haladas.hidden) openHelp();
 initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();
 loadPairs();
+loadProgressConfig();
 
 // PWA: offline indulás (sw.js). Csak https-en vagy localhoston; hiba esetén a program ugyanúgy fut.
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

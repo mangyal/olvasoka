@@ -16,7 +16,7 @@ minden oszlop egy lista, az első sorban a lista neve, alatta cellánként a té
 (**Frissítés** gomb vagy újratöltés).
 
 Ha a táblázat nem érhető el, a program a repó [`lists.txt`](lists.txt) fájlját használja tartalékként, és a
-listák alatt halványan jelzi: „Tartalék lista: lists.txt”. A `lists.txt` nem frissül magától a táblázatból.
+listák alatt halványan jelzi: „Tartaléklisták láthatók (a táblázat nem elérhető)”. A `lists.txt` nem frissül magától a táblázatból.
 
 ### A `lists.txt` (tartalék)
 
@@ -64,7 +64,7 @@ A beállítások a szülői felület jobb oldali paneljén vannak (tableten és 
 Indítás gomb mindig látszik. A gyakorlás billentyűit a panel **Így játsszátok** gombja mutatja.
 A **Keresd meg!** fülön a program 4, 6 vagy 8 kártyát mutat a kijelölt listákból (telefonon legfeljebb 6).
 Te kimondod az egyiket, a gyerek rábök; a program csak megjelöli, amire bökött, nem értékel. A nehézség
-1–5 (1 = jól megkülönböztethető, 5 = nagyon hasonló elemek), alapból 1, utána a legutóbbi marad.
+1–5 (1 = nagyon eltérő, 5 = nagyon hasonló elemek), alapból 1, utána a legutóbbi marad.
 Billentyűk: `Space`/`→` következő feladat, `←` előző, kattintás jelöl, `Esc` kilépés. Érintőképernyőn (pl. fekvő iPad) az
 oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy lenyíló sorból nyíló lapon
 választhatók.
@@ -76,6 +76,12 @@ megállítja az időt; a következő tételnél minden szótag újra látszik.
 
 A beállítások az adott böngészőben maradnak meg.
 
+**Haladás** (fejléc): mely tételek mennek már, melyek egyre jobban, és melyeket érdemes még gyakorolni.
+Csak a meglévő mozdulatokból számol (lapozás, visszalépés, takarás, megállítás és ezek ideje); a helyességet
+nem tudja, azt a szülő hallja. Az adatok csak az adott eszközön vannak, fiók nélkül. A küszöbök a
+[`haladas.json`](haladas.json)-ban (a szülő nem látja); teszteléshez a `DEV_PROGRESS_SKIP_DAY_RULES` változó
+kikapcsolja a napszámon alapuló szabályokat (lásd lent). Részletek: [`docs/haladas-specifikacio.md`](docs/haladas-specifikacio.md).
+
 ## Felépítés
 
 Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
@@ -84,6 +90,7 @@ Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
 index.html          markup
 lists.txt           a listák
 parok.json          Keresd meg!: hasonló betűpárok, költségek, nehézségi görbe (docs/keresd-meg-heurisztika.md)
+haladas.json        Haladás: a szűrés és a tételállapotok küszöbei (docs/haladas-specifikacio.md, 7.1)
 css/                tokens · szülői felület · gyakorló és jutalom nézet
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
 js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
@@ -103,9 +110,15 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   grid.js             Keresd meg!: rácsösszeállító heurisztika és kalibrálás
   find.js             Keresd meg!: feladatok és a kör lépés-logikája
   env.js              éles/dev környezet, tárolási nevek
-  config.js           a táblázat címei környezetenként (kiadáskor repository variable-ökből)
-js/data/            localStorage és a listák letöltése
-js/ui/              szülői felület, gyakorlás, Keresd meg!, jutalmak (lufi, panda, konfetti)
+  config.js           a táblázat címei és a Haladás napszabály-kapcsolója környezetenként (kiadáskor repository variable-ökből)
+  practice-log.js     Haladás: a Felolvasás kör naplóeseményei a reducer átmeneteiből
+  exposures.js        Haladás: mellényomás-szűrés, megjelenések, napi tételösszesítők
+  list-identity.js    Haladás: listaazonosság (átnevezett lista felismerése)
+  mastery.js          Haladás: tételállapotok, betűelemzés, a nézet adatai
+  haladas-texts.js    Haladás: a felület szövegei egy helyen
+  haladas-config.js   Haladás: a haladas.json ellenőrzése és alapértékei
+js/data/            localStorage, a Haladás naplója (progress-log.js) és a listák letöltése
+js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalmak (lufi, panda, konfetti)
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
 test/               node --test
@@ -114,6 +127,7 @@ test/               node --test
 ## Specifikáció
 
 A követelmények, döntések és elfogadási kritériumok: [`docs/specifikacio.md`](docs/specifikacio.md).
+A Haladás nézet: [`docs/haladas-specifikacio.md`](docs/haladas-specifikacio.md).
 
 ## Fejlesztés
 

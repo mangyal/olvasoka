@@ -645,6 +645,12 @@ Nincs pontszám, idő, felirat (a számlálón kívül), hang, büntetés, újra
   - A service worker telepítéskor eltárolja a program fájljait (HTML, JS, CSS, betű, képek), és hálózat
     először stratégiával szolgál ki: online mindig a friss fájl jön (`no-cache`, ETag-gel olcsó), 3 mp
     után vagy hálózat nélkül a tárolt példány. Így új verzióhoz nem kell semmit léptetni.
+  - Egy oldalbetöltés egy forrásból: a 3 mp-es döntés az oldalon születik, és az oldal többi fájlja
+    ugyanonnan jön (hálózatról jött oldalhoz a hálózatról, tárolt példány csak hálózati hibánál; tárolt
+    oldalhoz a tárolóból). Így egy kiadás után nem keveredik a régi és az új verzió. Tárolt példány
+    nélkül a lassú első betöltés is megvárja a hálózatot.
+  - A tárolóba csak az `ASSETS` fájljai kerülnek, query nélkül, és csak a ténylegesen kiszolgált hálózati
+    válasz; aktiváláskor a többi bejegyzés törlődik (`test/sw.test.js`).
   - A `lists.txt`-t és a külső címeket (a Google táblázatot) nem kezeli; a listák offline állapotát a program jelzi (F-L8, F-L9).
   - A tárolólistát (`ASSETS`) a `test/pwa.test.js` egyezteti a repó fájljaival.
 - **N9 Képernyőzár:** gyakorlás és jutalom alatt Screen Wake Lock, hogy a képernyő ne sötétüljön el;

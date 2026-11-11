@@ -356,7 +356,7 @@ test('Keresd meg!: alapértékek, becslés, a beállítások megmaradnak (30.)',
   assert.equal(await page.locator('#cards4').isChecked(), true, 'alapból 4 kártya');
   assert.equal(await page.inputValue('#tasksIn'), '10');
   assert.equal(await page.inputValue('#levelIn'), '1');
-  assert.equal(await text('#levelOut'), '1 · jól megkülönböztethető');
+  assert.equal(await text('#levelOut'), '1 · nagyon eltérő');
   assert.equal(await text('#estimate'), '10 feladat · 4 kártya');
   await page.locator('label:has(#cards8)').click();
   await page.$eval('#levelIn', (e) => { e.value = '4'; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change')); });
@@ -386,7 +386,7 @@ test('Keresd meg!: egyetlen különböző tétel → Indítás inaktív (F-S8)',
   await page.locator('#listNav .nav-item').first().waitFor();
   await page.locator('#tabFind').click();
   await page.waitForFunction(() => document.getElementById('startMsg').textContent);
-  assert.equal(await text('#startMsg'), 'Legalább két különböző tétel kell.');
+  assert.equal(await text('#startMsg'), 'A Keresd meg!-hez legalább két különböző tétel kell.');
   assert.equal(await page.locator('#startBtn').isDisabled(), true);
 });
 
@@ -504,4 +504,287 @@ test('Keresd meg! minta: 320 px-en, 8 kártyás beállítással, háromszótagú
     assert.equal(r.pageScrollX, false, 'nincs vízszintes görgetés');
     await page.locator('#sampleBtn').click();
   }
+});
+
+/* ---------- robusztusság ---------- */
+test('akadálymentesség: billentyűzettel kijelölt lista gombján marad a fókusz (az elem nem cserélődik)', async () => {
+  const btn = navBtn('Betűk');
+  await btn.focus();
+  const before = await btn.elementHandle();
+  await page.keyboard.press('Enter');
+  assert.deepEqual(await pressed(), NAMES.map((n) => String(n === 'Betűk')));
+  assert.equal(await before.evaluate((b) => b.isConnected && document.activeElement === b), true, 'a fókusz elveszett');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Space');
+  const name = await page.evaluate(() => document.activeElement.textContent);
+  assert.ok(name.startsWith(NAMES[1]), `a fókusz nem a következő listán van: ${name}`);
+  assert.deepEqual(await pressed(), NAMES.map((n, i) => String(i === 1)));
+});
+
+test('tárolás: ha egy későbbi mentés bukik (betelt tárhely), a figyelmeztetés megjelenik (F-S4)', async () => {
+  await ctx.addInitScript(() => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      if (k === 'olvasoka-dev' && sessionStorage.getItem('e2e-fail') === '1') throw new DOMException('tele', 'QuotaExceededError');
+      return orig.call(this, k, v);
+    };
+  });
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  const warn = () => page.locator('#warnings').textContent();
+  assert.ok(!(await warn()).includes('nem mentődnek el'), 'induláskor még működik a tárolás');
+  await page.evaluate(() => sessionStorage.setItem('e2e-fail', '1'));
+  await page.locator('#countInc').click();
+  assert.ok((await warn()).includes('A beállításaid nem mentődnek el'), 'a figyelmeztetés nem jelent meg');
+});
+
+/** Hamis Screen Wake Lock: a kérés 400 ms múlva teljesül; window.__wl.held a fogva tartott zárak száma. */
+async function fakeWakeLock() {
+  await ctx.addInitScript(() => {
+    window.__wl = { held: 0, requests: 0 };
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: () => {
+      window.__wl.requests++;
+      return new Promise((resolve) => setTimeout(() => {
+        const lock = new EventTarget(); let released = false;
+        lock.release = async () => { if (!released) { released = true; window.__wl.held--; lock.dispatchEvent(new Event('release')); } };
+        window.__wl.held++; resolve(lock);
+      }, 400));
+    } } });
+  });
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+}
+const wl = () => page.evaluate(() => window.__wl);
+
+test('képernyőzár: kör alatt fogva, kilépéskor elengedve (N9)', async () => {
+  await fakeWakeLock();
+  await startRound({ flash: 0, count: 3 });
+  await page.waitForFunction(() => window.__wl.held === 1);
+  await page.keyboard.press('Escape');
+  assert.equal((await wl()).held, 0);
+});
+
+test('képernyőzár: ha a kör a kérés teljesülése előtt ér véget, a zár nem marad fogva (N9)', async () => {
+  await fakeWakeLock();
+  await startRound({ flash: 0, count: 3 });
+  await page.keyboard.press('Escape');            // a kérés még folyamatban
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  await page.waitForTimeout(700);
+  const s = await wl();
+  assert.equal(s.requests, 1);
+  assert.equal(s.held, 0, 'a szülői felületen is ébren tartja a képernyőt');
+});
+
+/* ---------- Haladás: napló (docs/haladas-specifikacio.md, 5., 11.) ---------- */
+const PROGRESS_KEY = 'olvasoka-dev.haladas';   // localhoston a dev kulcs (js/core/env.js)
+/** A tárolt napló kibontva (a tárolt alak tömör, js/data/progress-codec.js). */
+const progressRoot = () => page.evaluate(async (k) => {
+  const { decode } = await import('./js/data/progress-codec.js');
+  return decode(JSON.parse(localStorage.getItem(k) || 'null'));
+}, PROGRESS_KEY);
+
+test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éles kulcs érintetlen', async () => {
+  await startRound({ flash: 0, count: 3 });
+  const first = await item();
+  await page.waitForTimeout(700);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowLeft');                 // 2 mp-en belül: javított mellényomás
+  assert.equal(await item(), first);
+  await page.waitForTimeout(500);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(700);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(700);
+  await page.keyboard.press('Space');                     // az utolsón: jutalom
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+
+  const root = await progressRoot();
+  assert.equal(root.v, 2);
+  assert.match(root.deviceId, /^r-[0-9a-z]{10}$/);
+  assert.ok((await page.evaluate((k) => localStorage.getItem(k).length, PROGRESS_KEY)) < 3000, 'tömör tárolt alak');
+  const [r] = root.rounds;
+  assert.equal(r.mode, 'read'); assert.equal(r.completed, true); assert.equal(r.corrections, 1);
+  assert.deepEqual(r.listNames, ['Szótagok']); assert.match(r.listHash, /^[0-9a-f]{8}$/);
+  const d = root.daily.find((x) => x.item === first);
+  assert.equal(d.help[0], '0', 'a javított mellényomás nem segítség');
+  assert.ok(d.dwellMs[0] >= 1100, `az idő összeadódik: ${d.dwellMs[0]}`);
+  assert.ok(root.daily.every((x) => LISTS.Szótagok.includes(x.item)));
+  assert.equal(await page.evaluate(() => localStorage.getItem('olvasoka.haladas')), null, 'az éles kulcs érintetlen');
+});
+
+test('Haladás napló: kilépés a kör közben is naplózódik', async () => {
+  await startRound({ flash: 0, count: 5 });
+  await page.waitForTimeout(600);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(600);
+  await page.keyboard.press('Escape');
+  const [r] = (await progressRoot()).rounds;
+  assert.equal(r.completed, false); assert.equal(r.abandonedAt, 1);
+});
+
+test('Haladás: gyors ← után a tétel takarása visszaáll (5.3)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Kötőjeles\r\nma-ma\r\nke-fe\r\nsá-ra' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 3, list: 'Kötőjeles' });
+  const first = await item();
+  await page.keyboard.press('ArrowDown');                 // csak az 1. szótag látszik
+  const rulers = () => page.locator('#stage .ruler').count();
+  assert.equal(await rulers(), 1);
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await rulers(), 0, 'a következő tétel egészben látszik');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await item(), first);
+  assert.equal(await rulers(), 1, 'a takarás visszaállt');
+  await page.waitForTimeout(2100);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(2100);
+  await page.keyboard.press('ArrowLeft');                 // 2 mp után: a régi viselkedés
+  assert.equal(await rulers(), 0);
+});
+
+test('Haladás: tiltott localStorage mellett a gyakorlás hibátlanul működik', async () => {
+  const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
+  await c.addInitScript(() => {
+    const deny = () => { throw new DOMException('denied', 'SecurityError'); };
+    Storage.prototype.setItem = deny; Storage.prototype.getItem = deny;
+  });
+  await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: FIXTURE }));
+  const p = await c.newPage();
+  const errors = [];
+  p.on('pageerror', (e) => errors.push(e.message));
+  await p.goto(base);
+  if (await p.locator('#dlgHelp').isVisible()) await p.keyboard.press('Escape');
+  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await p.locator('#startBtn').click();
+  await p.locator('#stage').waitFor({ state: 'visible' });
+  for (let k = 0; k < 12; k++) { await p.waitForTimeout(450); await p.keyboard.press('ArrowRight'); }
+  await p.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await p.keyboard.press('Escape');
+  await p.locator('#admin').waitFor({ state: 'visible' });
+  await p.locator('#progressBtn').click();                // a Haladás tájékoztat (4.1)
+  assert.equal(await p.textContent('.hl-notice'), 'Ezen az eszközön nem menthető a haladás, mert a böngésző nem engedi az adatok tárolását.');
+  assert.deepEqual(errors, []);
+  await c.close();
+});
+
+/* ---------- Haladás nézet: navigáció és a napszabály-kapcsoló (docs/haladas-specifikacio.md, 8.1, 10., 11.) ---------- */
+
+/** Saját környezet: a config.js-ben a dev napszabály-kapcsolója (`skip`), opcionálisan előre tárolt napló. */
+async function progressPage({ skip = false, seed = null } = {}) {
+  const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
+  await c.addInitScript(([s]) => {
+    if (sessionStorage.getItem('e2e')) return;
+    sessionStorage.setItem('e2e', '1');
+    localStorage.setItem('olvasoka-dev', JSON.stringify({ v: 3, hideHelp: true }));
+    if (s) localStorage.setItem('olvasoka-dev.haladas', JSON.stringify(s));
+  }, [seed]);
+  await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: FIXTURE }));
+  if (skip) {
+    const src = await readFile(join(ROOT, 'js/core/config.js'), 'utf8');
+    const body = src.replace(/dev: Object\.freeze\(\{ skipDayRules: false \}\)/, 'dev: Object.freeze({ skipDayRules: true })');
+    assert.notEqual(body, src, 'a config.js-ben megvan a kapcsoló');
+    await c.route('**/js/core/config.js', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body }));
+  }
+  const p = await c.newPage();
+  await p.goto(base);
+  await p.locator('#listNav .nav-item').first().waitFor();
+  return { c, p };
+}
+
+/** Egy kézi Felolvasás kör a Szótagok listán; `pauseOn`: ezeken a pozíciókon a P kétszer (megállítás, folytatás). */
+async function readRound(p, { count, pauseOn = [] }) {
+  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await p.locator('#gap0').check();
+  await p.locator('#flashIn').focus();
+  await p.locator('#flashIn').press('Home');
+  await p.locator('#countIn').fill(String(count));
+  await p.locator('#countIn').press('Enter');
+  await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await p.locator('#startBtn').click();
+  await p.locator('#stage').waitFor({ state: 'visible' });
+  const seen = [];
+  for (let k = 0; k < count; k++) {
+    seen.push(await p.locator('#itemText').textContent());
+    await p.waitForTimeout(450);
+    if (pauseOn.includes(k)) { await p.keyboard.press('KeyP'); await p.waitForTimeout(150); await p.keyboard.press('KeyP'); }
+    await p.keyboard.press('ArrowRight');
+  }
+  await p.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await p.keyboard.press('Escape');
+  await p.locator('#admin').waitFor({ state: 'visible' });
+  return seen;
+}
+
+test('Haladás: a fejléc gombjával nyílik; csempe → részletek; vissza linkkel, böngészővel és Esc-pel', async () => {
+  const { seedRoot } = await import('./haladas-seed.mjs');
+  const { c, p } = await progressPage({ seed: seedRoot({ fluent: ['ma', 'me', 'alma'], improving: ['mi'], practice: ['körte', 'szilva'] }) });
+  await p.locator('#progressBtn').click();
+  await p.locator('#haladas .hl-cards').waitFor();
+  assert.equal(new URL(p.url()).hash, '#haladas');
+  assert.equal(await p.isVisible('#admin'), false);
+  assert.match(await p.textContent('.hl-sum'), /^Eddig 6 tételt olvasott a 13-ból\./, 'összes = minden lista egyedi tételei (az „a” két listában is)');
+  assert.equal(await p.evaluate(() => document.activeElement.tagName), 'H1', 'a fókusz a címen');
+  await p.locator('.hl-card[data-state=practice] .hl-tile', { hasText: 'körte' }).click();
+  await p.locator('.hl-big').waitFor();
+  assert.equal(await p.textContent('.hl-big'), 'körte');
+  assert.equal(new URL(p.url()).hash, '#haladas/tetel/k%C3%B6rte');
+  await p.goBack();                                       // böngésző / rendszer vissza
+  await p.locator('#haladas .hl-cards').waitFor();
+  await p.goForward();
+  await p.locator('.hl-big').waitFor();
+  await p.locator('.hl-back').click();                    // ← Vissza az áttekintéshez
+  await p.locator('#haladas .hl-cards').waitFor();
+  await p.locator('.hl-tile', { hasText: 'alma' }).click();
+  await p.locator('.hl-big').waitFor();
+  await p.keyboard.press('Escape');                       // részletekből az áttekintéshez
+  await p.locator('#haladas .hl-cards').waitFor();
+  await p.keyboard.press('Escape');                       // áttekintésből a szülői felületre
+  await p.locator('#admin').waitFor({ state: 'visible' });
+  assert.equal(await p.isVisible('#haladas'), false);
+  assert.equal(new URL(p.url()).hash, '');
+  assert.equal(await p.evaluate(() => document.activeElement.id), 'progressBtn', 'a fókusz visszakerül a gombra');
+  await p.locator('#progressBtn').click();
+  await p.locator('#haladas .hl-cards').waitFor();
+  await p.locator('.hl-wrap > .hl-top .hl-back').click();   // ← Vissza
+  await p.locator('#admin').waitFor({ state: 'visible' });
+  await c.close();
+});
+
+test('Haladás: gyakorlás közben nem érhető el', async () => {
+  const { c, p } = await progressPage();
+  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await p.locator('#startBtn').click();
+  await p.locator('#stage').waitFor({ state: 'visible' });
+  await p.evaluate(() => { location.hash = '#haladas'; });
+  await p.waitForTimeout(200);
+  assert.equal(await p.isVisible('#haladas'), false);
+  assert.equal(await p.isVisible('#stage'), true);
+  assert.equal(new URL(p.url()).hash, '');
+  await c.close();
+});
+
+test('napszabály-kapcsoló nélkül: egy gyakorlás után üres állapot (3 napos szabály)', async () => {
+  const { c, p } = await progressPage();
+  const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
+  await p.locator('#progressBtn').click();
+  await p.locator('.hl-empty').waitFor();
+  assert.equal(await p.textContent('.hl-empty-text p'),
+    `Eddig 1 napon gyakoroltatok, ${new Set(seen).size} tételt olvasott. Legalább 3 gyakorlási nap után látszik, mi megy már könnyen, és mi kér több gyakorlást.`);
+  await c.close();
+});
+
+test('DEV_PROGRESS_SKIP_DAY_RULES=true: egyetlen gyakorlás után kártyák, a „Gyakoroljuk még” is', async () => {
+  const { c, p } = await progressPage({ skip: true });
+  const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
+  await p.locator('#progressBtn').click();
+  await p.locator('#haladas .hl-cards').waitFor();
+  assert.equal(await p.$('.hl-empty'), null, 'nincs üres állapot');
+  const practice = await p.$$eval('.hl-card[data-state=practice] .hl-tile', (t) => t.map((x) => x.textContent).sort());
+  assert.deepEqual(practice, [...new Set(seen.slice(0, 3))].sort(), 'a megállított tételek');
+  await c.close();
 });

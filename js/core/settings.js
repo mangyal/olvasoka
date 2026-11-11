@@ -9,14 +9,14 @@ export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count:
 export const MODES = ['read', 'find'];
 export const ACTIVE_MODES = ['read', 'find'];
 
-/** Keresd meg! beállítások (spec 3.3a). level: 1 = jól megkülönböztethető … 5 = nagyon hasonló. */
+/** Keresd meg! beállítások (spec 3.3a). level: 1 = nagyon eltérő … 5 = nagyon hasonló. */
 export const CARDS = [4, 6, 8];
 export const TASKS_MIN = 1, TASKS_MAX = 30;
 export const LEVELS = [1, 2, 3, 4, 5];
 export const DEFAULT_FIND = Object.freeze({ cards: 4, tasks: 10, level: 1 });
 /** A nehézség fokozatainak szövege (U-A8). */
 export const LEVEL_LABELS = Object.freeze({
-  1: 'jól megkülönböztethető', 2: 'inkább eltérő', 3: 'vegyes', 4: 'inkább hasonló', 5: 'nagyon hasonló',
+  1: 'nagyon eltérő', 2: 'inkább eltérő', 3: 'vegyes', 4: 'inkább hasonló', 5: 'nagyon hasonló',
 });
 
 const num = (v, d) => (Number.isFinite(+v) ? +v : d);

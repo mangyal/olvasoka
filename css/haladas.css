@@ -1,0 +1,154 @@
+/* Haladás nézet (docs/haladas-specifikacio.md, 8.). Elrendezés a js/ui/haladas.js data-layout jelzéséből:
+   desktop | portrait (< 600 px széles) | land (≤ 500 px magas, fekvő, ≥ 560 px széles). Szöveg: --f-ui, tételek: --f-item. */
+.haladas{height:100%;overflow-y:auto;overscroll-behavior:contain;background:var(--paper);color:var(--ink);-webkit-overflow-scrolling:touch}
+.hl-wrap{max-width:1100px;margin:0 auto;padding:32px max(24px,env(safe-area-inset-right,0px)) 48px max(24px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:28px}
+.haladas[data-view=item] .hl-wrap{max-width:860px;gap:24px}
+.haladas h1,.haladas h2,.haladas p{margin:0}
+.haladas h1:focus{outline:none}
+.f-item{font-family:var(--f-item)}
+.hl-muted,.hl-means,.hl-more,.hl-foot,.hl-list-text,.hl-none{color:var(--ink-2)}
+
+.hl-back{display:inline-flex;align-items:center;min-height:44px;align-self:flex-start;font-size:15px;color:var(--accent);text-decoration:none}
+.hl-back:hover{text-decoration:underline}
+.hl-header{display:flex;flex-direction:column;gap:10px}
+.hl-header h1{font-size:36px;line-height:1.15;font-weight:700}
+.hl-sum{font-size:20px;line-height:1.5}
+.hl-top{display:flex;flex-direction:column;gap:28px}
+.hl-notice{border-left:3px solid var(--warn);padding:8px 12px;background:var(--field);color:var(--warn)}
+
+/* „Ez csak statisztika” */
+.hl-stat{background:var(--sky);border-radius:14px;padding:24px 28px;display:flex;flex-direction:column;gap:10px}
+.hl-stat h2{font-size:24px}
+.hl-stat p{font-size:18px;line-height:1.55;max-width:860px}
+.hl-stat-h{font-size:inherit}
+.hl-stat-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:19px;font-weight:700;text-align:left;cursor:pointer}
+.hl-toggle{font-size:15px;font-weight:400;color:var(--accent);white-space:nowrap}
+
+/* kártyák */
+.hl-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.hl-card{background:var(--field);border:1px solid var(--line);border-top:8px solid var(--c);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.hl-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.hl-card h2{font-size:22px}
+.hl-count{font-size:30px;font-weight:700}
+.hl-means{font-size:15px;line-height:1.45}
+.hl-note{font-size:15px;font-weight:600}
+.hl-none,.hl-more{font-size:14px}
+.hl-tiles{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.hl-tile{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:10px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:20px;max-width:100%;overflow-wrap:anywhere}
+.hl-tile:hover{border-color:var(--accent)}
+
+/* listánként */
+.hl-lists{display:flex;flex-direction:column;gap:14px}
+.hl-lists h2,.hl-days h2,.hl-help h2{font-size:22px}
+.hl-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
+.hl-list-name{flex:0 0 180px;font-size:17px;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.hl-bar{flex:1 1 340px;display:flex;height:20px;border-radius:6px;overflow:hidden;background:#ECE5D6;min-width:0}
+.hl-bar span{display:block;height:100%}
+.hl-list-text{flex:0 0 200px;font-size:15px}
+.hl-lists .hl-muted{font-size:14px}
+
+.hl-how{display:flex;flex-direction:column;gap:6px;max-width:760px}
+.hl-how h2{font-size:16px;color:var(--ink-2)}
+.hl-how p{font-size:15px;line-height:1.5;color:var(--ink-2)}
+.hl-foot{font-size:14px;line-height:1.5}
+
+/* üres állapot */
+.hl-empty{background:var(--field);border:1px solid var(--line);border-radius:14px;padding:40px 32px;display:flex;flex-wrap:wrap;gap:32px;align-items:center}
+.hl-empty-text{flex:1 1 420px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.hl-empty h2{font-size:26px}
+.hl-empty-text p{font-size:17px;line-height:1.5}
+.hl-empty-text .hl-muted{font-size:14px}
+.hl-empty-meter{flex:0 1 360px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.hl-segs{display:flex;gap:10px}
+.hl-segs span{flex:1;height:14px;border-radius:7px;background:#ECE5D6;border:1px solid var(--line)}
+.hl-segs span.on{background:var(--accent);border-color:var(--accent)}
+.hl-empty-meter p{font-size:14px}
+
+/* tétel részletei */
+.hl-detail{display:flex;flex-direction:column;gap:24px}
+.hl-side{display:flex;flex-direction:column;gap:24px}
+.hl-main{background:var(--field);border:1px solid var(--line);border-top:8px solid var(--c);border-radius:14px;padding:36px 32px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.hl-big{font-size:96px;line-height:1.05;letter-spacing:2px;max-width:100%;overflow-wrap:anywhere}
+.hl-main h1{font-size:26px}
+.hl-main p{font-size:18px;line-height:1.5;max-width:600px}
+.hl-days,.hl-help{background:var(--field);border:1px solid var(--line);border-radius:14px;padding:24px 28px;display:flex;flex-direction:column;gap:14px}
+.hl-days h2,.hl-help h2{font-size:20px}
+.hl-dots{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:14px}
+.hl-dots li{display:flex;flex-direction:column;align-items:center;gap:6px;width:72px}
+.hl-dot{display:inline-block;width:36px;height:36px;border-radius:50%;background:#fff;border:2px solid var(--accent);flex:none}
+.hl-dot.helped{background:#E7B96A;border-color:#E7B96A}
+.hl-date{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.hl-legend{display:flex;flex-wrap:wrap;gap:20px;font-size:14px}
+.hl-legend>span{display:inline-flex;align-items:center;gap:8px}
+.haladas .hl-legend .hl-dot{width:16px;height:16px}
+.haladas[data-layout=land] .hl-legend .hl-dot{width:14px;height:14px}
+.hl-legend-short{display:none}
+.hl-help p{font-size:17px;line-height:1.5}
+
+/* ---------- álló telefon ---------- */
+.haladas[data-layout=portrait] .hl-wrap{padding:20px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px));gap:20px}
+.haladas[data-layout=portrait] .hl-top{gap:20px}
+.haladas[data-layout=portrait] .hl-header{gap:8px}
+.haladas[data-layout=portrait] .hl-header h1{font-size:28px}
+.haladas[data-layout=portrait] .hl-sum{font-size:17px}
+.haladas[data-layout=portrait] .hl-stat{padding:14px 18px;gap:6px}
+.haladas[data-layout=portrait] .hl-stat p{font-size:16px;line-height:1.5}
+.haladas[data-layout=portrait] .hl-cards{grid-template-columns:minmax(0,1fr)}
+.haladas[data-layout=portrait] .hl-card{padding:18px;gap:10px}
+.haladas[data-layout=portrait] .hl-card h2{font-size:20px}
+.haladas[data-layout=portrait] .hl-count{font-size:26px}
+.haladas[data-layout=portrait] .hl-tile{font-size:19px;padding:0 12px}
+.haladas[data-layout=portrait] .hl-list{flex-direction:column;align-items:stretch;gap:6px}
+.haladas[data-layout=portrait] .hl-list-name,.haladas[data-layout=portrait] .hl-list-text,.haladas[data-layout=portrait] .hl-bar{flex:none}
+.haladas[data-layout=portrait] .hl-bar{height:16px;border-radius:5px}
+.haladas[data-layout=portrait] .hl-empty{padding:24px 18px;gap:20px}
+.haladas[data-layout=portrait] .hl-empty-text{flex-basis:100%}
+.haladas[data-layout=portrait] .hl-main{padding:28px 18px;gap:12px}
+.haladas[data-layout=portrait] .hl-big{font-size:64px;letter-spacing:1px}
+.haladas[data-layout=portrait] .hl-main h1{font-size:22px}
+.haladas[data-layout=portrait] .hl-main p{font-size:16px}
+.haladas[data-layout=portrait] .hl-days,.haladas[data-layout=portrait] .hl-help{padding:18px}
+.haladas[data-layout=portrait] .hl-dots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 6px}
+.haladas[data-layout=portrait] .hl-dots li{width:auto}
+.haladas[data-layout=portrait] .hl-dot{width:32px;height:32px}
+.haladas[data-layout=portrait] .hl-legend{flex-direction:column;gap:6px}
+.haladas[data-layout=portrait] .hl-foot .hl-sep{display:block;height:0;overflow:hidden}
+
+/* ---------- fekvő telefon ---------- */
+.haladas[data-layout=land] .hl-wrap{max-width:none;padding:12px max(48px,env(safe-area-inset-right,0px)) 28px max(48px,env(safe-area-inset-left,0px));gap:18px}
+.haladas[data-layout=land] .hl-top{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.haladas[data-layout=land] .hl-header{gap:6px}
+.haladas[data-layout=land] .hl-header h1{font-size:26px}
+.haladas[data-layout=land] .hl-sum{font-size:16px}
+.haladas[data-layout=land] .hl-stat{padding:16px 18px;gap:6px}
+.haladas[data-layout=land] .hl-stat h2{font-size:18px}
+.haladas[data-layout=land] .hl-stat p{font-size:14px;line-height:1.5}
+.haladas[data-layout=land] .hl-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.haladas[data-layout=land] .hl-card{padding:16px;gap:8px}
+.haladas[data-layout=land] .hl-card h2{font-size:17px}
+.haladas[data-layout=land] .hl-count{font-size:24px}
+.haladas[data-layout=land] .hl-means{font-size:13px}
+.haladas[data-layout=land] .hl-tiles{gap:6px}
+.haladas[data-layout=land] .hl-tile{font-size:17px;padding:0 10px}
+.haladas[data-layout=land] .hl-list{flex-wrap:nowrap;gap:16px}
+.haladas[data-layout=land] .hl-list-name,.haladas[data-layout=land] .hl-list-text{flex:0 0 140px;font-size:14px}
+.haladas[data-layout=land] .hl-bar{flex:1 1 auto;height:16px}
+.haladas[data-layout=land] .hl-lists h2{font-size:18px}
+.haladas[data-layout=land] .hl-empty{padding:20px 24px;gap:24px}
+.haladas[data-layout=land][data-view=item] .hl-wrap{max-width:none;gap:12px}
+.haladas[data-layout=land] .hl-detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.haladas[data-layout=land] .hl-side{gap:12px}
+.haladas[data-layout=land] .hl-main{padding:22px 18px;gap:10px}
+.haladas[data-layout=land] .hl-big{font-size:60px;letter-spacing:1px}
+.haladas[data-layout=land] .hl-main h1{font-size:20px}
+.haladas[data-layout=land] .hl-main p{font-size:15px}
+.haladas[data-layout=land] .hl-days,.haladas[data-layout=land] .hl-help{padding:14px 16px;gap:10px}
+.haladas[data-layout=land] .hl-days h2,.haladas[data-layout=land] .hl-help h2{font-size:16px}
+.haladas[data-layout=land] .hl-dots{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.haladas[data-layout=land] .hl-dots li{width:auto;gap:4px}
+.haladas[data-layout=land] .hl-dot{width:26px;height:26px}
+.haladas[data-layout=land] .hl-date{font-size:11px}
+.haladas[data-layout=land] .hl-legend{font-size:13px;gap:14px}
+.haladas[data-layout=land] .hl-legend-long{display:none}
+.haladas[data-layout=land] .hl-legend-short{display:inline}
+.haladas[data-layout=land] .hl-help p{font-size:14px}
