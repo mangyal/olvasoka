@@ -14,7 +14,7 @@ const SHEET = matchMedia('(max-width:899px), (hover:none) and (pointer:coarse), 
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
 const DESC = {
   read: 'A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.',
-  find: 'Te felolvasod az egyiket, a gyerek megmutatja a képernyőn.',
+  find: 'Te kimondasz egy kártyát, a gyerek megkeresi és rámutat.',
 };
 const HOW_TITLE = { read: 'Felolvasás – így játsszátok', find: 'Keresd meg! – így játsszátok' };
 /** F-K10: a nézet most telefon-e (a rövidebb oldal 500 px alatt). */
@@ -77,7 +77,7 @@ export function createAdmin(el, app, act) {
 
   function startState() {
     if (app.font.state === 'loading') return { enabled: false, label: 'Betűtípus töltődik…' };
-    if (findMode() && app.pairs.state === 'loading') return { enabled: false, label: 'Töltődik…' };
+    if (findMode() && app.pairs.state === 'loading') return { enabled: false, label: 'Játék töltődik…' };
     if (!app.lists.length) {
       return app.listsState === 'loading'
         ? { enabled: false, label: 'Listák töltődnek…' }
@@ -87,10 +87,10 @@ export function createAdmin(el, app, act) {
     const k = all ? app.lists.length : selected().length;
     const n = roundItems().length;
     if (!n) {
-      return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
+      return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : !k ? 'Jelölj ki legalább egy listát.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
     }
     // F-S8: a Keresd meg!-hez legalább két különböző tétel kell
-    if (findMode() && distinctCount(roundItems()) < 2) return { enabled: false, msg: 'Legalább két különböző tétel kell.' };
+    if (findMode() && distinctCount(roundItems()) < 2) return { enabled: false, msg: 'A Keresd meg!-hez legalább két különböző tétel kell.' };
     // a gomb alatt csak hiba vagy figyelmeztetés (a lista- és tételszámot a fejléc mutatja)
     const fontWarn = app.font.state === 'failed';
     return { enabled: true, msg: fontWarn ? 'A betűk alakja eltérhet.' : '', warn: fontWarn };
@@ -99,8 +99,8 @@ export function createAdmin(el, app, act) {
   /* ---------- renderelés ---------- */
   function renderWarnings() {
     const w = [];
-    if (!app.storageOK) w.push(['storage', 'A beállítások nem maradnak meg bezárás után, és hálózat nélkül nem lesz lista.']);
-    if (app.font.state === 'failed') w.push(['font', 'A gyakorló betűtípus nem töltődött be – a betűk alakja eltérhet.']);
+    if (!app.storageOK) w.push(['storage', 'A beállításaid nem mentődnek el (pl. privát böngészés), és internet nélkül nem lesz lista.']);
+    if (app.font.state === 'failed') w.push(['font', 'Nem töltődött be a gyakorló betűtípus – a gyerek nem a tanult betűalakokat fogja látni.']);
     if (app.loadError && app.lists.length) w.push(['stale', `${app.loadError} A legutóbb letöltött listák látszanak.`]);
     app.problems.forEach((p, i) => w.push(['p' + i + p, p]));
     const shown = w.filter(([id]) => !dismissed.has(id));
@@ -161,7 +161,7 @@ export function createAdmin(el, app, act) {
     rebuild(el.listsRows, listsKey(), () => app.lists.map((l) => checkRow(l, 'ls-row', 'ls-name')));
     syncChecks(el.listsRows);
     const sum = selectionSummary();
-    el.listsSum.textContent = sum.k ? `${sum.k} lista / ${sum.n} tétel` : 'Nincs kijelölt lista';
+    el.listsSum.textContent = sum.k ? `${sum.k} lista · ${sum.n} tétel` : 'Nincs kijelölt lista';
   }
   function openLists() {
     renderListsSheet();
@@ -185,7 +185,7 @@ export function createAdmin(el, app, act) {
     if (!l) {
       el.listEmptyText.textContent = app.listsState === 'loading'
         ? 'Listák töltődnek…'
-        : (app.loadError || 'Még nincs lista.');
+        : (app.loadError || (app.lists.length ? 'Válassz ki egy listát a gyakorláshoz.' : 'Még nincs lista.'));
       return;
     }
     // a tétel-kártyák (akár több száz) csak a kijelölt listák tartalmának változásakor épülnek újra
@@ -219,7 +219,7 @@ export function createAdmin(el, app, act) {
     el.sourceInfo.textContent =
       app.listsState === 'loading' ? 'Listák frissítése…'
       : app.listsState === 'ok' ? `Frissítve: ${when}`
-      : t ? `Nincs kapcsolat – a ${when} állapot látszik` : '';
+      : t ? `Nincs kapcsolat · utoljára frissítve: ${when}` : '';
     el.refreshBtn.disabled = app.listsState === 'loading';
     // F-L13: diszkrét jelzés, ha a listák a tartalék lists.txt-ből jöttek
     const fb = app.kind === 'txt';

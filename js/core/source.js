@@ -26,7 +26,7 @@ export async function loadLists(get) {
   try {
     const { text, type = '' } = await get(SHEET_CSV_URL);
     if (/html/i.test(type) || /^\s*</.test(text)) {
-      throw new Error('A táblázat nem CSV-t adott vissza. Ellenőrizd, hogy közzé van-e téve az interneten (CSV).');
+      throw new Error('A táblázat nem a várt formában jött. Nézd meg, hogy közzé van-e téve CSV-ként.');
     }
     const p = parseSheetCsv(text);
     if (!p.lists.length) throw new Error(p.problems.at(-1));

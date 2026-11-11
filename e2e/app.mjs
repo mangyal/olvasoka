@@ -356,7 +356,7 @@ test('Keresd meg!: alapértékek, becslés, a beállítások megmaradnak (30.)',
   assert.equal(await page.locator('#cards4').isChecked(), true, 'alapból 4 kártya');
   assert.equal(await page.inputValue('#tasksIn'), '10');
   assert.equal(await page.inputValue('#levelIn'), '1');
-  assert.equal(await text('#levelOut'), '1 · jól megkülönböztethető');
+  assert.equal(await text('#levelOut'), '1 · nagyon eltérő');
   assert.equal(await text('#estimate'), '10 feladat · 4 kártya');
   await page.locator('label:has(#cards8)').click();
   await page.$eval('#levelIn', (e) => { e.value = '4'; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change')); });
@@ -386,7 +386,7 @@ test('Keresd meg!: egyetlen különböző tétel → Indítás inaktív (F-S8)',
   await page.locator('#listNav .nav-item').first().waitFor();
   await page.locator('#tabFind').click();
   await page.waitForFunction(() => document.getElementById('startMsg').textContent);
-  assert.equal(await text('#startMsg'), 'Legalább két különböző tétel kell.');
+  assert.equal(await text('#startMsg'), 'A Keresd meg!-hez legalább két különböző tétel kell.');
   assert.equal(await page.locator('#startBtn').isDisabled(), true);
 });
 
@@ -532,10 +532,10 @@ test('tárolás: ha egy későbbi mentés bukik (betelt tárhely), a figyelmezte
   await page.reload();
   await page.locator('#listNav .nav-item').first().waitFor();
   const warn = () => page.locator('#warnings').textContent();
-  assert.ok(!(await warn()).includes('nem maradnak meg'), 'induláskor még működik a tárolás');
+  assert.ok(!(await warn()).includes('nem mentődnek el'), 'induláskor még működik a tárolás');
   await page.evaluate(() => sessionStorage.setItem('e2e-fail', '1'));
   await page.locator('#countInc').click();
-  assert.ok((await warn()).includes('A beállítások nem maradnak meg'), 'a figyelmeztetés nem jelent meg');
+  assert.ok((await warn()).includes('A beállításaid nem mentődnek el'), 'a figyelmeztetés nem jelent meg');
 });
 
 /** Hamis Screen Wake Lock: a kérés 400 ms múlva teljesül; window.__wl.held a fogva tartott zárak száma. */

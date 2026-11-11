@@ -209,7 +209,7 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   assert.equal(await page.isEnabled('#listsDone'), true, 'üres kijelölésnél a Kész aktív');
   await page.tap('#listsRows label:nth-child(1)');
   await page.tap('#listsRows label:nth-child(2)');
-  assert.match(await page.textContent('#listsSum'), /^2 lista \/ \d+ tétel$/);
+  assert.match(await page.textContent('#listsSum'), /^2 lista · \d+ tétel$/);
   assert.equal(await page.isEnabled('#startBtn'), true);
   await page.tap('#listsDone');
   assert.equal(await page.$eval('#dlgLists', (d) => d.open), false);

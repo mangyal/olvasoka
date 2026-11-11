@@ -16,7 +16,7 @@ minden oszlop egy lista, az első sorban a lista neve, alatta cellánként a té
 (**Frissítés** gomb vagy újratöltés).
 
 Ha a táblázat nem érhető el, a program a repó [`lists.txt`](lists.txt) fájlját használja tartalékként, és a
-listák alatt halványan jelzi: „Tartalék lista: lists.txt”. A `lists.txt` nem frissül magától a táblázatból.
+listák alatt halványan jelzi: „Tartaléklisták láthatók (a táblázat nem elérhető)”. A `lists.txt` nem frissül magától a táblázatból.
 
 ### A `lists.txt` (tartalék)
 
@@ -64,7 +64,7 @@ A beállítások a szülői felület jobb oldali paneljén vannak (tableten és 
 Indítás gomb mindig látszik. A gyakorlás billentyűit a panel **Így játsszátok** gombja mutatja.
 A **Keresd meg!** fülön a program 4, 6 vagy 8 kártyát mutat a kijelölt listákból (telefonon legfeljebb 6).
 Te kimondod az egyiket, a gyerek rábök; a program csak megjelöli, amire bökött, nem értékel. A nehézség
-1–5 (1 = jól megkülönböztethető, 5 = nagyon hasonló elemek), alapból 1, utána a legutóbbi marad.
+1–5 (1 = nagyon eltérő, 5 = nagyon hasonló elemek), alapból 1, utána a legutóbbi marad.
 Billentyűk: `Space`/`→` következő feladat, `←` előző, kattintás jelöl, `Esc` kilépés. Érintőképernyőn (pl. fekvő iPad) az
 oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy lenyíló sorból nyíló lapon
 választhatók.

@@ -116,8 +116,8 @@ const admin = createAdmin(el, app, {
     el.fontResult.textContent = ok
       ? (app.font.name === 'Arial'
         ? '✓ Rendben – az Arial betűtípus jelenik meg.'
-        : '✓ Rendben – az Arimo jelenik meg (az Ariallal azonos betűalakú helyettesítő, mert ezen a gépen nincs Arial).')
-      : app.font.state === 'loading' ? 'A betűtípus még töltődik…' : '✕ Nem az Arial jelenik meg.';
+        : '✓ Rendben – az Arimo látszik, ami az Arial pontos megfelelője (ezen a gépen nincs Arial).')
+      : app.font.state === 'loading' ? 'A betűtípus még töltődik…' : '✕ Nem az Arial látszik – a gyerek nem a tanult betűalakokat fogja látni (pl. ő, ű)!';
     el.fontResult.className = ok ? '' : 'err';
     el.dlgFont.showModal();
   },
