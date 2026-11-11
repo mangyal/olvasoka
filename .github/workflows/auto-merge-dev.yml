@@ -1,0 +1,75 @@
+name: Automatikus összevonás (→ dev)
+
+# Ha egy dev-be menő PR-on a Tesztek (test, layout, e2e) mind zöldek, a PR-t merge committal összevonja,
+# majd elindítja a Kiadás workflow-t, így a /dev/ oldal ~1,5 perc múlva az új változatot mutatja.
+#
+# - Csak a dev-be menő PR-ok; a main-be (éles) menő PR-t továbbra is a tulajdonos vonja össze.
+# - Kimarad: draft PR, más repóból (forkból) jövő PR, és ha a PR-ra a teszt óta új commit jött
+#   (az összevonás a tesztelt commithoz van kötve; az új commit tesztje újra elindítja ezt).
+# - Ha egy PR-t nem akarsz automatikusan összevonni: nyisd draftként.
+#
+# A GITHUB_TOKEN-nel végzett összevonás nem indít push-workflow-t (GitHub szabály), ezért a kiadást
+# ez a workflow indítja el kézi indítással (workflow_dispatch) a dev ágon.
+#
+# Figyelem: a workflow_run mindig az alapértelmezett ág (main) példányát futtatja, így ennek a fájlnak
+# a változása csak a main-be kerülés után lép életbe.
+
+on:
+  workflow_run:
+    workflows: [Tesztek]
+    types: [completed]
+
+permissions:
+  contents: write        # összevonás
+  pull-requests: write   # összevonás
+  actions: write         # a Kiadás workflow elindítása
+
+concurrency:
+  group: auto-merge-dev
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR keresése és összevonása
+        id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -e
+          pr=$(gh api "repos/$REPO/pulls?state=open&base=dev&head=${REPO%%/*}:$HEAD_BRANCH" \
+            --jq '[.[] | select(.draft == false)][0] | .number // empty')
+          if [ -z "$pr" ]; then
+            echo "Nincs nyitott, nem draft, dev-be menő PR a(z) $HEAD_BRANCH ágról – nincs teendő."
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          title=$(gh api "repos/$REPO/pulls/$pr" --jq .title)
+          # a sha miatt a GitHub elutasítja, ha a PR-ra a teszt óta új commit jött
+          if gh api -X PUT "repos/$REPO/pulls/$pr/merge" \
+               -f merge_method=merge -f sha="$HEAD_SHA" \
+               -f commit_title="Merge PR #$pr: $title" >/dev/null; then
+            echo "Összevonva: #$pr ($HEAD_BRANCH → dev, $HEAD_SHA)"
+            echo "- Összevonva: **#$pr** $title" >> "$GITHUB_STEP_SUMMARY"
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::A #$pr nem vonható össze (új commit, ütközés vagy hiányzó kötelező ellenőrzés)."
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Kiadás indítása (dev)
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh workflow run deploy.yml -R "$REPO" --ref dev
+          echo "- A Kiadás elindítva a dev ágon: https://mangyal.github.io/olvasoka/dev/" >> "$GITHUB_STEP_SUMMARY"
