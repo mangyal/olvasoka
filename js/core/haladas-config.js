@@ -48,6 +48,7 @@ const SCHEMA = {
   },
   tarolas: {
     nyers_megorzes_nap: ['window', 30],
+    nyers_megorzes_kor: ['count', 30],
     ures_allapot_min_nap: ['days', 3],
   },
 };
