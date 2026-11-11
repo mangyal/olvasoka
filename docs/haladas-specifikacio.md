@@ -16,7 +16,9 @@ Mellékletek: a jóváhagyott képernyőtervek képernyőképei (lásd 8. fejeze
 - „Mi segíthet?”: csak szótagnál és szónál (7.2).
 - Keresd meg!: egyelőre semmi nem naplózódik (2.).
 - Listaazonosság: az adat tárolódik, felülete nincs (6.).
-- Felület: a „Mind” nézet kimarad (később); hash-alapú navigáció; töréspontok; betűtípus; hiányzó szövegek (8.).
+- Felület: a „Mind” nézet kimarad (később), helyette „+ N további tétel” szöveg; hash-alapú navigáció; töréspontok; betűtípus; hiányzó szövegek (8.).
+- Az áttekintés „összes” száma mindig az összes jelenlegi lista egyedi tételei, a szülői felület kijelölésétől függetlenül (8.2).
+- A „Gyakoroljuk még” részletmondata a sablon szerint marad akkor is, ha a tétel csak a lassúság miatt került ide (8.3).
 - A `haladas.json` ellenőrzése kiadáskor: `.github/scripts/check-haladas.mjs` (7.1).
 
 ## 1. Cél és alapelvek
@@ -212,7 +214,7 @@ Típus (betű, szótag, szó) és betűszám: a meglévő `typeOf()` és `tokeni
 - Betűbontás: **a meglévő `tokenize()` függvény** (`js/core/grid.js`), saját betűlistát nem szabad bevezetni. Ez kezeli a többjegyű betűket (`dzs`, majd `cs`, `dz`, `gy`, `ly`, `ny`, `sz`, `ty`, `zs`) és a hosszú többjegyű mássalhangzót két betűként (`ssz` → `sz`+`sz`, `ggy` → `gy`+`gy`); a hosszú és rövid magánhangzó külön betű (`o`, `ó`). A hasonló betűpárok (`parok.json`) ehhez a funkcióhoz nem kellenek.
 - Betű segítségaránya = a betűt tartalmazó tételek megjelenéseinek hány százalékánál volt segítség (utolsó 30 nap, legalább 3 különböző tétel kell).
 - Egy tétel leggyengébb betűje: a benne lévő betűk közül a legnagyobb segítségarányú.
-- **Kártya megjegyzés** („A legtöbbjükben „gy” van.”): ha a „Gyakoroljuk még” tételek legalább felében (`kartya_megjegyzes_arany`) ugyanaz a betű szerepel.
+- **Kártya megjegyzés** („A legtöbbjükben „gy” van.”): ha a „Gyakoroljuk még” tételek (legalább 2) legalább felében (`kartya_megjegyzes_arany`) ugyanaz a betű szerepel. Ha több ilyen betű is van, a nagyobb segítségarányú.
 - **„Mi segíthet?” blokk** a tétel részleteinél, csak szótagnál és szónál (betűnél soha): akkor jelenik meg, ha a leggyengébb betű segítségaránya legalább kétszerese a betűt nem tartalmazó tételekének. Legfeljebb 5 kapcsolódó tételt mutat ugyanazzal a betűvel, „Gyakoroljuk még” vagy „Egyre jobban megy” állapotból. Ha a feltétel nem teljesül, a blokk nem jelenik meg.
 
 ## 8. Felület
@@ -234,19 +236,19 @@ A képernyőképek a jóváhagyott tervek. Szövegek: tegező forma, mint a prog
 
 ### 8.1a Elrendezések
 - **Álló telefon:** 600 px-nél keskenyebb ablak. Az „Ez csak statisztika” összecsukható, alapból csukva.
-- **Fekvő telefon:** legfeljebb 500 px magas ablak.
+- **Fekvő telefon:** legfeljebb 500 px magas, fekvő, legalább 560 px széles ablak (keskenyebben a három oszlop nem fér el, ott az álló elrendezés jön).
 - **Asztali:** minden más (a tablet is).
 - Csempék kártyánként: asztalon 6, álló telefonon 4, fekvőn 3.
 - Betűtípus: a felület szövegei a program felületi betűjével (`--f-ui`), a tételek (csempék, a nagy tétel) a gyakorló betűvel (`--f-item`).
 
 ### 8.2 Áttekintés (felülről lefelé)
 1. **Cím:** „Hogy halad az olvasás?”
-2. **Összefoglaló mondat:** „Eddig **{látott} tételt** olvasott a **{összes}**-ból. **{megy} már megy**, **{javul} egyre jobban megy**, és **{gyakorol} tételt érdemes még gyakorolni**.” Az összes = a kiválasztott vagy összes jelenlegi lista egyedi tételkulcsai. A -ból/-ből rag a meglévő `fromSuffix()` szerint. Ha valamelyik szám 0, a hozzá tartozó tagmondat elmarad.
+2. **Összefoglaló mondat:** „Eddig **{látott} tételt** olvasott a **{összes}**-ból. **{megy} már megy**, **{javul} egyre jobban megy**, és **{gyakorol} tételt érdemes még gyakorolni**.” Az összes = az összes jelenlegi lista egyedi tételkulcsai (a szülői felület kijelölésétől függetlenül). A -ból/-ből rag a meglévő `fromSuffix()` szerint. Ha valamelyik szám 0, a hozzá tartozó tagmondat elmarad.
 3. **„Ez csak statisztika” doboz** (világoskék háttér, kiemelt):
    > Többet számít, amit te látsz, és amit a gyereked érez egy-egy tételnél. Ha szerinted egy tétel már megy, akkor valószínűleg megy, bármit mutat itt a program. Használd segítségnek, de ne hagyatkozz rá teljesen, és ne a számokat akard javítani: az a cél, hogy szívesen olvasson.
 
    **Álló telefonon összecsukható**, alapból csukva: a cím, a „Bővebben ▾” gomb és az első mondat látszik, a többi kinyitáskor („Kevesebb ▴”). Valódi `<button>`, `aria-expanded`. Asztalon és fekvő telefonon mindig nyitva.
-4. **Három kártya ebben a sorrendben:** Már megy, Egyre jobban megy, Gyakoroljuk még. Mindegyiken: cím, darabszám, egy mondat a jelentéséről, tétel-csempék (koppintásra a tétel részletei). A „+ N további tétel” / „Mind a N megmutatása” link és a „Mind” nézet egyelőre kimarad (később).
+4. **Három kártya ebben a sorrendben:** Már megy, Egyre jobban megy, Gyakoroljuk még. Mindegyiken: cím, darabszám, egy mondat a jelentéséről, tétel-csempék (koppintásra a tétel részletei). Ha nem fér ki mind: „+ N további tétel” (szöveg, nem link); a „Mind” nézet egyelőre kimarad (később).
    - Már megy: „Több különböző napon is gyorsan, segítség nélkül olvasta.”
    - Egyre jobban megy: „Napról napra gyorsabban és kevesebb segítséggel olvassa.”
    - Gyakoroljuk még: „Több napja olvassa, de még most is sokszor kell hozzá takarás vagy segítség.” Közvetlenül alatta a 7.2 szerinti betű-megjegyzés, ha van.
@@ -262,7 +264,7 @@ A képernyőképek a jóváhagyott tervek. Szövegek: tegező forma, mint a prog
 2. **Fő kártya:** a tétel nagy betűvel (a program betűtípusával, kötőjellel együtt), az állapot neve, és egy egyszerű mondat. Mondatsablonok:
    - Már megy: „Több napon is gyorsan, segítség nélkül olvasta.”
    - Egyre jobban megy: „Egyre gyorsabban és kevesebb segítséggel olvassa.”
-   - Gyakoroljuk még: „{időtartam} olvassa, de még most is {gyakran / szinte mindig} kell hozzá {takarás / segítség}{, és nem lett gyorsabb}.” Az időtartam szövegesen („Egy hete”, „Két és fél hete”, „Egy hónapja”), a „szinte mindig” 80% felett, a „nem lett gyorsabb” relatív idő > 0,9 esetén.
+   - Gyakoroljuk még: „{időtartam} olvassa, de még most is {gyakran / szinte mindig} kell hozzá {takarás / segítség}{, és nem lett gyorsabb}.” Az időtartam szövegesen (8.4b), a „szinte mindig” az utolsó 5 megjelenés 80%-a felett, a „takarás”, ha a legutóbbi 5 napon a takarás legalább annyi volt, mint a megállítás és a visszalépés együtt, a „nem lett gyorsabb” relatív idő > 0,9 esetén. A sablon akkor is ez, ha a tétel csak a lassúság miatt került ide.
    - Új: „Most ismerkedik vele, még kevés alkalommal olvasta.”
 3. **„Amikor olvasta”:** a napok pöttyökkel (legfeljebb az utolsó 14 gyakorlási nap), dátummal. Kitöltött sárga: aznap volt segítség; fehér, zöld kerettel: aznap segítség nélkül. Jelmagyarázat alatta.
 4. **„Mi segíthet?”** a 7.2 szerint, ha van. Szöveg: „Ezek a tételek is nehezebben mennek, mindegyikben „{betű}” van. Lehet, hogy nem a tétel, hanem ez a betű a nehéz.” Alatta a kapcsolódó tételek csempéi; koppintásra a saját részleteikre visznek.
@@ -351,8 +353,6 @@ Napszabály-kapcsoló:
 - Az első szakasz adatformátuma később nem változtatható szabadon, ezért a tételkulcs (szöveg, kötőjellel) és a lista-hash már az első verzióban kötelező. A `v` mezővel verziózzuk, migráció csak felfelé.
 
 ## 13. Nyitott kérdések
-- A „Gyakoroljuk még” részletmondata, ha a tétel csak a lassúság miatt van itt (kevés segítséggel): a sablon „…kell hozzá segítség” része ilyenkor nem igaz.
-- Az áttekintés „összes” száma: mindig az összes jelenlegi lista, vagy a szülői felületen kijelöltek.
 - A „tétel” végleges elnevezése.
 - A küszöbök (`haladas.json`) végleges értékei a próbaidőszak adatai alapján.
 - A Keresd meg! eredményei később beszámítsanak-e az állapotokba.

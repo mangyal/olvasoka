@@ -17,9 +17,13 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/admin.css">
 <link rel="stylesheet" href="css/stage.css">
+<link rel="stylesheet" href="css/haladas.css">
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
+
+<!-- ================= HALADÁS (docs/haladas-specifikacio.md, 8.) ================= -->
+<main id="haladas" class="haladas" hidden aria-label="Haladás"></main>
 
 <!-- ================= SZÜLŐI FELÜLET ================= -->
 <div id="admin" class="admin">
@@ -27,6 +31,10 @@
     <h1>Olvasóka</h1>
     <span class="app-version muted num" id="appVersion"></span>
     <span class="top-actions">
+      <button type="button" class="btn-text top-btn" id="progressBtn" title="Haladás">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-7M12 20V5M19 20v-10M3 20h18"/></svg>
+        <span class="top-label">Haladás</span>
+      </button>
       <button type="button" class="btn-text top-btn" id="helpBtn" title="Súgó">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
         <span class="top-label">Súgó</span>
