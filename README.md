@@ -76,6 +76,12 @@ megállítja az időt; a következő tételnél minden szótag újra látszik.
 
 A beállítások az adott böngészőben maradnak meg.
 
+**Haladás** (fejléc): mely tételek mennek már, melyek egyre jobban, és melyeket érdemes még gyakorolni.
+Csak a meglévő mozdulatokból számol (lapozás, visszalépés, takarás, megállítás és ezek ideje); a helyességet
+nem tudja, azt a szülő hallja. Az adatok csak az adott eszközön vannak, fiók nélkül. A küszöbök a
+[`haladas.json`](haladas.json)-ban (a szülő nem látja); teszteléshez a `DEV_PROGRESS_SKIP_DAY_RULES` változó
+kikapcsolja a napszámon alapuló szabályokat (lásd lent). Részletek: [`docs/haladas-specifikacio.md`](docs/haladas-specifikacio.md).
+
 ## Felépítés
 
 Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
@@ -108,9 +114,11 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   practice-log.js     Haladás: a Felolvasás kör naplóeseményei a reducer átmeneteiből
   exposures.js        Haladás: mellényomás-szűrés, megjelenések, napi tételösszesítők
   list-identity.js    Haladás: listaazonosság (átnevezett lista felismerése)
+  mastery.js          Haladás: tételállapotok, betűelemzés, a nézet adatai
+  haladas-texts.js    Haladás: a felület szövegei egy helyen
   haladas-config.js   Haladás: a haladas.json ellenőrzése és alapértékei
 js/data/            localStorage, a Haladás naplója (progress-log.js) és a listák letöltése
-js/ui/              szülői felület, gyakorlás, Keresd meg!, jutalmak (lufi, panda, konfetti)
+js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalmak (lufi, panda, konfetti)
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
 test/               node --test
