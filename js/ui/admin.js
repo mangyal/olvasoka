@@ -20,6 +20,8 @@ const HOW_TITLE = { read: 'Felolvasás – így játsszátok', find: 'Keresd meg
 /** F-K10: a nézet most telefon-e (a rövidebb oldal 500 px alatt). */
 const phoneCards = (n) => effectiveCards(n, innerWidth, innerHeight);
 
+const SEP = '\u0001', SEP2 = '\u0002';
+
 export function createAdmin(el, app, act) {
   const dismissed = new Set();
 
@@ -27,9 +29,48 @@ export function createAdmin(el, app, act) {
   const isSel = (l) => app.selected.includes(nameKey(l.name));
   const selected = () => app.lists.filter(isSel);
 
+  /* A tételek egy rendereléshez többször is kellenek; csak akkor számolódnak újra, ha a listák vagy a
+     kijelölés megváltozott (mindkettő cserével változik, helyben soha). A visszaadott tömb nem módosítható. */
+  let selMemo = { lists: null, selected: null, items: [] };
+  let allMemo = { lists: null, items: [] };
+  function selectedItems() {
+    if (selMemo.lists !== app.lists || selMemo.selected !== app.selected) {
+      selMemo = { lists: app.lists, selected: app.selected, items: itemsOf(app.lists, app.selected, nameKey) };
+    }
+    return selMemo.items;
+  }
   function roundItems() {
-    if (app.settings.source === 'all') return [...new Set(app.lists.flatMap((l) => l.items))];
-    return itemsOf(app.lists, app.selected, nameKey);
+    if (app.settings.source !== 'all') return selectedItems();
+    if (allMemo.lists !== app.lists) allMemo = { lists: app.lists, items: [...new Set(app.lists.flatMap((l) => l.items))] };
+    return allMemo.items;
+  }
+
+  /* Egy DOM-rész csak akkor épül újra, ha a tartalma (kulcsa) megváltozott; különben a hívó csak az
+     állapotát (kijelölés, pipa) frissíti. Így kattintás után a fókusz a gombon/jelölőnégyzeten marad
+     (billentyűzet, felolvasó), és a szülői felület nem rajzol újra minden elemet minden lépésnél. */
+  const built = new WeakMap();
+  function rebuild(box, key, make) {
+    if (built.get(box) === key) return false;
+    box.replaceChildren(...make());
+    built.set(box, key);
+    return true;
+  }
+  /** A listák szerkezete (név, tételszám): ha ez nem változik, a listasáv elemei megmaradnak. */
+  const listsKey = () => app.lists.map((l) => l.name + SEP + l.items.length).join(SEP2);
+
+  /** Jelölőnégyzetes listasor (keskeny nézet és mobil lap). */
+  function checkRow(l, rowClass, nameClass) {
+    const lab = document.createElement('label'); lab.className = rowClass;
+    const c = document.createElement('input'); c.type = 'checkbox';
+    const name = document.createElement('span'); name.textContent = l.name;
+    if (nameClass) name.className = nameClass;
+    const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
+    c.addEventListener('change', () => act.select(l.name, { toggle: true }));
+    lab.append(c, name, cnt); return lab;
+  }
+  /** A jelölőnégyzetek állapota a kijelölésből (a sorok a listák sorrendjében vannak). */
+  function syncChecks(box) {
+    box.querySelectorAll('input[type=checkbox]').forEach((c, k) => { c.checked = isSel(app.lists[k]); });
   }
 
   const findMode = () => app.mode === 'find';
@@ -62,7 +103,8 @@ export function createAdmin(el, app, act) {
     if (app.font.state === 'failed') w.push(['font', 'A gyakorló betűtípus nem töltődött be – a betűk alakja eltérhet.']);
     if (app.loadError && app.lists.length) w.push(['stale', `${app.loadError} A legutóbb letöltött listák látszanak.`]);
     app.problems.forEach((p, i) => w.push(['p' + i + p, p]));
-    el.warnings.replaceChildren(...w.filter(([id]) => !dismissed.has(id)).map(([id, text]) => {
+    const shown = w.filter(([id]) => !dismissed.has(id));
+    rebuild(el.warnings, shown.map(([id, text]) => id + SEP + text).join(SEP2), () => shown.map(([id, text]) => {
       const d = document.createElement('div'); d.className = 'warn-item pad';
       const p = document.createElement('p'); p.textContent = text;
       const b = document.createElement('button'); b.type = 'button'; b.textContent = '×';
@@ -73,12 +115,10 @@ export function createAdmin(el, app, act) {
   }
 
   function renderNav() {
-    el.listNav.replaceChildren(...app.lists.map((l) => {
+    const lk = listsKey();
+    rebuild(el.listNav, lk, () => app.lists.map((l) => {
       const li = document.createElement('li');
-      const b = document.createElement('button'); b.type = 'button';
-      const sel = isSel(l);
-      b.className = 'nav-item' + (sel ? ' sel' : '');
-      b.setAttribute('aria-pressed', String(sel));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'nav-item';
       const name = document.createElement('span'); name.textContent = l.name;
       const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
       b.append(name, cnt);
@@ -88,19 +128,18 @@ export function createAdmin(el, app, act) {
       });
       li.append(b); return li;
     }));
+    el.listNav.querySelectorAll('.nav-item').forEach((b, k) => {
+      const sel = isSel(app.lists[k]);
+      b.classList.toggle('sel', sel);
+      b.setAttribute('aria-pressed', String(sel));
+    });
     el.navHint.textContent = COARSE.matches ? 'Koppintással több listát is kijelölhetsz.'
       : `${MOD}+kattintás: több lista · Shift+kattintás: tartomány`;
     el.navHint.hidden = app.lists.length < 2;
 
     // keskeny nézet: jelölőnégyzetek (érintőképernyőn nincs Ctrl)
-    el.listChecks.replaceChildren(...app.lists.map((l) => {
-      const lab = document.createElement('label'); lab.className = 'pick';
-      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = isSel(l);
-      const name = document.createElement('span'); name.textContent = l.name;
-      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
-      c.addEventListener('change', () => act.select(l.name, { toggle: true }));
-      lab.append(c, name, cnt); return lab;
-    }));
+    rebuild(el.listChecks, lk, () => app.lists.map((l) => checkRow(l, 'pick')));
+    syncChecks(el.listChecks);
     el.picker.hidden = !app.lists.length;
     const sum = selectionSummary();
     el.pickSum.textContent = sum.text;
@@ -112,21 +151,15 @@ export function createAdmin(el, app, act) {
   /** A kijelölés összesítője: „2 lista · 38 tétel”, a nevek „·”-tal. */
   function selectionSummary() {
     const sel = selected();
-    const n = itemsOf(app.lists, app.selected, nameKey).length;
+    const n = selectedItems().length;
     const text = sel.length ? `${sel.length} lista · ${n} tétel` : 'Nincs kijelölt lista';
     return { k: sel.length, n, text, names: sel.map((l) => l.name).join(' · ') };
   }
 
   /* ---------- mobil listaválasztó lap (E11) ---------- */
   function renderListsSheet() {
-    el.listsRows.replaceChildren(...app.lists.map((l) => {
-      const lab = document.createElement('label'); lab.className = 'ls-row';
-      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = isSel(l);
-      const name = document.createElement('span'); name.className = 'ls-name'; name.textContent = l.name;
-      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
-      c.addEventListener('change', () => act.select(l.name, { toggle: true }));
-      lab.append(c, name, cnt); return lab;
-    }));
+    rebuild(el.listsRows, listsKey(), () => app.lists.map((l) => checkRow(l, 'ls-row', 'ls-name')));
+    syncChecks(el.listsRows);
     const sum = selectionSummary();
     el.listsSum.textContent = sum.k ? `${sum.k} lista / ${sum.n} tétel` : 'Nincs kijelölt lista';
   }
@@ -155,15 +188,17 @@ export function createAdmin(el, app, act) {
         : (app.loadError || 'Még nincs lista.');
       return;
     }
+    // a tétel-kártyák (akár több száz) csak a kijelölt listák tartalmának változásakor épülnek újra
+    const key = sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
     if (sel.length === 1) {
       el.listName.textContent = l.name;
       el.listCount.textContent = `${l.items.length} tétel`;
-      el.listBody.replaceChildren(chipBox(l.items));
+      rebuild(el.listBody, key, () => [chipBox(l.items)]);
       return;
     }
     el.listName.textContent = `${sel.length} lista kijelölve`;
-    el.listCount.textContent = `${itemsOf(app.lists, app.selected, nameKey).length} különböző tétel`;
-    el.listBody.replaceChildren(...sel.map((x) => {
+    el.listCount.textContent = `${selectedItems().length} különböző tétel`;
+    rebuild(el.listBody, key, () => sel.map((x) => {
       const g = document.createElement('section'); g.className = 'group';
       const h = document.createElement('div'); h.className = 'ed-head';
       const h3 = document.createElement('h3'); h3.textContent = x.name;
@@ -258,16 +293,21 @@ export function createAdmin(el, app, act) {
 
   /* Minta: egy lehetséges feladat kis kártyákon; beállítás-változásra és a „Másik minta” gombra frissül. */
   let sampleKey = '';
+  // a készlet (páronkénti távolságok, O(n²)) csak a tételektől és a konfigurációtól függ: a nehézség
+  // vagy a kártyaszám változásakor nem számolódik újra
+  let poolMemo = { cc: null, key: null, pool: null };
   function renderSample(force = false) {
     const cc = app.pairs.cc;
     const items = roundItems();
     const n = phoneCards(app.find.cards);
-    const key = [cc ? 1 : 0, n, app.find.level, items.join('\u0001')].join('|');
+    const itemsKey = items.join(SEP);
+    const key = [cc ? 1 : 0, n, app.find.level, itemsKey].join('|');
     if (!force && key === sampleKey) return;
     sampleKey = key;
     if (!cc || distinctCount(items) < 2) { el.sampleBox.hidden = true; el.sample.replaceChildren(); return; }
     el.sampleBox.hidden = false;
-    const pool = createPool(items, cc);
+    if (poolMemo.cc !== cc || poolMemo.key !== itemsKey) poolMemo = { cc, key: itemsKey, pool: createPool(items, cc) };
+    const pool = poolMemo.pool;
     const g = buildGrid(pool, n, levelToDegree(app.find.level, cc.levels), Math.random);
     el.sample.replaceChildren(...g.items.map((t) => {
       const c = document.createElement('span'); c.className = 'sample-card'; c.textContent = t; c.title = t; return c;
