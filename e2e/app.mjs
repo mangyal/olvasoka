@@ -532,10 +532,10 @@ test('tárolás: ha egy későbbi mentés bukik (betelt tárhely), a figyelmezte
   await page.reload();
   await page.locator('#listNav .nav-item').first().waitFor();
   const warn = () => page.locator('#warnings').textContent();
-  assert.ok(!(await warn()).includes('nem maradnak meg'), 'induláskor még működik a tárolás');
+  assert.ok(!(await warn()).includes('nem mentődnek el'), 'induláskor még működik a tárolás');
   await page.evaluate(() => sessionStorage.setItem('e2e-fail', '1'));
   await page.locator('#countInc').click();
-  assert.ok((await warn()).includes('A beállítások nem maradnak meg'), 'a figyelmeztetés nem jelent meg');
+  assert.ok((await warn()).includes('A beállításaid nem mentődnek el'), 'a figyelmeztetés nem jelent meg');
 });
 
 /** Hamis Screen Wake Lock: a kérés 400 ms múlva teljesül; window.__wl.held a fogva tartott zárak száma. */
