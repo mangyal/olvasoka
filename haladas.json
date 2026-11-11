@@ -33,8 +33,9 @@
     "kapcsolodo_max": 5
   },
   "tarolas": {
-    "_leiras": "Tárolás és üres állapot (4.3, 8.4).",
+    "_leiras": "Tárolás és üres állapot (4.3, 8.4). A nyers események a legutóbbi nyers_megorzes_kor körből és legfeljebb nyers_megorzes_nap napig maradnak meg; ami bármelyiken túl van, törlődik.",
     "nyers_megorzes_nap": 30,
+    "nyers_megorzes_kor": 30,
     "ures_allapot_min_nap": 3
   }
 }

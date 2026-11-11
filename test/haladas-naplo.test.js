@@ -330,6 +330,28 @@ test('30 napnál régebbi nyers események törlődnek, a napi összesítők meg
   assert.equal(saved.rounds.length, 2);
 });
 
+test('a nyers napló a legutóbbi 30 kört tartja meg; a napi összesítők mind megmaradnak; a méret korlátos', () => {
+  const { log, clock, storage } = fresh();
+  const items = ['ma', 'me', 'mi', 'mo', 'mu', 'ma-ma', 'ke-fe', 'fó-ka', 'lu-fi', 'fa-lu'];
+  const steps = items.map((_, k) => ['NEXT', 2000 * (k + 1)]);
+  for (let r = 0; r < 100; r++) play(log, clock, { items, start: T0 + r * 60000 }, steps);
+  const kept = new Set(log.root.events.map((e) => e.round));
+  assert.equal(kept.size, 30);
+  assert.deepEqual([...kept], log.root.rounds.slice(-30).map((r) => r.id), 'a legutóbbiak');
+  assert.equal(log.root.rounds.length, 100, 'a körök rövid alakja megmarad');
+  assert.equal(day(log, 'ma').exposures, 100, 'az összesítők mind megmaradnak');
+  const kb = storage.getItem('k').length / 1024;
+  assert.ok(kb < 200, `100 kör után ${kb.toFixed(0)} kB`);
+});
+
+test('a kör-korlát a konfigurációból jön', () => {
+  const cfg = JSON.parse(readFileSync(join(ROOT, 'haladas.json'), 'utf8'));
+  cfg.tarolas.nyers_megorzes_kor = 2;
+  const { log, clock } = fresh({ config: resolve(cfg) });
+  for (let r = 0; r < 5; r++) play(log, clock, { items: ['ma'], start: T0 + r * 60000 }, [['NEXT', 2000]]);
+  assert.equal(new Set(log.root.events.map((e) => e.round)).size, 2);
+});
+
 test('kvótahiba: előbb a legrégebbi nyers események törlődnek, a napi összesítők soha', () => {
   const storage = memStorage();
   const { log, clock } = fresh({ storage });

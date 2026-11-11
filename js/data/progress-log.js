@@ -3,7 +3,8 @@
 // ha a tárolás nem elérhető, a gyakorlás változatlanul működik, a napló csak memóriában él.
 //
 // Tárolt gyökér: { v: 1, deviceId, child, events, daily, rounds, lists }
-// - A nyers események legfeljebb `tarolas.nyers_megorzes_nap` napig maradnak; addig a napi összesítők
+// - A nyers események a legutóbbi `tarolas.nyers_megorzes_kor` lezárt körből és legfeljebb
+//   `tarolas.nyers_megorzes_nap` napig maradnak (ami bármelyiken túl van, törlődik); addig a napi összesítők
 //   belőlük újraszámolhatók (core/exposures.js). A kör végén a kör megjelenései egyszer hozzáadódnak.
 // - Kvótahibánál előbb a legrégebbi nyers események törlődnek (az összesítésük után), a napi összesítők soha.
 // - Ismeretlen (újabb) verziójú gyökeret nem írunk felül: a napló ilyenkor csak memóriában él.
@@ -101,9 +102,12 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
     compact();
   }
 
+  /** A nyers napló korlátja: a legutóbbi N lezárt kör, és legfeljebb a megőrzési napokig. A futó kör marad. */
   function compact() {
     const cut = cutoffDay();
-    root.events = root.events.filter((e) => dayOf(e.t) >= cut);
+    const folded = root.rounds.filter((r) => r.folded);
+    const old = new Set(folded.slice(0, Math.max(0, folded.length - cfg.tarolas.nyers_megorzes_kor)).map((r) => r.id));
+    root.events = root.events.filter((e) => !old.has(e.round) && dayOf(e.t) >= cut);
   }
 
   function push(type, i, extra = {}) {

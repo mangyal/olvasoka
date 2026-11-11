@@ -1,9 +1,12 @@
 # Olvasóka: Haladás (tétel-elsajátítás) specifikáció
 
-Verzió: 1.3 · 2026. november 11.
+Verzió: 1.4 · 2026. november 11.
 Mellékletek: a jóváhagyott képernyőtervek képernyőképei (lásd 8. fejezet).
 
 ## 0. Változások
+
+### 1.4 (az 1.3-hoz képest)
+- A nyers napló korlátja a napok mellett a körök száma is: a legutóbbi 30 kör (`tarolas.nyers_megorzes_kor`) (4.3, 7.1).
 
 ### 1.3 (az 1.2-höz képest, a fejlesztői kérdések alapján)
 - Tételkulcs: a kis- és nagybetű **különbözik** (`ház` ≠ `Ház`); csak NFC és szélek levágása (3., 11.).
@@ -111,9 +114,9 @@ Alapelvek, amelyek minden döntést felülírnak:
 - A kör a lista nevét **és tartalmi hash-ét** is tárolja (rövid, pl. 8 hexa karakter a rendezett tételkulcsokból).
 
 ### 4.3 Tömörítés és méret
-- A nyers események 30 nap után törlődnek, de előtte bekerülnek a napi összesítőkbe: minden kör a lezárásakor (vagy ha a lap közben bezárult, a következő induláskor) egyszer hozzáadódik. Az összesítő az eseményekből újraszámolható, amíg azok megvannak (`js/core/exposures.js`).
+- A nyers események a legutóbbi 30 körből (`nyers_megorzes_kor`) és legfeljebb 30 napig (`nyers_megorzes_nap`) maradnak meg; ami bármelyik korláton túl van, törlődik. Így a nyers napló mérete a használat gyakoriságától függetlenül korlátos (kb. 150 kB). Törlés előtt bekerülnek a napi összesítőkbe: minden kör a lezárásakor (vagy ha a lap közben bezárult, a következő induláskor) egyszer hozzáadódik. Az összesítő az eseményekből újraszámolható, amíg azok megvannak (`js/core/exposures.js`).
 - `dwellMs` és `help`: legfeljebb 20 elem; ha több, az első és az utolsó 10 marad (a kiindulás az elejéből, a legutóbbiak a végéből számolnak).
-- Becslés: kb. 20 tétel×nap naponta, kb. 40 bájt összesítőnként: évi kb. 300 KB. A nyers napló 30 napra kb. 120 KB.
+- Becslés (mért, 1.4): egy esemény kb. 150 bájt, egy 10 tételes kör kb. 4,5 kB nyers napló, így a 30 körös korlát kb. 150 kB. Egy napi összesítő jelenleg kb. 300 bájt (napi 20 tétel×nap mellett évi kb. 2 MB); a tömörebb formátum a kiadás előtt jön.
 - Ha az írás kvótahiba miatt sikertelen: előbb a legrégebbi nyers események törlődnek (összesítés után), a napi összesítők sosem.
 
 ## 5. Naplózás és mellényomás-szűrés
@@ -205,6 +208,7 @@ Típus (betű, szótag, szó) és betűszám: a meglévő `typeOf()` és `tokeni
   },
   "tarolas": {
     "nyers_megorzes_nap": 30,
+    "nyers_megorzes_kor": 30,
     "ures_allapot_min_nap": 3
   }
 }
