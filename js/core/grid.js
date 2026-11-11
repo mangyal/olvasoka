@@ -14,10 +14,19 @@ const DIGRAPHS = ['cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
 /** Normalizált kulcs: NFC, kisbetű, kötőjel nélkül. Az ismétlődést ez szűri. */
 export const normalize = (s) => String(s).normalize('NFC').toLocaleLowerCase('hu').replace(/-/g, '').trim();
 
-/** Mohó leghosszabb egyezés: dzs, majd a kétjegyűek, végül az egyes karakterek. */
+const MULTI = ['dzs', ...DIGRAPHS];
+/** A t i. helyétől induló többjegyű betű, ha van (a háromjegyű előbb). */
+const multiAt = (t, i) => MULTI.find((m) => t.startsWith(m, i));
+
+/**
+ * Mohó leghosszabb egyezés: dzs, majd a kétjegyűek, végül az egyes karakterek.
+ * A hosszú többjegyű mássalhangzó (ssz, ggy, ccs, ddzs …) két betű: asszony → a-sz-sz-o-ny.
+ */
 export function tokenize(s) {
   const t = normalize(s), out = [];
   for (let i = 0; i < t.length;) {
+    const doubled = t[i] === t[i + 1] && multiAt(t, i + 1);
+    if (doubled && doubled[0] === t[i]) { out.push(doubled); i += 1; continue; }
     if (t.startsWith('dzs', i)) { out.push('dzs'); i += 3; continue; }
     const two = t.slice(i, i + 2);
     if (DIGRAPHS.includes(two)) { out.push(two); i += 2; continue; }

@@ -7,9 +7,9 @@
 //
 // A listák táblázata környezetenként: core/config.js (kiadáskor GitHub repository variable-ökből).
 
-import { SHEETS } from './config.js';
+import { SHEETS, PROGRESS } from './config.js';
 
-export { SHEETS };
+export { SHEETS, PROGRESS };
 
 /** 'dev', ha a cím a /dev/ almappában van, vagy helyi gépen fut; különben 'prod'. */
 export function envFrom(loc) {
@@ -27,6 +27,9 @@ export function envConfig(env) {
     env: dev ? 'dev' : 'prod',
     storageKey: dev ? 'olvasoka-dev' : 'olvasoka',
     sheet: dev ? SHEETS.dev : SHEETS.prod,
+    // Haladás: a napszabályok kihagyása (teszteléshez) és a napló tárolási neve; dev és éles külön
+    skipDayRules: Boolean((dev ? PROGRESS.dev : PROGRESS.prod).skipDayRules),
+    progressKey: `${dev ? 'olvasoka-dev' : 'olvasoka'}.haladas`,
   });
 }
 

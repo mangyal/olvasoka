@@ -1,7 +1,9 @@
 // Indítás és állapotváltás: ADMIN ⇄ PRACTICE → REWARD → ADMIN, Keresd meg! módban ADMIN ⇄ FIND → REWARD → ADMIN.
 
 import { createStore } from './data/store.js';
-import { fetchLists, fetchPairs } from './data/remote.js';
+import { fetchLists, fetchPairs, fetchProgressConfig } from './data/remote.js';
+import { createProgressLog } from './data/progress-log.js';
+import { resolve as resolveProgress } from './core/haladas-config.js';
 import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
 import { clampSettings, clampFind, normalizeMode, levelToDegree } from './core/settings.js';
 import { buildTasks, effectiveCards } from './core/find.js';
@@ -65,7 +67,14 @@ function pickSelected() {
   setSelection(reconcile(want, keys));
 }
 
-const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); } });
+// Haladás: a gyakorlás naplója a szülő eszközén (docs/haladas-specifikacio.md). Ha a tárolás nem
+// elérhető, memóriában fut; a gyakorlást semmi nem akasztja meg.
+const progress = createProgressLog({ key: ENV.progressKey, config: resolveProgress(null, { skipDayRules: ENV.skipDayRules }) });
+
+/** A kör listáinak nevei: „Összes lista” módban mind, különben a kijelöltek. */
+const roundListNames = () => (app.settings.source === 'all' ? app.lists.map((l) => l.name) : app.lastLists);
+
+const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); }, progress });
 
 const admin = createAdmin(el, app, {
   // mod: { toggle, range } – Ctrl/Cmd, illetve Shift kattintás
@@ -109,7 +118,7 @@ const admin = createAdmin(el, app, {
       practice.startFind(tasks, cards, ev);
       return;
     }
-    practice.start(admin.roundItems(), app.settings, ev);
+    practice.start(admin.roundItems(), app.settings, ev, { listNames: roundListNames(), undoMs: progress.config.szures.javitott_melle_ms });
   },
   fontTest() {
     const ok = fontLooksRight(app.font);
@@ -132,6 +141,7 @@ async function refresh() {
     app.kind = r.kind; app.fallback = r.fallback;
     cache = { text: r.text, fetchedAt: app.fetchedAt, kind: r.kind };
     persist();
+    if (app.lists.length) progress.syncLists(app.lists);
   } catch (e) {
     app.loadError = e.message;
     app.listsState = app.lists.length ? 'stale' : 'error';
@@ -151,6 +161,16 @@ async function loadPairs() {
     app.mode = 'read';
   }
   if (!practice.active) admin.render();
+}
+
+/* ---------- Haladás küszöbei (haladas.json) ---------- */
+// Hiányzó vagy hibás fájlnál a beépített alapértékekkel fut, és a konzolra figyelmeztet (7.1).
+async function loadProgressConfig() {
+  try {
+    progress.setConfig(resolveProgress(await fetchProgressConfig(), { skipDayRules: ENV.skipDayRules }));
+  } catch (e) {
+    console.warn('Haladás: a haladas.json nem használható, az alapértékekkel fut.', e.message);
+  }
 }
 
 /* ---------- billentyűk ---------- */
@@ -189,6 +209,7 @@ initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();
 loadPairs();
+loadProgressConfig();
 
 // PWA: offline indulás (sw.js). Csak https-en vagy localhoston; hiba esetén a program ugyanúgy fut.
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

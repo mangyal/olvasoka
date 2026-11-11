@@ -3,9 +3,11 @@
 
 import { loadLists, TXT_URL } from '../core/source.js';
 import { validateConfig, compileConfig } from '../core/grid.js';
+import { validate as validateProgress } from '../core/haladas-config.js';
 
 export const PAIRS_URL = 'parok.json';
-const label = (url) => (url === TXT_URL ? 'A lists.txt' : url === PAIRS_URL ? 'A parok.json' : 'A táblázat');
+export const PROGRESS_URL = 'haladas.json';
+const label = (url) => (url === TXT_URL ? 'A lists.txt' : url === PAIRS_URL ? 'A parok.json' : url === PROGRESS_URL ? 'A haladas.json' : 'A táblázat');
 
 /** Egy cím letöltése időkorláttal; hibánál a felhasználónak szóló üzenettel dob. */
 export async function get(url, timeoutMs = 8000) {
@@ -34,4 +36,14 @@ export async function fetchPairs() {
   const p = validateConfig(cfg);
   if (p.length) throw new Error(`A parok.json hibás: ${p.join('; ')}`);
   return compileConfig(cfg);
+}
+
+/** A Haladás küszöbei (haladas.json), ellenőrizve; hibánál dob (a hívó az alapértékekkel fut tovább). */
+export async function fetchProgressConfig() {
+  const { text } = await get(PROGRESS_URL);
+  let cfg;
+  try { cfg = JSON.parse(text); } catch { throw new Error('A haladas.json nem érvényes JSON.'); }
+  const p = validateProgress(cfg);
+  if (p.length) throw new Error(`A haladas.json hibás: ${p.join('; ')}`);
+  return cfg;
 }
