@@ -574,3 +574,92 @@ test('képernyőzár: ha a kör a kérés teljesülése előtt ér véget, a zá
   assert.equal(s.requests, 1);
   assert.equal(s.held, 0, 'a szülői felületen is ébren tartja a képernyőt');
 });
+
+/* ---------- Haladás: napló (docs/haladas-specifikacio.md, 5., 11.) ---------- */
+const PROGRESS_KEY = 'olvasoka-dev.haladas';   // localhoston a dev kulcs (js/core/env.js)
+const progressRoot = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), PROGRESS_KEY);
+
+test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éles kulcs érintetlen', async () => {
+  await startRound({ flash: 0, count: 3 });
+  const first = await item();
+  await page.waitForTimeout(700);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('ArrowLeft');                 // 2 mp-en belül: javított mellényomás
+  assert.equal(await item(), first);
+  await page.waitForTimeout(500);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(700);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(700);
+  await page.keyboard.press('Space');                     // az utolsón: jutalom
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+
+  const root = await progressRoot();
+  assert.equal(root.v, 1);
+  assert.match(root.deviceId, /^r-/);
+  const [r] = root.rounds;
+  assert.equal(r.mode, 'read'); assert.equal(r.completed, true); assert.equal(r.corrections, 1);
+  assert.deepEqual(r.listNames, ['Szótagok']); assert.match(r.listHash, /^[0-9a-f]{8}$/);
+  const d = root.daily.find((x) => x.item === first);
+  assert.equal(d.help[0], '0', 'a javított mellényomás nem segítség');
+  assert.ok(d.dwellMs[0] >= 1100, `az idő összeadódik: ${d.dwellMs[0]}`);
+  assert.ok(root.daily.every((x) => LISTS.Szótagok.includes(x.item)));
+  assert.equal(await page.evaluate(() => localStorage.getItem('olvasoka.haladas')), null, 'az éles kulcs érintetlen');
+});
+
+test('Haladás napló: kilépés a kör közben is naplózódik', async () => {
+  await startRound({ flash: 0, count: 5 });
+  await page.waitForTimeout(600);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(600);
+  await page.keyboard.press('Escape');
+  const [r] = (await progressRoot()).rounds;
+  assert.equal(r.completed, false); assert.equal(r.abandonedAt, 1);
+});
+
+test('Haladás: gyors ← után a tétel takarása visszaáll (5.3)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Kötőjeles\r\nma-ma\r\nke-fe\r\nsá-ra' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 3, list: 'Kötőjeles' });
+  const first = await item();
+  await page.keyboard.press('ArrowDown');                 // csak az 1. szótag látszik
+  const rulers = () => page.locator('#stage .ruler').count();
+  assert.equal(await rulers(), 1);
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await rulers(), 0, 'a következő tétel egészben látszik');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await item(), first);
+  assert.equal(await rulers(), 1, 'a takarás visszaállt');
+  await page.waitForTimeout(2100);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(2100);
+  await page.keyboard.press('ArrowLeft');                 // 2 mp után: a régi viselkedés
+  assert.equal(await rulers(), 0);
+});
+
+test('Haladás: tiltott localStorage mellett a gyakorlás hibátlanul működik', async () => {
+  const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
+  await c.addInitScript(() => {
+    const deny = () => { throw new DOMException('denied', 'SecurityError'); };
+    Storage.prototype.setItem = deny; Storage.prototype.getItem = deny;
+  });
+  await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: FIXTURE }));
+  const p = await c.newPage();
+  const errors = [];
+  p.on('pageerror', (e) => errors.push(e.message));
+  await p.goto(base);
+  if (await p.locator('#dlgHelp').isVisible()) await p.keyboard.press('Escape');
+  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await p.locator('#startBtn').click();
+  await p.locator('#stage').waitFor({ state: 'visible' });
+  for (let k = 0; k < 12; k++) { await p.waitForTimeout(450); await p.keyboard.press('ArrowRight'); }
+  await p.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await p.keyboard.press('Escape');
+  await p.locator('#admin').waitFor({ state: 'visible' });
+  assert.deepEqual(errors, []);
+  await c.close();
+});

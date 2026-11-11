@@ -18,7 +18,12 @@ const FIND_KEYS = { Space: 'NEXT', ArrowRight: 'NEXT', ArrowLeft: 'PREV' };
 const SVG = 'http://www.w3.org/2000/svg';
 const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem lép és nem takar
 
-export function createPractice(el, { onExit }) {
+/**
+ * @param {object} el  a DOM elemei
+ * @param {{ onExit: () => void, progress?: object }} o
+ *   progress: a Haladás naplója (data/progress-log.js); a Felolvasás kör átmeneteit kapja
+ */
+export function createPractice(el, { onExit, progress = null }) {
   let mode = 'off';                 // 'off' | 'practice' | 'find' | 'reward'
   let fst = null;                   // a Keresd meg! kör állapota (core/find.js)
   let wake = null;                  // N9: a képernyő ne sötétüljön el gyakorlás közben
@@ -55,7 +60,8 @@ export function createPractice(el, { onExit }) {
   const findView = createFindView({ grid: el.findGrid }, { onMark: (i) => findDispatch('MARK', i) });
 
   /* ---------- kör ---------- */
-  function start(roundItems, settings, ev) {
+  /** @param {{ listNames?: string[], undoMs?: number }} [opt]  a Haladás naplójához */
+  function start(roundItems, settings, ev, { listNames = [], undoMs } = {}) {
     items = roundItems;
     const seq = buildSequence(items.length, settings.count);
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -63,7 +69,8 @@ export function createPractice(el, { onExit }) {
     if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
     el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
-    st = startRound(seq, settings.flashMs, settings.gapMs, performance.now());
+    st = startRound(seq, settings.flashMs, settings.gapMs, performance.now(), { undoMs });
+    progress?.beginRound({ seq: st.seq, items, listNames, flashMs: settings.flashMs, gapMs: settings.gapMs, count: settings.count });
     buildProgress(st.seq.length);
     layout();
     render(); arm();                // S1: azonnal az első tétel, teljes idővel
@@ -109,7 +116,9 @@ export function createPractice(el, { onExit }) {
   function dispatch(ev, arg) {
     if (mode !== 'practice') return;
     if (ev === 'COVER_DOWN') arg = { n: curSyllables().length };
+    const before = st;
     st = step(st, ev, performance.now(), arg);
+    progress?.step(before, ev, st);
     if (st.done) { toReward(); return; }
     render(); arm();
   }
@@ -124,6 +133,7 @@ export function createPractice(el, { onExit }) {
   function toReward() {
     clearTimeout(timer);
     if (mode === 'find') { findView.clear(); el.findGrid.hidden = true; fst = null; }
+    if (mode === 'practice') progress?.endRound();
     mode = 'reward';
     el.stage.dataset.mode = 'reward';
     render();
@@ -136,6 +146,7 @@ export function createPractice(el, { onExit }) {
   function exit() {
     clearTimeout(timer); clearTimeout(uiTimer);
     if (reward) { reward.stop(); reward = null; }
+    if (mode === 'practice') progress?.endRound(st.index);   // kilépés a kör közben
     delete el.stage.dataset.reward;
     mode = 'off'; st = null; fst = null;
     findView.clear(); el.findGrid.hidden = true;
@@ -364,7 +375,11 @@ export function createPractice(el, { onExit }) {
     if (e.code === 'Escape') exit();
     else dispatch(KID_KEYS[e.code]);
   }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) dispatch('BLUR'); else keepAwake(); });
+  document.addEventListener('visibilitychange', () => {
+    // a Haladás naplójában az elrejtett idő nem olvasási idő (docs/haladas-specifikacio.md, 5.2)
+    if (mode === 'practice') progress?.visibility(document.hidden, st.index);
+    if (document.hidden) dispatch('BLUR'); else keepAwake();
+  });
   addEventListener('blur', () => dispatch('BLUR'));
   addEventListener('resize', () => {
     if (mode === 'practice') { layout(); render(); }
