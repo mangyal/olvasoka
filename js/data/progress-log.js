@@ -3,7 +3,9 @@
 // ha a tárolás nem elérhető, a gyakorlás változatlanul működik, a napló csak memóriában él.
 //
 // Memóriabeli gyökér: { v, deviceId, child, events, daily, rounds, lists } (olvasható objektumok).
-// A tárolt alak tömör (data/progress-codec.js, 2. verzió); az 1. verzió betöltéskor átalakul.
+// A tárolt alak tömör (data/progress-codec.js, 3. verzió); az 1. és 2. verzió betöltéskor átalakul.
+// - Villantásos olvasási idő (flashDwell): az új körök a lezáráskor kitöltik. A korábbi verzióval lezárt
+//   körökét betöltéskor egyszer pótoljuk a még meglévő nyers eseményekből (`flashDwellDone`, tárolva: fd).
 // - A nyers események a legutóbbi `tarolas.nyers_megorzes_kor` lezárt körből és legfeljebb
 //   `tarolas.nyers_megorzes_nap` napig maradnak (ami bármelyiken túl van, törlődik); addig a napi összesítők
 //   belőlük újraszámolhatók (core/exposures.js). A kör végén a kör megjelenései egyszer hozzáadódnak.
@@ -11,7 +13,7 @@
 // - Ismeretlen (újabb) verziójú gyökeret nem írunk felül: a napló ilyenkor csak memóriában él.
 
 import { transitionEvents } from '../core/practice-log.js';
-import { roundExposures, dailyRecords, mergeDaily, dayOf, listHash } from '../core/exposures.js';
+import { roundExposures, dailyRecords, mergeDaily, dayOf, listHash, keepEnds, flashDwellOf } from '../core/exposures.js';
 import { reconcileLists } from '../core/list-identity.js';
 import { itemKey, nameKey } from '../core/items.js';
 import { DEFAULTS } from '../core/haladas-config.js';
@@ -104,7 +106,40 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
       }
     }
     round.folded = true;
+    round.flashDwellDone = true;
     compact();
+  }
+
+  /**
+   * Egyszeri pótlás: a korábbi verzióval lezárt villantásos Felolvasás körök villantásos idői a megmaradt
+   * nyers eseményekből. Csak a napi összesítő `flashDwell` mezője változik (a többi már benne van).
+   * A körök időrendben (t0); a hiányos nyers eseményű kör kimarad. Minden érintett kör `flashDwellDone`
+   * lesz, így ismételt betöltéskor nem fűz hozzá újra.
+   * @returns {boolean} változott-e valami
+   */
+  function backfillFlashDwell() {
+    const todo = root.rounds.filter((r) => r.folded && !r.flashDwellDone).sort((a, b) => a.t0 - b.t0);
+    if (!todo.length) return false;
+    const evs = new Map(todo.map((r) => [r.id, []]));
+    for (const e of root.events) evs.get(e.round)?.push(e);
+    const at = new Map(root.daily.map((d, k) => [d.id, k]));
+    for (const r of todo) {
+      r.flashDwellDone = true;
+      const xs = evs.get(r.id);
+      if (r.mode !== 'read' || !(r.flashMs > 0) || !complete(xs)) continue;
+      const groups = new Map();
+      for (const e of roundExposures(r, xs, cfg.szures).exposures) {
+        const id = `${root.deviceId}|${root.child}|${e.item}|${e.day}`;
+        if (!groups.has(id)) groups.set(id, []);
+        groups.get(id).push(e);
+      }
+      for (const [id, group] of groups) {
+        const d = root.daily[at.get(id)];
+        const add = flashDwellOf(group);
+        if (d && add.length) d.flashDwell = keepEnds([...(d.flashDwell || []), ...add]);
+      }
+    }
+    return true;
   }
 
   /** A nyers napló korlátja: a legutóbbi N lezárt kör, és legfeljebb a megőrzési napokig. A futó kör marad. */
@@ -120,9 +155,12 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
     root.events.push({ id: `${cur.round.id}:${cur.n++}`, round: cur.round.id, t: now(), i, item: cur.items[i], type, ...extra });
   }
 
-  // indulás: a korábban félbemaradt (pl. bezárt lappal véget ért) körök lezárása
+  // indulás: előbb a régebbi körök villantásos idejének pótlása (amíg a nyers események megvannak, és hogy
+  // az idők időrendben maradjanak), majd a korábban félbemaradt (pl. bezárt lappal véget ért) körök lezárása
+  const filled = backfillFlashDwell();
   for (const r of root.rounds) if (!r.folded) fold(r);
   compact();
+  if (filled) save();
 
   return {
     get available() { return writable; },
@@ -149,7 +187,7 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
       const round = {
         id: newId(), child: root.child, t0: now(), mode: 'read',
         listNames: [...listNames], listIds: listNames.map((n) => ids.get(nameKey(n)) || null),
-        listHash: listHash(items), flashMs, gapMs, count, completed: false, abandonedAt: null, corrections: 0, folded: false,
+        listHash: listHash(items), flashMs, gapMs, count, completed: false, abandonedAt: null, corrections: 0, folded: false, flashDwellDone: false,
         items: seq.map((k) => itemKey(items[k])),
       };
       root.rounds.push(round);
@@ -184,6 +222,11 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
       save();
     },
   };
+}
+
+/** A kör nyers eseményei teljesek-e: az első esemény az első pozíció megjelenése (az elejéről törlődik). */
+function complete(events) {
+  return events.length > 0 && events[0].type === 'show' && events[0].i === 0;
 }
 
 function probe() {

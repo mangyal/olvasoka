@@ -1,9 +1,14 @@
 # Olvasóka: Haladás (tétel-elsajátítás) specifikáció
 
-Verzió: 1.5 · 2026. november 11.
+Verzió: 1.6 · 2026. november 12.
 Mellékletek: a jóváhagyott képernyőtervek képernyőképei (lásd 8. fejezet).
 
 ## 0. Változások
+
+### 1.6 (az 1.5-höz képest)
+- Villantásos olvasási idő (3., 5.2): villantásos körben a villantás lejárta előtti gombnyomásos továbblépés ideje is tárolódik, **külön mezőben** (`flashDwell`), a villantás hosszával együtt. Csak adatgyűjtés: az állapotszámítás, a küszöbök, a meglévő mezők és a felület nem változnak.
+- 3. tárolt verzió (4.2a): a napi sor és a kör sor egy-egy új elemmel bővül. Az 1. és 2. verzió betöltéskor átalakul.
+- Egyszeri pótlás (4.3a): a korábban lezárt villantásos körök idői a még meglévő nyers eseményekből (legutóbbi 30 kör, legfeljebb 30 nap) pótlódnak.
 
 ### 1.5 (az 1.4-hez képest)
 - Tömör tárolt formátum (2. verzió, 4.2a): a valós dev adatokon 156 kB → 23 kB, ugyanazokkal az állapotokkal. Az 1. verzió betöltéskor átalakul. Az olvasási idők 100 ms-os felbontással tárolódnak.
@@ -68,6 +73,7 @@ Alapelvek, amelyek minden döntést felülírnak:
 | Tételkulcs | A tétel szövege `itemKey()` szerint (NFC, trim). **A kis- és nagybetű különbözik** (`ház` és `Ház` két tétel), **a kötőjel megmarad**: `ma`, `ma-ma` és `mama` három külön tétel. |
 | Megjelenés (exposure) | A tétel egyszeri, érvényes megjelenése egy körben (lásd 5.1). |
 | Olvasási idő (dwell) | A tétel megjelenésétől a továbblépésig eltelt idő, csak kézi léptetésnél (villantás = 0). |
+| Villantásos olvasási idő (flashDwell) | Villantásos körben ugyanígy számolt idő, ha a gyerek a villantás lejárta előtt gombnyomással lépett tovább (5.2). A villantás hosszával együtt tárolódik. Rövid villantásnál csak a gyors olvasások kapnak időt (a lassabbaknál lejár a villantás), ezért az idők összevetésekor a villantás hosszát is figyelembe kell venni. Az állapotszámítás most nem használja. |
 | Segítség | Takarás, megállítás vagy valódi visszalépés egy megjelenés alatt. |
 | Kiindulás (baseline) | A tétel első 3 érvényes, kézi léptetéses megjelenésének medián olvasási ideje. |
 | Relatív idő | A legutóbbi 3 kézi megjelenés medián ideje osztva a kiindulással. 1,0 = változatlan, 0,6 = 40%-kal gyorsabb. |
@@ -97,7 +103,8 @@ Alapelvek, amelyek minden döntést felülírnak:
 // Kör
 { id, child, t0, mode: "read", listNames: [...], listIds: [...], listHash: "a1b2c3d4",
   flashMs, gapMs, count, completed: true|false, abandonedAt: index|null, corrections: n,
-  folded: true|false }                         // folded: a napi összesítőkbe már bekerült
+  folded: true|false,                          // folded: a napi összesítőkbe már bekerült
+  flashDwellDone: true|false }                 // a villantásos idői is bekerültek (új kör: a lezáráskor; régi: 4.3a)
 
 // Esemény (nyers); i: a kör pozíciója; a villantási idő a körben van
 { id, round, t, i, item: "<tételkulcs>",
@@ -109,26 +116,40 @@ Alapelvek, amelyek minden döntést felülírnak:
   exposures, manualExposures, dwellMs: [..],   // kézi megjelenések idői, legfeljebb 20 érték
   medianDwellMs, covers, pauses, prevs, supportedExposures,
   unsupportedFastFlash,                        // segítség nélkül, villantás ≤ 5000 ms mellett
-  help: "0010…" }                              // megjelenésenként, időrendben: 1 = segítséggel
+  help: "0010…",                               // megjelenésenként, időrendben: 1 = segítséggel
+  flashDwell: [{ ms, flashMs }, ..] }          // villantásos olvasási idők a villantás hosszával, időrendben,
+                                               // legfeljebb 20 érték (mint a dwellMs); régi adatnál []
 ```
 
 - Minden azonosító véletlen (pl. `crypto.randomUUID()`, ha nincs, saját véletlen).
 - A tétel **szövegét** tároljuk, sosem a lista indexét.
 - A kör a lista nevét **és tartalmi hash-ét** is tárolja (rövid, pl. 8 hexa karakter a rendezett tételkulcsokból).
 
-### 4.2a Tárolt formátum (2. verzió)
+### 4.2a Tárolt formátum (3. verzió)
 A 4.2 rekordjai a program memóriájában ilyen olvasható alakban vannak; a localStorage-be tömör alak kerül (`js/data/progress-codec.js`):
 - a körök és a napi összesítők mezőnevek nélküli tömbök; a napi összesítő azonosítója (eszköz|gyerek|tétel|nap) és mediánja betöltéskor áll elő;
 - a kör a tételeit egyszer tárolja (pozíció szerint); az események körönként egy szövegben vannak (`eltelt idő,pozíció,kód`), tétel és saját azonosító nélkül;
-- az olvasási idők 100 ms-os egységben;
+- az olvasási idők 100 ms-os egységben; a villantásos olvasási idő `[idő, villantás]` pár, mindkettő 100 ms-os egységben (3,2 mp 10 mp-es villantásnál: `[32, 100]`);
+- a napi sor: `[tétel, nap, megjelenés, kézi, idők, takarás, megállítás, visszalépés, segítséggel, gyors, segítség, villantásos idők, eszköz?]`; az eszköz csak akkor, ha eltér a saját eszköztől (a 2. verzióban ez volt a 12. elem, a villantásos idők nélkül);
+- a kör sor utolsó eleme `fd` (0/1): a kör villantásos idői már a napi összesítőkben vannak;
 - az azonosítók rövidek (10 karakter, véletlen).
-Az 1. verziójú (olvasható) adat betöltéskor átalakul; ismeretlen, újabb verziót a program nem ír felül.
+Az 1. verziójú (olvasható) és a 2. verziójú adat betöltéskor átalakul (villantásos idő nélkül, `fd` = 0), a következő mentés már 3. verziót ír. Ismeretlen, újabb verziót a program nem ír felül: így egy gyorsítótárban maradt régebbi programváltozat a 3. verziót nem írja vissza 2.-ként (az új mezők nem vesznek el), csak memóriában dolgozik.
 
 ### 4.3 Tömörítés és méret
 - A nyers események a legutóbbi 30 körből (`nyers_megorzes_kor`) és legfeljebb 30 napig (`nyers_megorzes_nap`) maradnak meg; ami bármelyik korláton túl van, törlődik. Így a nyers napló mérete a használat gyakoriságától függetlenül korlátos (kb. 150 kB). Törlés előtt bekerülnek a napi összesítőkbe: minden kör a lezárásakor (vagy ha a lap közben bezárult, a következő induláskor) egyszer hozzáadódik. Az összesítő az eseményekből újraszámolható, amíg azok megvannak (`js/core/exposures.js`).
-- `dwellMs` és `help`: legfeljebb 20 elem; ha több, az első és az utolsó 10 marad (a kiindulás az elejéből, a legutóbbiak a végéből számolnak).
+- `dwellMs`, `flashDwell` és `help`: legfeljebb 20 elem; ha több, az első és az utolsó 10 marad (a kiindulás az elejéből, a legutóbbiak a végéből számolnak).
 - Mért méretek (2. verzió): egy 16 tételes kör nyers naplója kb. 0,3 kB (a 30 körös korláttal legfeljebb kb. 10 kB); egy napi összesítő kb. 50–130 karakter az aznapi olvasások számától függően (napi 20 tétel×nap mellett évi kb. 0,5 MB). Valós dev adat 19 kör után: 23 kB (az 1. verzióban 156 kB).
+- A 3. verzió többlete: napi összesítőnként 3 karakter, ha nincs villantásos idő, és kb. 10 karakter tárolt villantásos időnként (legfeljebb 20 → kb. 200 karakter). Mért érték egy 40 napos mintán (70 kör, 372 napi összesítő, a körök kb. kétharmada villantásos): 30,1 → 32,4 ezer karakter (+7,7%); körönként 2 karakter.
 - Ha az írás kvótahiba miatt sikertelen: előbb a legrégebbi nyers események törlődnek (összesítés után), a napi összesítők sosem.
+
+### 4.3a A villantásos idők egyszeri pótlása
+Az 1.6 előtti adatban a villantásos körök idői nincsenek meg. Betöltéskor minden olyan körre, amely már a napi összesítőkben van (`folded`), de a villantásos idői még nem (`fd` = 0):
+- ha villantásos Felolvasás kör, és a nyers eseményei teljesen megvannak, a megjelenései a nyers eseményekből újraszámolódnak (5.2), és a villantásos idők hozzáfűződnek a megfelelő napi összesítő `flashDwell` mezőjéhez (legfeljebb 20, mint fent). **Semmi más mező nem változik**, a megjelenések és a segítség már benne vannak;
+- a nyers események hiányosak, ha az első esemény nem az első pozíció megjelenése (a kvótahiba vagy a napkorlát az elejéről töröl), vagy egy sincs meg. Ilyenkor a kör kimarad;
+- kézi kör és hiányos kör: nincs mit pótolni;
+- minden ilyen kör `fd` = 1 lesz, így a pótlás egyszer fut le (ismételt betöltéskor nem fűz hozzá újra).
+
+A körök kezdési idő (`t0`) szerint, időrendben dolgozódnak fel. A pótlás **a félbemaradt körök lezárása előtt** fut: a lezárás törli a korlátokon túli nyers eseményeket, és a félbemaradt kör a legújabb, így az idői a régebbiek után kerülnek. Az új körök a lezáráskor a villantásos időket is kitöltik (`fd` = 1). Ami 30 körnél vagy 30 napnál régebbi, az nem pótolható.
 
 ## 5. Naplózás és mellényomás-szűrés
 
@@ -152,6 +173,8 @@ Kezdőértékek; mind a 7.1 szerinti konfigurációs fájlból jön (`szures` sz
 | Az ablak elveszti a fókuszt (automatikus megállítás) | Nem a gyerek kérte | Nem segítség. |
 | Az oldal nem látszik | | Az elrejtett idő nem olvasási idő. |
 | Kilépés a kör közben | | A látható tétel megjelenés, ha legalább 400 ms-ig látszott, olvasási idő nélkül. |
+
+**Villantásos olvasási idő.** Villantásos körben (villantás > 0) egy megjelenésnek pontosan akkor van villantásos olvasási ideje, ha a tétel utolsó, nem újraolvasó látogatása gombnyomásos továbblépéssel ért véget, miközben a tétel látszott, és az idő legfeljebb 30 mp. Az idő ugyanúgy számol, mint kézi körben: javított mellényomásnál a szakaszok összeadódnak, az újraolvasás ideje nem számít, az elrejtett oldal ideje nem olvasási idő, a megállításé igen. Nincs villantásos olvasási idő, ha a villantás magától járt le (akkor sem, ha előtte egy mellényomás javítva lett), ha a gombnyomás a tételek közti szünetben jött, a látható tételnél kör közbeni kilépéskor, és 30 mp felett. A megjelenés, a segítség és minden más ezekben az esetekben is ugyanúgy számít.
 
 Súlyozás az állapotszámításban: a takarás erős jel, a megállítás közepes, a visszalépés gyenge (a gyerek is nyomhatja).
 
