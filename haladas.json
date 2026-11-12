@@ -1,41 +1,30 @@
 {
-  "_leiras": "A Haladás nézet küszöbei (docs/haladas-specifikacio.md, 7.1). Idők ezredmásodpercben, arányok 0 és 1 között. A szülő nem látja és nem állítja; hibás fájllal a kiadás megáll.",
+  "_leiras": "A Haladás nézet küszöbei (docs/haladas-specifikacio.md, 7.). Idők ezredmásodpercben, szorzók a gyerek saját szokásos tempójához képest. A szülő nem látja és nem állítja; hibás fájllal a kiadás megáll.",
   "szures": {
-    "_leiras": "Mellényomás-szűrés (5.2).",
+    "_leiras": "Mellényomás-szűrés (5.2). A gyors_villantas_ms csak adatgyűjtés (unsupportedFastFlash), a besorolás nem használja.",
     "javitott_melle_ms": 2000,
     "takaras_szandek_ms": 3000,
     "veletlen_atugras_ms": 400,
     "takaras_ugyetlenseg_ms": 1000,
-    "max_olvasasi_ido_ms": 30000
+    "max_olvasasi_ido_ms": 30000,
+    "gyors_villantas_ms": 5000
   },
   "allapot": {
-    "_leiras": "Tételállapotok (7.). A *_nap kulcsokat a napszabály-kapcsoló nullázza.",
-    "kiindulas_n": 3,
-    "uj_min_nap": 3,
-    "megy_utolso_segitseg_nelkul": 3,
-    "megy_relativ_ido_max": 0.8,
-    "megy_tipus_median_szorzo": 0.8,
-    "megy_gyors_villantas_ms": 5000,
-    "megy_gyors_villantas_db": 2,
-    "javul_relativ_ido_max": 0.9,
-    "gyakorol_min_nap": 5,
-    "gyakorol_min_eltelt_nap": 14,
+    "_leiras": "Csoportok (7.). Besorolás csak legalább min_nap különböző napon és összesen legalább min_alkalom olvasás után. A min_nap kulcsot a napszabály-kapcsoló nullázza; a min_alkalom és a tempo_ablak_nap nem nullázódik.",
+    "min_nap": 3,
+    "min_alkalom": 3,
+    "megy_utolso_n": 3,
+    "megy_ido_szorzo": 1.5,
     "gyakorol_utolso_n": 5,
-    "gyakorol_segitseg_arany": 0.5,
-    "gyakorol_relativ_ido_min": 0.9
-  },
-  "betu": {
-    "_leiras": "Betűelemzés és „Mi segíthet?” (7.2).",
-    "ablak_nap": 30,
-    "min_tetel": 3,
-    "kiemeles_szorzo": 2,
-    "kartya_megjegyzes_arany": 0.5,
-    "kapcsolodo_max": 5
+    "gyakorol_segitseg_db": 3,
+    "gyakorol_ido_szorzo": 2,
+    "friss_meres_db": 3,
+    "tempo_ablak_nap": 30,
+    "tempo_min_meres": 10
   },
   "tarolas": {
-    "_leiras": "Tárolás és üres állapot (4.3, 8.4). A nyers események a legutóbbi nyers_megorzes_kor körből és legfeljebb nyers_megorzes_nap napig maradnak meg; ami bármelyiken túl van, törlődik.",
+    "_leiras": "Tárolás (4.3). A nyers események a legutóbbi nyers_megorzes_kor körből és legfeljebb nyers_megorzes_nap napig maradnak meg; ami bármelyiken túl van, törlődik.",
     "nyers_megorzes_nap": 30,
-    "nyers_megorzes_kor": 30,
-    "ures_allapot_min_nap": 3
+    "nyers_megorzes_kor": 30
   }
 }

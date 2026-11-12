@@ -98,7 +98,7 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
     if (evs.length && round.mode === 'read') {
       const r = roundExposures(round, evs, cfg.szures);
       Object.assign(round, { completed: r.completed, abandonedAt: r.abandonedAt, corrections: r.corrections });
-      const fresh = dailyRecords(r.exposures, { deviceId: root.deviceId, child: root.child, fastFlashMs: cfg.allapot.megy_gyors_villantas_ms });
+      const fresh = dailyRecords(r.exposures, { deviceId: root.deviceId, child: root.child, fastFlashMs: cfg.szures.gyors_villantas_ms });
       const at = new Map(root.daily.map((d, k) => [d.id, k]));
       for (const d of fresh) {
         if (at.has(d.id)) root.daily[at.get(d.id)] = mergeDaily(root.daily[at.get(d.id)], d);

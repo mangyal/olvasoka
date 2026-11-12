@@ -37,3 +37,21 @@ export function fromSuffix(n) {
   const t = n % 100 || 100;
   return tensBack.has(t) ? 'ból' : 'ből';
 }
+
+/* ---------- ragok számok után (Haladás) ---------- */
+
+/** A szám kiejtésének utolsó szava (ez dönt a ragról): 3 → három, 20 → húsz, 100 → száz, 1000 → ezer. */
+function lastWord(n) {
+  if (n === 0) return 0;
+  if (n % 10) return n % 10;
+  if (n % 100) return n % 100;
+  return n % 1000 ? 100 : 1000;
+}
+
+const ACC = { 0: 't', 1: 'et', 2: 't', 3: 'at', 4: 'et', 5: 'öt', 6: 'ot', 7: 'et', 8: 'at', 9: 'et', 10: 'et', 20: 'at', 30: 'at', 40: 'et', 50: 'et', 60: 'at', 70: 'et', 80: 'at', 90: 'et', 100: 'at', 1000: 'et' };
+const TIMES = { 0: 'szor', 1: 'szer', 2: 'szer', 3: 'szor', 4: 'szer', 5: 'ször', 6: 'szor', 7: 'szer', 8: 'szor', 9: 'szer', 10: 'szer', 20: 'szor', 30: 'szor', 40: 'szer', 50: 'szer', 60: 'szor', 70: 'szer', 80: 'szor', 90: 'szer', 100: 'szor', 1000: 'szer' };
+
+/** Tárgyrag számjegyes szám után: 1-et, 2-t, 3-at, 5-öt, 6-ot, 10-et, 120-at. */
+export const accSuffix = (n) => ACC[lastWord(n)];
+/** „-szor/-szer/-ször” számjegyes szám után: 1-szer, 3-szor, 5-ször, 20-szor. */
+export const timesSuffix = (n) => TIMES[lastWord(n)];

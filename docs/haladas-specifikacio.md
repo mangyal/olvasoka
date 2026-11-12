@@ -1,9 +1,30 @@
 # Olvasóka: Haladás (tétel-elsajátítás) specifikáció
 
-Verzió: 1.6 · 2026. november 12.
-Mellékletek: a jóváhagyott képernyőtervek képernyőképei (lásd 8. fejezet).
+Verzió: 1.8 · 2026. november 12.
+Jóváhagyott design: https://claude.ai/artifact/N4rE1aqK15kpWbLvWXtcAr (vászon: „Olvasóka – egyszerűsített Haladás nézet”). Ha a design és ez a dokumentum ellentmond egymásnak, a design a mérvadó (lásd 8. fejezet).
 
 ## 0. Változások
+
+### 1.8 (az 1.7-hez képest): közös adatkapu
+A dev környezetben (napszabály-kapcsolóval) talált ellentmondások javítása: egyetlen, segítséggel olvasott tétel „Még bizonytalan” lett („Már olvasta segítség nélkül is…”), miközben két önálló olvasás után még Kevés adat volt; a Kevés adat kártya „legalább 0 különböző napon” szöveget írt.
+- **Közös kapu minden csoport előtt** (7.5/1.): Kevés adat, ha az olvasási napok száma < `min_nap`, **vagy** az alkalmak száma < `min_alkalom`. Új kulcs: `allapot.min_alkalom` (kezdő érték 3). A napszabály-kapcsoló nem nullázza (10.). A segítség így nem sorol be hamarabb.
+- **Még bizonytalan csak valódi önálló olvasás után** (7.5/4.): ha a tételt még soha nem olvasta segítség nélkül, Még gyakorolni kell (`help`), akkor is, ha a segítség-küszöb nem teljesül.
+- A „Megy” külön alkalomszám-feltétele megszűnt: a kapu lefedi. Új kereszt-ellenőrzés: `min_alkalom ≥ megy_utolso_n` (7.8).
+- Kevés adatnál a számítás megadja a hiányzó feltételt (`need`: `days` / `count`); a kártya, a tétel részletei és a csoport oldalának alcíme ebből szól, „0” soha nem jelenik meg (8.2–8.4).
+- Élesben (`min_nap` = 3 ≥ `min_alkalom` = 3) a besorolás és a szövegek nem változnak.
+
+### 1.7 (az 1.6-hoz képest): egyszerűsített Haladás
+- Öt állapot és 14 küszöb helyett **négy csoport**: Megy, Még bizonytalan, Még gyakorolni kell, Kevés adat; mindegyik egy mondattal elmagyarázva. A kártyák összege mindig kiadja a jelenlegi listák összes tételét (7., 8.2).
+- A tempót a gyerek **saját, típusonkénti szokásos tempójához** méri, szótagonként (7.2–7.4). Megszűnt a relatív idő (első 3 / utolsó 3), a gyors villantás szabálya és a betűelemzés („Mi segíthet?”, kártya-megjegyzés).
+- A számítás a csoport mellé **okot** is ad (`help` / `slow`), ebből lesz a tétel részleteinek fő mondata (7.6, 8.4).
+- Új nézet: **csoport oldala** (`#haladas/csoport/<csoport>`), „Mutasd mindet →” linkkel minden nem üres kártyáról. Megszűnt a „+ N további tétel” (8.2, 8.3).
+- A Haladás nézet **az első naptól** elérhető; a régi üres állapot megszűnt, helyette információs doboz (8.2).
+- A tétel részleteinél az alkalmak és a napok száma, az első dátum; megszűnt a „Szerepel: …” (8.4).
+- Visszalépéskor (link, Esc, böngésző) az előző görgetési pozíció áll vissza; előre lépve a lap tetejére görget (8.1).
+- `haladas.json`: az `allapot` szakasz teljes cseréje (9 kulcs), a `betu` szakasz és a `tarolas.ures_allapot_min_nap` megszűnt. Az `unsupportedFastFlash` gyűjtésének küszöbe a `szures.gyors_villantas_ms` kulcsba költözött (érték változatlan, 5000). A kiadás ellenőrzi, hogy a „Megy” és a „Még gyakorolni kell” küszöbei ne fedjék át egymást (7.8).
+- A napszabály-kapcsoló csak a `min_nap`-ot nullázza (10.).
+- Az „Amikor olvasta” pöttyöknek három állapota van: segítséggel, segítség nélkül, és félig-félig, ha aznap segítséggel és anélkül is olvasta (8.4).
+- Nem változik: a naplózás, a mellényomás-szűrés (5.2), a tárolt adat és formátum (3. verzió), a `flashDwell` gyűjtése.
 
 ### 1.6 (az 1.5-höz képest)
 - Villantásos olvasási idő (3., 5.2): villantásos körben a villantás lejárta előtti gombnyomásos továbblépés ideje is tárolódik, **külön mezőben** (`flashDwell`), a villantás hosszával együtt. Csak adatgyűjtés: az állapotszámítás, a küszöbök, a meglévő mezők és a felület nem változnak.
@@ -34,7 +55,7 @@ Mellékletek: a jóváhagyott képernyőtervek képernyőképei (lásd 8. fejeze
 
 ## 1. Cél és alapelvek
 
-A szülő lássa, hogy a gyereke mely tételeket (betű, szótag, szó) olvassa már biztosan, melyek mennek egyre jobban, és melyeket érdemes még gyakorolni.
+A szülő lássa, hogy a gyereke mely tételeket (betű, szótag, szó) olvassa már biztosan, melyek bizonytalanok még, melyeket kell még gyakorolni, és melyekről van még kevés adat. Minden besorolási szabály egy mondatban elmagyarázható a szülőnek.
 
 Alapelvek, amelyek minden döntést felülírnak:
 
@@ -50,16 +71,16 @@ Alapelvek, amelyek minden döntést felülírnak:
 ### Benne van
 1. Eseménynapló a gyakorlásról (Felolvasás mód), helyben tárolva.
 2. Mellényomás-szűrés (javított mellényomás, véletlen átugrás).
-3. Napi tételösszesítők és belőlük számolt tételállapotok.
-4. Haladás nézet: áttekintés, tétel részletei, üres állapot. Asztali és telefonos (álló, fekvő) elrendezés.
+3. Napi tételösszesítők és belőlük számolt csoportok (okkal).
+4. Haladás nézet: áttekintés, csoport oldala, tétel részletei. Asztali és telefonos (álló, fekvő) elrendezés.
 5. Visszavonás-barát visszalépés: gyors visszalépés visszaállítja a tétel takarási állapotát és hátralévő idejét.
-6. Konfigurálható küszöbök egy repóbeli JSON fájlban (lásd 7.1).
-7. Környezeti változó a napszabályok kikapcsolására, hogy tesztelésnél ne kelljen napokat várni (lásd 10.).
+6. Konfigurálható küszöbök egy repóbeli JSON fájlban (lásd 7.8).
+7. Környezeti változó a napszabály kikapcsolására, hogy tesztelésnél ne kelljen napokat várni (lásd 10.).
 
 ### Nincs benne (később)
-- **Átvitel másik eszközre (export/import): 2. fázis.** Az adatmodell már most támogatja (véletlen azonosítók, `deviceId`), de a funkció és a link nem készül el. A tervrajz lábléc-linkje és az üres állapot erre utaló mondata ezért most kimarad (lásd 8.2, 8.4, 9.).
+- **Átvitel másik eszközre (export/import): 2. fázis.** Az adatmodell már most támogatja (véletlen azonosítók, `deviceId`), de a funkció és a link nem készül el. A tervrajz lábléc-linkje ezért most kimarad (lásd 8.2, 9.).
 - Gyerekválasztó (több gyerek egy eszközön). Az adatmodell előkészíti, lásd 4.2.
-- Keresd meg! mód naplózása és hatása az állapotokra (egyelőre semmi nem naplózódik).
+- Keresd meg! mód naplózása és hatása a csoportokra (egyelőre semmi nem naplózódik).
 - Névtelen használati statisztika a fejlesztőnek.
 - „Nagy billentyűk” kiosztás, prezentációs távirányító támogatás.
 - Okos keverés (nehéz tételek gyakoribb sorsolása), kör végi összefoglaló.
@@ -73,10 +94,14 @@ Alapelvek, amelyek minden döntést felülírnak:
 | Tételkulcs | A tétel szövege `itemKey()` szerint (NFC, trim). **A kis- és nagybetű különbözik** (`ház` és `Ház` két tétel), **a kötőjel megmarad**: `ma`, `ma-ma` és `mama` három külön tétel. |
 | Megjelenés (exposure) | A tétel egyszeri, érvényes megjelenése egy körben (lásd 5.1). |
 | Olvasási idő (dwell) | A tétel megjelenésétől a továbblépésig eltelt idő, csak kézi léptetésnél (villantás = 0). |
-| Villantásos olvasási idő (flashDwell) | Villantásos körben ugyanígy számolt idő, ha a gyerek a villantás lejárta előtt gombnyomással lépett tovább (5.2). A villantás hosszával együtt tárolódik. Rövid villantásnál csak a gyors olvasások kapnak időt (a lassabbaknál lejár a villantás), ezért az idők összevetésekor a villantás hosszát is figyelembe kell venni. Az állapotszámítás most nem használja. |
+| Villantásos olvasási idő (flashDwell) | Villantásos körben ugyanígy számolt idő, ha a gyerek a villantás lejárta előtt gombnyomással lépett tovább (5.2). A villantás hosszával együtt tárolódik. Rövid villantásnál csak a gyors olvasások kapnak időt (a lassabbaknál lejár a villantás), ezért az idők összevetésekor a villantás hosszát is figyelembe kell venni. A besorolás a kézi olvasási idővel együtt mért időként használja (7.1). |
 | Segítség | Takarás, megállítás vagy valódi visszalépés egy megjelenés alatt. |
-| Kiindulás (baseline) | A tétel első 3 érvényes, kézi léptetéses megjelenésének medián olvasási ideje. |
-| Relatív idő | A legutóbbi 3 kézi megjelenés medián ideje osztva a kiindulással. 1,0 = változatlan, 0,6 = 40%-kal gyorsabb. |
+| Alkalom | Egy megjelenés a napi `help` sorban (kézi és villantásos egyaránt, a lejárt villantás is). |
+| Olvasási nap | Nap, amelyen a tételnek legalább 1 megjelenése volt. Több eszköz ugyanazon napja egy napnak számít. |
+| Szótagszám | A tételkulcs magánhangzóinak száma (legalább 1), lásd 7.2. |
+| Szokásos tempó | A gyerek adott típusú (betű, szótag, szó) tételeinek szótagonkénti középértéke, lásd 7.3. |
+| Friss idő, arány | A tétel utolsó 3 mért idejének szótagonkénti középértéke; az arány ez osztva a típus szokásos tempójával (7.4). 1,0 = a szokásos tempó, 2,0 = kétszer olyan lassú. |
+| Ok | Miért került a tétel a Még bizonytalan vagy a Még gyakorolni kell csoportba: `help` (segítség) vagy `slow` (lassabb), lásd 7.6. |
 | Nap | Helyi naptári nap (Europe/Budapest a gyakorlatban; a böngésző helyi ideje). |
 
 ## 4. Adatmodell és tárolás
@@ -159,7 +184,7 @@ A `js/core/round.js` állapotgép eseményei alapján (SPACE/NEXT, PREV, PAUSE, 
 Takarásnál csak a takarás kezdete (`cover`: nem volt letakart szótag → van) és vége (`uncover`) naplózódik; a takarás okozta automatikus megállítás nem külön esemény.
 
 ### 5.2 Szűrési szabályok
-Kezdőértékek; mind a 7.1 szerinti konfigurációs fájlból jön (`szures` szakasz):
+Kezdőértékek; mind a 7.8 szerinti konfigurációs fájlból jön (`szures` szakasz):
 
 | Minta | Értelmezés | Kezelés |
 |---|---|---|
@@ -188,140 +213,229 @@ Ha a visszalépés 2 mp-en belül jön a továbblépés után, a tétel **pontos
 - Szövegváltozás (pl. `haz` → `ház`, `ma-ma` → `mama`) új tételt jelent. A régi tétel története a betűstatisztikában megmarad, a listanézetben nem jelenik meg.
 - Listaazonosság betöltéskor: azonos név → ugyanaz a lista. Eltérő név, de legalább 60% tételátfedés → átnevezett lista, a listaszintű történet átkerül. Egyébként új lista.
 
-## 7. Állapotszámítás
+## 7. Csoportok számítása
 
-Tételenként, a napi összesítőkből. Minden szám a táblázatban a 7.1 szerinti konfigurációból jön (`allapot` szakasz); az itt látható értékek az alapértelmezések.
+Minden a meglévő napi összesítőkből számolható, visszamenőleg is. Tiszta függvények, a `now` és a konfiguráció kívülről jön (`js/core/mastery.js`). Minden szám a 7.8 szerinti konfigurációból jön (`allapot` szakasz); az itt látható értékek az alapértelmezések.
 
-| Állapot | Felületi név | Feltétel |
+### 7.1 Bemenetek tételenként
+- **Olvasási napok:** azok a napok, amelyeken `exposures > 0`. Ugyanaz a nap több eszközről egy nap.
+- **Segítségsor:** a napi `help` sorok időrendben összefűzve (`'1'` = segítséggel). Kézi és villantásos alkalom egyaránt, a lejárt villantás is (segítség nélküli alkalomnak számít; ezt elfogadtuk).
+- **Mért idők:** napok szerint időrendben, egy napon belül előbb a `dwellMs` (kézi), utána a `flashDwell[].ms` (villantásos, gombnyomásos továbblépés). A két lista egymáshoz viszonyított sorrendje egy napon belül nem ismert; ezt elfogadjuk. Lejárt villantásnak nincs ideje.
+
+### 7.2 Szótagszám
+- A tétel kulcsában lévő magánhangzók száma: `a á e é i í o ó ö ő u ú ü ű` (kis- és nagybetű). A kötőjel nem számít.
+- Ha 0, akkor 1. Példák: `pi-ló-ta` = 3, `pilóta` = 3, `ma` = 1, `b` = 1, `sz` = 1.
+- Szótagonkénti idő = mért idő / szótagszám.
+
+### 7.3 Szokásos tempó (típusonként)
+- Típus: betű, szótag, szó (a meglévő `typeOf`, `js/core/grid.js`). Így pl. a `pi-ló-ta` és a `ka-bát` szó.
+- Az adott típus összes tételének szótagonkénti mért ideje az utolsó `tempo_ablak_nap` napból, középértékkel. Az ablak **az utolsó gyakorlási naphoz** kötött (nem a mai naphoz), így hosszú szünet után sem ürül ki: az utolsó gyakorlási nap és az előtte lévő 29 nap.
+- Csak akkor van szokásos tempó, ha legalább `tempo_min_meres` mért idő van az adott típusban. Ha nincs, az adott típusban nincs időfeltétel.
+
+### 7.4 Friss idő (tételenként)
+- Az utolsó `friss_meres_db` mért idő szótagonkénti értékének középértéke.
+- Csak akkor van, ha legalább ennyi mért idő létezik.
+- **Arány** = friss idő / a tétel típusának szokásos tempója. Ha bármelyik hiányzik, nincs arány.
+
+### 7.5 Csoportok
+A vizsgálat sorrendje:
+
+1. **Kevés adat:** az olvasási napok száma kisebb, mint `min_nap`, **vagy** az alkalmak száma kisebb, mint `min_alkalom`. Ez a kapu minden más csoport előtt áll, segítséggel és anélkül ugyanúgy. Ide tartozik az is, amit még egyszer sem olvasott (a napszabály-kapcsolóval is, mert `min_alkalom` ≥ 1). A számítás megadja a hiányzó feltételt: `days` (kevés nap; ezt vizsgálja előbb) vagy `count` (kevés alkalom).
+2. **Még gyakorolni kell:** az utolsó `gyakorol_utolso_n` alkalomból legalább `gyakorol_segitseg_db` segítséggel volt, **vagy** az arány ≥ `gyakorol_ido_szorzo`. Ha `gyakorol_utolso_n`-nél kevesebb alkalom van, a meglévőkből számol.
+3. **Megy:** az utolsó `megy_utolso_n` alkalom mind segítség nélkül, **és** (nincs arány, **vagy** az arány ≤ `megy_ido_szorzo`). A kapu miatt mindig van legalább `megy_utolso_n` alkalom (`min_alkalom` ≥ `megy_utolso_n`, 7.8).
+4. **Még gyakorolni kell (`help`)**, ha a tételt még egyszer sem olvasta segítség nélkül. (A kezdő értékekkel ez a 2. pontban már teljesül; a szabály azt biztosítja, hogy a Még bizonytalan mondata – „Már olvasta segítség nélkül is” – minden konfigurációban igaz legyen.)
+5. **Még bizonytalan:** minden más.
+
+A 2. és a 3. a kezdő értékekkel nem fedi át egymást (3 segítség nélküli alkalom után az utolsó 5-ből legfeljebb 2 segítséges; 1,5 < 2). A konfiguráció-ellenőrzés ezt kikényszeríti (7.8).
+
+### 7.6 Ok
+A számítás a csoport mellé egy okot is visszaad, ebből lesz a tétel részleteinek fő mondata (8.4). Egy tételhez mindig egy ok tartozik, ebben a sorrendben vizsgálva:
+
+| Csoport | Ok | Mikor |
 |---|---|---|
-| Nem látott | (szürke sávrész) | 0 megjelenés |
-| Új | „még ismerkedik vele” (szürke sávrész) | Kevesebb mint 3 különböző napon látta, vagy egyik alábbi feltétel sem teljesül |
-| Már megy | Már megy | Legalább 3 napon látta, **és** az utolsó 3 megjelenésnél nem volt segítség, **és** az alábbiak egyike: relatív idő ≤ 0,8; az utolsó 3 kézi megjelenés karakterenkénti medián ideje legfeljebb 0,8-szorosa (`megy_tipus_median_szorzo`) a gyerek azonos típusú tételei karakterenkénti mediánjának (utolsó 30 nap); legalább 2 megjelenés segítség nélkül 5 mp vagy rövidebb villantással |
-| Gyakoroljuk még | Gyakoroljuk még | Legalább 5 napon látta, az első megjelenés legalább 14 napja volt, nem „Már megy”, **és** (az utolsó 5 megjelenés legalább felénél segítség kellett, **vagy** relatív idő > 0,9) |
-| Egyre jobban megy | Egyre jobban megy | Legalább 3 napon látta, nem „Már megy”, nem „Gyakoroljuk még”, **és** (relatív idő ≤ 0,9, **vagy** az utolsó 3 megjelenés segítségaránya kisebb, mint az első 3-é) |
+| Még gyakorolni kell | `help` | a segítség-feltétel teljesült (akkor is, ha az arány is ≥ `gyakorol_ido_szorzo`), vagy még soha nem olvasta segítség nélkül (7.5/4.) |
+| Még gyakorolni kell | `slow` | csak az arány-feltétel teljesült |
+| Még bizonytalan | `help` | az utolsó `megy_utolso_n` alkalomban volt segítség |
+| Még bizonytalan | `slow` | nem volt segítség, de az arány > `megy_ido_szorzo` |
+| Megy, Kevés adat | nincs | Kevés adatnál helyette a hiányzó feltétel: `days` vagy `count` (7.5/1.) |
 
-Típus (betű, szótag, szó) és betűszám: a meglévő `typeOf()` és `tokenize()` (`js/core/grid.js`) szerint, így a karakterenkénti idő betűnként értendő, a többjegyű betűt egynek számolva.
+`help` oknál a számítás a mondathoz szükséges két számot is visszaadja: hány alkalmat vizsgált (legfeljebb `gyakorol_utolso_n`) és ebből hányszor volt segítség.
 
-### 7.1 Konfigurálható küszöbök
+### 7.7 Példák (szokásos tempó 1,5 mp/szótag)
+
+| Tétel | Utolsó 3 mért idő | mp/szótag | Arány | Segítség (utolsó 5) | Napok | Csoport | Ok |
+|---|---|---|---|---|---|---|---|
+| pi-ló-ta | 4,2 / 3,9 / 4,0 | 1,33 | 0,89 | 0 1 0 0 0 | 4 | Megy | |
+| ka-bát | 5,0 / 5,4 / 4,8 | 2,5 | 1,67 | 0 0 0 0 0 | 3 | Még bizonytalan | `slow` |
+| me | 13 / 11 / 9 | 11 | 7,3 | 0 0 0 0 0 | 5 | Még gyakorolni kell | `slow` |
+| bo-hó-c | (csak lejárt villantás) | nincs | nincs | 1 0 1 1 0 | 4 | Még gyakorolni kell | `help` (5-ből 3) |
+| ma | 2,0 / 2,1 | nincs (2 mérés) | nincs | 0 0 0 | 3 | Megy | |
+| la | 1,0 / 1,2 / 0,9 | 1,0 | 0,67 | 0 0 0 | 2 | Kevés adat | |
+| ba | 1,8 / 2,0 / 1,7 | 1,8 | 1,2 | 1 1 0 | 3 | Még bizonytalan | `help` |
+
+### 7.8 Konfigurálható küszöbök
 - Fájl: `haladas.json` a repó gyökerében, a `parok.json` mintájára (`_leiras` mezőkkel magyarázva). A program induláskor betölti; ha hiányzik vagy hibás, a kódba épített alapértékekkel fut, és a konzolra figyelmeztet.
-- Ellenőrzés a `parok.json`-hoz hasonlóan (`js/core/haladas-config.js`, `validate`): ismeretlen vagy hiányzó kulcs, rossz típus vagy értelmetlen érték (pl. negatív idő, 0 és 1 közé nem eső arány) esetén **a deploy megáll** (`.github/scripts/check-haladas.mjs` a kiadásban, és a tesztek a PR-on).
+- Ellenőrzés (`js/core/haladas-config.js`, `validate`): ismeretlen vagy hiányzó kulcs, rossz típus vagy értelmetlen érték esetén **a deploy megáll** (`.github/scripts/check-haladas.mjs` a kiadásban, és a tesztek a PR-on). Kereszt-ellenőrzések:
+  - `megy_ido_szorzo < gyakorol_ido_szorzo`;
+  - `gyakorol_segitseg_db ≤ gyakorol_utolso_n`;
+  - `gyakorol_segitseg_db > gyakorol_utolso_n − megy_utolso_n` (különben egy tétel egyszerre lehetne „Megy” és „Még gyakorolni kell”);
+  - `min_alkalom ≥ megy_utolso_n` (a Kevés adat kapuja lefedi a „Megy” alkalomszámát, így a Kevés adat szövege mindig a valódi okot mondja).
 - A szülő nem látja és nem állítja.
-- Szerkezet és alapértékek:
+
+`allapot` szakasz:
+
+| Kulcs | Kezdő érték | Jelentés |
+|---|---|---|
+| `min_nap` | 3 | ennyi különböző olvasási nap kell a besoroláshoz (a napszabály-kapcsoló nullázza) |
+| `min_alkalom` | 3 | ennyi alkalom (összesen) kell a besoroláshoz; legalább `megy_utolso_n` |
+| `megy_utolso_n` | 3 | „Megy”: az utolsó ennyi alkalom segítség nélkül |
+| `megy_ido_szorzo` | 1.5 | „Megy”: arány legfeljebb ennyi |
+| `gyakorol_utolso_n` | 5 | „Még gyakorolni kell”: ennyi utolsó alkalomból… |
+| `gyakorol_segitseg_db` | 3 | …legalább ennyi segítséggel |
+| `gyakorol_ido_szorzo` | 2 | „Még gyakorolni kell”: arány legalább ennyi |
+| `friss_meres_db` | 3 | ennyi utolsó mért időből a friss idő |
+| `tempo_ablak_nap` | 30 | a szokásos tempó időablaka (az utolsó gyakorlási naphoz kötve) |
+| `tempo_min_meres` | 10 | ennyi mért idő kell típusonként a szokásos tempóhoz |
+
+Teljes szerkezet:
 
 ```json
 {
-  "_leiras": "A Haladás nézet küszöbei. Idők ezredmásodpercben, arányok 0 és 1 között.",
   "szures": {
     "javitott_melle_ms": 2000,
     "takaras_szandek_ms": 3000,
     "veletlen_atugras_ms": 400,
     "takaras_ugyetlenseg_ms": 1000,
-    "max_olvasasi_ido_ms": 30000
+    "max_olvasasi_ido_ms": 30000,
+    "gyors_villantas_ms": 5000
   },
   "allapot": {
-    "kiindulas_n": 3,
-    "uj_min_nap": 3,
-    "megy_utolso_segitseg_nelkul": 3,
-    "megy_relativ_ido_max": 0.8,
-    "megy_tipus_median_szorzo": 0.8,
-    "megy_gyors_villantas_ms": 5000,
-    "megy_gyors_villantas_db": 2,
-    "javul_relativ_ido_max": 0.9,
-    "gyakorol_min_nap": 5,
-    "gyakorol_min_eltelt_nap": 14,
+    "min_nap": 3,
+    "min_alkalom": 3,
+    "megy_utolso_n": 3,
+    "megy_ido_szorzo": 1.5,
     "gyakorol_utolso_n": 5,
-    "gyakorol_segitseg_arany": 0.5,
-    "gyakorol_relativ_ido_min": 0.9
-  },
-  "betu": {
-    "ablak_nap": 30,
-    "min_tetel": 3,
-    "kiemeles_szorzo": 2,
-    "kartya_megjegyzes_arany": 0.5,
-    "kapcsolodo_max": 5
+    "gyakorol_segitseg_db": 3,
+    "gyakorol_ido_szorzo": 2,
+    "friss_meres_db": 3,
+    "tempo_ablak_nap": 30,
+    "tempo_min_meres": 10
   },
   "tarolas": {
     "nyers_megorzes_nap": 30,
-    "nyers_megorzes_kor": 30,
-    "ures_allapot_min_nap": 3
+    "nyers_megorzes_kor": 30
   }
 }
 ```
 
-### 7.2 Betűk és a „leggyengébb rész”
-- Betűbontás: **a meglévő `tokenize()` függvény** (`js/core/grid.js`), saját betűlistát nem szabad bevezetni. Ez kezeli a többjegyű betűket (`dzs`, majd `cs`, `dz`, `gy`, `ly`, `ny`, `sz`, `ty`, `zs`) és a hosszú többjegyű mássalhangzót két betűként (`ssz` → `sz`+`sz`, `ggy` → `gy`+`gy`); a hosszú és rövid magánhangzó külön betű (`o`, `ó`). A hasonló betűpárok (`parok.json`) ehhez a funkcióhoz nem kellenek.
-- Betű segítségaránya = a betűt tartalmazó tételek megjelenéseinek hány százalékánál volt segítség (utolsó 30 nap, legalább 3 különböző tétel kell).
-- Egy tétel leggyengébb betűje: a benne lévő betűk közül a legnagyobb segítségarányú.
-- **Kártya megjegyzés** („A legtöbbjükben „gy” van.”): ha a „Gyakoroljuk még” tételek (legalább 2) legalább felében (`kartya_megjegyzes_arany`) ugyanaz a betű szerepel. Ha több ilyen betű is van, a nagyobb segítségarányú.
-- **„Mi segíthet?” blokk** a tétel részleteinél, csak szótagnál és szónál (betűnél soha): akkor jelenik meg, ha a leggyengébb betű segítségaránya legalább kétszerese a betűt nem tartalmazó tételekének. Legfeljebb 5 kapcsolódó tételt mutat ugyanazzal a betűvel, „Gyakoroljuk még” vagy „Egyre jobban megy” állapotból. Ha a feltétel nem teljesül, a blokk nem jelenik meg.
+A `szures.gyors_villantas_ms` csak adatgyűjtés: ennél rövidebb villantás segítség nélkül az `unsupportedFastFlash` mezőbe számít (tárolódik, a besorolás nem használja).
 
 ## 8. Felület
 
-A képernyőképek a jóváhagyott tervek. Szövegek: tegező forma, mint a program többi része, **gondolatjel (–, —) nélkül**. A felületi szövegek egy helyen legyenek (a „tétel” szó később cserélődhet).
+A jóváhagyott design (lásd a dokumentum elején) a mérvadó. Szövegek: tegező forma, mint a program többi része, **gondolatjel (–, —) nélkül**, egy helyen (`js/core/haladas-texts.js`). Minden szövegben a tétel megnevezése a `TERM`-ből jön (most „tétel”). A szövegekben szereplő küszöbszámok (3, 5) a konfigurációból jönnek. Napokra mindig a „napon” / „különböző napon” szóhasználat.
 
-| Képernyőkép | Tartalom |
+| Artboard | Mit mutat |
 |---|---|
-| Szülői áttekintés (dashboard) | Asztali áttekintés |
-| Tétel részletei: gyöngy | Asztali tétel nézet |
-| Üres állapot: első napok | Kevés adat esetén |
-| Telefon, álló: áttekintés / tétel | 390 px széles elrendezés |
-| Telefon, fekvő: áttekintés / tétel | 844 × 390 elrendezés |
+| Asztali – néhány hét után | áttekintés kevés csoportosított tétellel |
+| Asztali – sok tétel (60 / 90 / 120 / 70) | áttekintés sok tétellel |
+| Asztali – első nap | áttekintés, amikor még nincs csoportosított tétel |
+| Asztali – csoport oldala (Megy, 60 tétel) | egy csoport összes tétele |
+| Asztali – csoport oldala (Kevés adat, 128 tétel) | a Kevés adat csoport oldala két alcímmel |
+| Asztali – tétel részletei (Még gyakorolni kell) | tétel részletei |
+| Szövegkatalógus a fejlesztőnek | a tétel fő kártyája mind a 7 esetben |
+| Telefon álló – áttekintés, tétel, csoport oldala | álló elrendezés |
+| Telefon fekvő – áttekintés | fekvő elrendezés |
 
-### 8.1 Belépési pont és navigáció
-- A szülői felület fejlécében egy „Haladás” gomb ikonnal a Súgó és a Betűteszt mellett; telefonon, mint azok, csak ikon. Gyakorlás közben nem érhető el, a gyerek felületén nem jelenik meg.
-- A Haladás a szülői felület helyére lép (mint a gyakorlónézet). Címek: `#haladas`, `#haladas/tetel/<tételkulcs>`, így a rendszer vissza gombja és gesztusa is működik.
-- Esc: a tétel részleteiből vissza az áttekintéshez, az áttekintésből a szülői felületre. A „← Vissza” ugyanígy.
+### 8.1 Nézetek és navigáció
+- A szülői felület fejlécében egy „Haladás” gomb ikonnal a Súgó és a Betűteszt mellett; telefonon csak ikon. Gyakorlás közben nem érhető el, a gyerek felületén nem jelenik meg. A Haladás a szülői felület helyére lép.
+
+| Nézet | Hash | Vissza (link és Esc) |
+|---|---|---|
+| Áttekintés | `#haladas` | a szülői felületre |
+| Csoport oldala | `#haladas/csoport/<fluent\|unsure\|practice\|lowdata>` | az áttekintéshez |
+| Tétel részletei | `#haladas/tetel/<kulcs>` | ahonnan jött (áttekintés vagy csoport oldala) |
+
+- A csoport oldalán és a tétel részleteinél a vissza link szövege „← Vissza az áttekintéshez”. Ha a tételt a csoport oldaláról nyitotta meg, a vissza link és az Esc a csoport oldalára visz, a link szövege ilyenkor „← Vissza”. Azt, hogy honnan jött, a böngésző előzménye tárolja (`history.state`), így újratöltés után is megmarad. Közvetlenül megnyitott tételnél az áttekintéshez visz.
+- Ismeretlen csoport-azonosítónál az áttekintés nyílik meg. Üres csoport oldala: a csoport kártyája „Még nincs ilyen tétel.” szöveggel.
+- Előre lépve (új nézet) a lap tetejére görget; visszalépve (link, Esc, böngésző) az előző görgetési pozíció áll vissza. A fókusz mindig a címre kerül.
 
 ### 8.1a Elrendezések
 - **Álló telefon:** 600 px-nél keskenyebb ablak. Az „Ez csak statisztika” összecsukható, alapból csukva.
-- **Fekvő telefon:** legfeljebb 500 px magas, fekvő, legalább 560 px széles ablak (keskenyebben a három oszlop nem fér el, ott az álló elrendezés jön).
+- **Fekvő telefon:** legfeljebb 500 px magas, fekvő, legalább 560 px széles ablak.
 - **Asztali:** minden más (a tablet is).
-- Csempék kártyánként: asztalon 6, álló telefonon 4, fekvőn 3.
-- Betűtípus: a felület szövegei a program felületi betűjével (`--f-ui`), a tételek (csempék, a nagy tétel) a gyakorló betűvel (`--f-item`).
+- Csempék kártyánként az áttekintésen: asztalon 6, álló telefonon 4, fekvőn 3.
+- Betűtípus: a felület szövegei a felületi betűvel (`--f-ui`), a tételek a gyakorló betűvel (`--f-item`).
 
 ### 8.2 Áttekintés (felülről lefelé)
-1. **Cím:** „Hogy halad az olvasás?”
-2. **Összefoglaló mondat:** „Eddig **{látott} tételt** olvasott a **{összes}**-ból. **{megy} már megy**, **{javul} egyre jobban megy**, és **{gyakorol} tételt érdemes még gyakorolni**.” Az összes = az összes jelenlegi lista egyedi tételkulcsai (a szülői felület kijelölésétől függetlenül). A -ból/-ből rag a meglévő `fromSuffix()` szerint. Ha valamelyik szám 0, a hozzá tartozó tagmondat elmarad.
-3. **„Ez csak statisztika” doboz** (világoskék háttér, kiemelt):
-   > Többet számít, amit te látsz, és amit a gyereked érez egy-egy tételnél. Ha szerinted egy tétel már megy, akkor valószínűleg megy, bármit mutat itt a program. Használd segítségnek, de ne hagyatkozz rá teljesen, és ne a számokat akard javítani: az a cél, hogy szívesen olvasson.
+1. **Cím:** „Hogy halad az olvasás?”, fölötte „← Vissza”.
+2. **Összefoglaló mondat**, mind a négy csoportról; a négy szám összege a jelenlegi listák összes tétele (a szülői felület kijelölésétől függetlenül):
+   > Eddig **100 tételt** olvasott a **140**-ből. **12** már csoportba került: **5** megy, **4** még bizonytalan, **3**-at még gyakorolni kell. A többi **128** tételről még kevés az adat.
+   - A második mondat száma az első három csoport összege. A 0 darabos csoportok kimaradnak a felsorolásból.
+   - A „többi” mondatban benne vannak a még nem olvasott tételek is. Ha ez 0, a mondat elmarad.
+   - Ha egyetlen tétel sincs csoportban: „Eddig **9 tételt** olvasott a **140**-ből. Még mind a **140** tételről kevés az adat.”
+   - Ha még egy tételt sem olvasott: „Kezdd el használni a programot, hogy láthasd a haladást!”
+3. **„Ez csak statisztika” doboz** (`--sky` háttér):
+   > Többet számít, amit te látsz, és amit a gyereked érez egy-egy tételnél. Ha szerinted egy tétel már megy, akkor valószínűleg megy, bármit mutat itt a program. Használd segítségnek, de ne hagyatkozz rá teljesen, és ne a számokat akard javítani: az a cél, hogy szívesen olvasson. Egy tétel csoportja idővel változhat, ez természetes.
 
-   **Álló telefonon összecsukható**, alapból csukva: a cím, a „Bővebben ▾” gomb és az első mondat látszik, a többi kinyitáskor („Kevesebb ▴”). Valódi `<button>`, `aria-expanded`. Asztalon és fekvő telefonon mindig nyitva.
-4. **Három kártya ebben a sorrendben:** Már megy, Egyre jobban megy, Gyakoroljuk még. Mindegyiken: cím, darabszám, egy mondat a jelentéséről, tétel-csempék (koppintásra a tétel részletei). Ha nem fér ki mind: „+ N további tétel” (szöveg, nem link); a „Mind” nézet egyelőre kimarad (később).
-   - Már megy: „Több különböző napon is gyorsan, segítség nélkül olvasta.”
-   - Egyre jobban megy: „Napról napra gyorsabban és kevesebb segítséggel olvassa.”
-   - Gyakoroljuk még: „Több napja olvassa, de még most is sokszor kell hozzá takarás vagy segítség.” Közvetlenül alatta a 7.2 szerinti betű-megjegyzés, ha van.
-   - Csempék sorrendje: Gyakoroljuk még kártyán a legtöbb segítséget igénylő elöl; a másik kettőn a legutóbb látott elöl. Darabszám: 8.1a.
-   - Ha egy kártya üres: rövid, semleges szöveg (pl. „Még nincs ilyen tétel.”).
-5. **Listánként:** listánként név, egy sáv (Már megy, Egyre jobban megy, Gyakoroljuk még színekkel, a maradék szürke), és „{megy} megy a {összes}-ból/-ből”. Alatta: „A szürke rész: még nem látott vagy épp most ismerkedik vele.” A sáv `role="img"` és teljes `aria-label`.
-6. **„Honnan tudja ezt az Olvasóka?”** (halványabb, kisebb szöveg, mindig látható):
-   > Az Olvasóka nem tudja a helyes válaszokat, ezt te hallod a gyerek mellett. Így csak azt figyeli, mennyi idő alatt lapoztok tovább, és kellett-e takarás vagy visszalépés. Egy tétel akkor „megy”, ha több különböző napon is gyorsan, segítség nélkül olvasta.
-7. **Lábléc:** „Az adatok csak ezen az eszközön vannak.” Az „Átvitel másik eszközre” link a 2. fázisban kerül mellé (a képernyőképeken már látszik, most ne készüljön el).
+   Álló telefonon összecsukható, alapból csukva („Bővebben ▾” / „Kevesebb ▴”, valódi `<button>`, `aria-expanded`). Asztalon és fekvő telefonon mindig nyitva.
+4. **Információs doboz**, ha egyetlen tétel sincs a Kevés adat csoporton kívül (ikon + szöveg, `role="status"`, nem figyelmeztetés-színű): „Az első tételek legkorábban a 3. napon kerülnek csoportba.” (A szám a `min_nap`-ból; `min_nap` = 0 mellett nincs doboz.)
+5. **Négy kártya:**
 
-### 8.3 Tétel részletei
-1. „← Vissza az áttekintéshez”.
-2. **Fő kártya:** a tétel nagy betűvel (a program betűtípusával, kötőjellel együtt), az állapot neve, és egy egyszerű mondat. Mondatsablonok:
-   - Már megy: „Több napon is gyorsan, segítség nélkül olvasta.”
-   - Egyre jobban megy: „Egyre gyorsabban és kevesebb segítséggel olvassa.”
-   - Gyakoroljuk még: „{időtartam} olvassa, de még most is {gyakran / szinte mindig} kell hozzá {takarás / segítség}{, és nem lett gyorsabb}.” Az időtartam szövegesen (8.4b), a „szinte mindig” az utolsó 5 megjelenés 80%-a felett, a „takarás”, ha a legutóbbi 5 napon a takarás legalább annyi volt, mint a megállítás és a visszalépés együtt, a „nem lett gyorsabb” relatív idő > 0,9 esetén. A sablon akkor is ez, ha a tétel csak a lassúság miatt került ide.
-   - Új: „Most ismerkedik vele, még kevés alkalommal olvasta.”
-3. **„Amikor olvasta”:** a napok pöttyökkel (legfeljebb az utolsó 14 gyakorlási nap), dátummal. Kitöltött sárga: aznap volt segítség; fehér, zöld kerettel: aznap segítség nélkül. Jelmagyarázat alatta.
-4. **„Mi segíthet?”** a 7.2 szerint, ha van. Szöveg: „Ezek a tételek is nehezebben mennek, mindegyikben „{betű}” van. Lehet, hogy nem a tétel, hanem ez a betű a nehéz.” Alatta a kapcsolódó tételek csempéi; koppintásra a saját részleteikre visznek.
-5. **Lábléc:** „Szerepel: {listák} · Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a tételnél.”
+| Kártya | Cím | Szöveg | Szín |
+|---|---|---|---|
+| 1 | Megy | Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta. | `#2E6B66` |
+| 2 | Még bizonytalan | Már olvasta segítség nélkül is, de néha még nehezen megy. | `#8DBDB6` |
+| 3 | Még gyakorolni kell | Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi tételt. | `#E7B96A` |
+| 4 | Kevés adat | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.¹ | `#BDB4A4` |
 
-### 8.4 Üres állapot
-Ha kevesebb mint 3 különböző gyakorlási nap van: az oldal címe „Haladás”, „← Vissza” linkkel (mint az áttekintésen); alatta „Még kevés adat a trendekhez” cím, a mondat („Eddig {n} napon gyakoroltatok, {m} tételt olvasott. Legalább 3 gyakorlási nap után látszik, mi megy már könnyen, és mi kér több gyakorlást.”), és egy 3 részes haladásjelző. Alatta: „Az adatok csak ezen az eszközön vannak.” Az export/importra utaló második mondat a 2. fázisig kimarad.
+   ¹ A Kevés adat szövege csak az érvényes feltételeket mondja: `min_nap` = 0 mellett (napszabály-kapcsoló) „…ha legalább 3-szor olvasta.”; ha `min_alkalom` > `min_nap`, „…ha legalább 3 különböző napon és összesen legalább 4-szer olvasta.”; egyébként a fenti. „Legalább 0” soha nem jelenik meg.
+
+   - Elrendezés: asztali és fekvő: az 1–3. kártya egy sorban, egyforma magasan; a Kevés adat kártya alattuk, teljes szélességben, egy sorban: balra cím, darabszám és szöveg, jobbra a link. Álló: mind a négy egymás alatt.
+   - 1–3. kártya: fejléc (cím, darabszám), a kártya szövege, legfeljebb 8.1a szerinti számú csempe; alul „Mutasd mindet →” link, ha a csoportban legalább 1 tétel van (akkor is, ha minden kifér). A link a csoport oldalára visz, akadálymentes neve pl. „Megy: mind a 60 tétel”. A link a kártya aljához igazodik.
+   - Kevés adat kártya: nincsenek csempék, csak cím, darabszám, szöveg és a link.
+   - Üres kártya (0 tétel): szaggatott keret, átlátszó háttér, a felső színsáv megmarad; a darabszám halvány, nem félkövér; szöveg: „Még nincs ilyen tétel.”; nincs link. Átlátszósággal nem halványítunk (kontraszt).
+   - Tételsorrend (a kártyán és a csoport oldalán ugyanaz): Megy és Még bizonytalan: a legutóbb olvasott elöl. Még gyakorolni kell: a legtöbb segítséget igénylő elöl (a segítség aránya, majd darabszáma), majd a nagyobb arány. Kevés adat: a több napon olvasott elöl, azonos napszámnál a legutóbb olvasott; a még nem olvasottak a végén, listasorrendben.
+6. **Listánként:** listánként név, egy sáv és „{megy} megy a {összes}-ból/-ből”. A sáv négy része: Megy, Még bizonytalan, Még gyakorolni kell színe, majd a Kevés adat szürkéje; a részek együtt kiadják a sáv szélességét, köztük 2 px rés; 0 darabos részt nem rajzol. A sáv `role="img"`, címkéje mind a négy számot tartalmazza („Betűk: 2 megy, 1 még bizonytalan, 1 még gyakorolni kell, 16 kevés adat, 20 tételből”); ha minden tétel kevés adat: „Betűk: 20 tételből mindegyikről kevés az adat”. Alatta: „A szürke rész: erről a tételről még kevés az adat.”
+7. **„Honnan tudja ezt az Olvasóka?”** (halvány szöveg), két bekezdés:
+   > Az Olvasóka nem tudja a helyes válaszokat, ezt te hallod a gyerek mellett. Így csak azt figyeli, mennyi idő alatt lapoztok tovább, és kellett-e takarás vagy visszalépés.
+
+   > A tempót mindig a gyereked saját tempójához méri, nem egy elvárt sebességhez. Csak azt nézi, hogy egy tételt nagyjából olyan gyorsan olvas-e, mint a többi betűt, szótagot vagy szót szokta. A hosszabb tételeknél a szótagok számával is számol. Más gyerekekhez nem hasonlítja.
+8. **Lábléc:** „Az adatok csak ezen az eszközön vannak.”
+
+### 8.3 Csoport oldala
+- Fent a vissza link (8.1).
+- Egy kártya a csoport színével: cím „Megy: 60 tétel” formában (csoport neve, kettőspont, darabszám, `TERM`), alatta a kártya szövege (8.2), alatta a csoport összes tétele csempeként, a 8.2 sorrendjében. Listánkénti csoportosítás nincs.
+- Kevés adat oldalon a tételek két alcím alatt: „Olvasta, még kevés napon (88)” és „Még nem olvasta (40)”. Üres résznek az alcíme sem jelenik meg. Napszabály-kapcsolóval (`min_nap` = 0) az első alcím: „Olvasta, még kevésszer”.
+- Az oldal alján: „Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez.”
+- Csempére kattintva a tétel részletei nyílnak meg (a vissza ide hoz).
+
+### 8.4 Tétel részletei
+**Fő kártya** (a csoport színével): a tétel nagy betűvel, a csoport neve címként, alatta a fő mondat:
+
+| Csoport | Ok (7.6) | Fő mondat |
+|---|---|---|
+| Megy | | a kártya szövege (8.2) |
+| Még bizonytalan | `help` | Már olvasta segítség nélkül is, de néha még kell hozzá segítség. |
+| Még bizonytalan | `slow` | Segítség nélkül olvasta, de még lassabban, mint a többi {típus}. |
+| Még gyakorolni kell | `help` | Az utóbbi {N} alkalomból {K}-szor kellett segítség. |
+| Még gyakorolni kell | `slow` | Lassabban olvasta, mint a többi {típus}. |
+| Kevés adat | `days` | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább {min_nap} különböző napon olvasta. |
+| Kevés adat | `count` | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább {min_alkalom}-szor olvasta. |
+
+- {típus}: „betűt”, „szótagot” vagy „szót” a tétel típusa szerint.
+- {N}: a vizsgált alkalmak száma (legfeljebb `gyakorol_utolso_n`), {K}: ebből a segítségesek száma, a „-szor/-szer/-ször” rag a szám kiejtése szerint. Példa: „Az utóbbi 4 alkalomból 3-szor kellett segítség.”
+- A fő mondat alatt vékony vonal, alatta halványabb sor: „Eddig **X** alkalommal olvasta, **Y** különböző napon. Először: okt. 24.” Még nem olvasott tételnél ehelyett a kiemelt „Még nem olvasta.”
+- **„Amikor olvasta” pöttyök** (legfeljebb az utolsó 14 olvasási nap): kitöltött sárga, ha aznap minden alkalommal kellett segítség; fehér, zöld kerettel, ha egyszer sem; függőlegesen elfelezve (bal fele sárga, jobb fele fehér, körben a fehér pötty zöld keretével), ha aznap segítséggel és anélkül is olvasta. Jelmagyarázat alatta mindhárom jellel („segítséggel olvasta”, „segítség nélkül”, „segítséggel és anélkül is”; fekvő telefonon röviden: „segítséggel”, „segítség nélkül”, „vegyesen”). Az akadálymentes címkében a napi alkalmak száma is: „okt. 28., 4 alkalom, segítséggel”, „nov. 11., 2 alkalom, segítséggel és anélkül is”.
+- **Lábléc:** „Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a tételnél.”
 
 ### 8.4a Tárolás nem elérhető
 Ha a böngésző nem engedi a tárolást: „Ezen az eszközön nem menthető a haladás, mert a böngésző nem engedi az adatok tárolását.”
 
-### 8.4b Időtartam szövegesen
-Egy hónap alatt fél hetekre kerekítve („Két hete”, „Két és fél hete”, „Három hete”), utána egész hónapokra („Egy hónapja”, „Két hónapja”).
-
 ### 8.5 Vizuális szabályok
 - A meglévő tokenek (`css/tokens.css`): háttér `--paper`, kártya `--field`, keret `--line`, szöveg `--ink` / `--ink-2`, kiemelés `--accent`, az „Ez csak statisztika” doboz `--sky`.
-- Állapotszínek, világosságban is eltérve: Már megy `#2E6B66`, Egyre jobban megy `#8DBDB6`, Gyakoroljuk még `#E7B96A`, szürke `#ECE5D6`. **Piros nincs.**
+- Csoportszínek: Megy `#2E6B66`, Még bizonytalan `#8DBDB6`, Még gyakorolni kell `#E7B96A`, Kevés adat `#BDB4A4`. **Piros nincs.**
 - Minden érinthető elem legalább 44 px magas. Szöveg kontraszt legalább 4,5:1.
-- Reszponzív: a meglévő minimum (320 × 256) felett minden elrendezés működjön. Fekvő telefonon az összefoglaló és a statisztika doboz egymás mellett, a három kártya egy sorban, oldalt 48 px biztonsági margó.
+- Reszponzív: a meglévő minimum (320 × 256) felett minden elrendezés működjön. Fekvő telefonon az összefoglaló és a statisztika doboz egymás mellett, oldalt 48 px biztonsági margó.
 
 ## 9. Átvitel másik eszközre (export/import): 2. fázis, most nem készül
 
@@ -333,20 +447,18 @@ Csak tájékoztatásul, hogy az adatmodell már most ehhez igazodjon:
 
 ## 10. Tesztelés várakozás nélkül
 
-Egyetlen kapcsoló: **a napszabályok kihagyása**, környezetenként, GitHub repository variable-ből, a táblázatcímek mintájára (`.github/scripts/write-sheet-config.mjs` írja be a `js/core/config.js`-be deploykor).
+Egyetlen kapcsoló: **a napszabály kihagyása**, környezetenként, GitHub repository variable-ből, a táblázatcímek mintájára (`.github/scripts/write-sheet-config.mjs` írja be a `js/core/config.js`-be deploykor).
 
 | Változó | Érték | Alapérték |
 |---|---|---|
 | `DEV_PROGRESS_SKIP_DAY_RULES` | `true` vagy üres | üres (a szabályok érvényesek) |
 | `PROD_PROGRESS_SKIP_DAY_RULES` | `true` vagy üres | üres; ha élesben `true`, a deploy figyelmeztetést ír (`::warning::`) |
 
-Ha a kapcsoló be van kapcsolva, minden **napszámon alapuló** feltétel nullának számít, így a statisztika az első gyakorlástól látszik, akár néhány megjelenés alapján is:
-- `uj_min_nap`, `ures_allapot_min_nap`, `gyakorol_min_nap`, `gyakorol_min_eltelt_nap` → 0 (nincs üres állapot, nincs „még ismerkedik vele” a napok miatt).
-- A többi feltétel (megjelenések száma, segítség, relatív idő) változatlanul érvényes.
+Ha a kapcsoló be van kapcsolva, a `min_nap` nullának számít, így a besorolás napvárás nélkül, már az első gyakorlás napján látszik, amint egy tételt legalább `min_alkalom`-szor olvasott. A többi feltétel (`min_alkalom`, segítség, arány) és a tempó ablaka (`tempo_ablak_nap`) változatlan, így a besorolás ugyanazt a mércét követi, mint élesben: segítséggel sem kerül egy tétel hamarabb csoportba. A még nem olvasott tétel ilyenkor is Kevés adat.
 
 Helyi futtatásnál (localhost) a `js/core/config.js` repóbeli értéke számít; alapból kikapcsolva.
 
-Automatikus tesztek: egységtesztek (`node:test`) rögzített `now` értékekkel (szűrés, összesítés, állapotok határértékei, betűelemzés, listaazonosság, 30 napos tömörítés, konfiguráció-ellenőrzés, a kapcsoló mindkét állása). A számítások ehhez kívülről kapják az időt.
+Automatikus tesztek: egységtesztek (`node:test`) rögzített `now` értékekkel (szűrés, összesítés, szótagszám, szokásos tempó, friss idő, csoportok és okok határértékei, listaazonosság, 30 napos tömörítés, konfiguráció-ellenőrzés, a kapcsoló mindkét állása). A számítások ehhez kívülről kapják az időt.
 
 ## 11. Elfogadási feltételek
 
@@ -360,24 +472,35 @@ Naplózás és szűrés:
 
 Számítás:
 - [ ] `ma`, `ma-ma`, `mama` három külön tétel; `ház` és `ház ` ugyanaz; `Ház` és `ház` két tétel.
-- [ ] A 7. fejezet minden állapotához legalább egy egységteszt, a küszöbök határértékeivel.
-- [ ] Betűbontás: `dzsungel` → dzs-u-n-g-e-l; `gyöngy` → gy-ö-n-gy; `asszony` → a-sz-sz-o-ny.
+- [ ] A 7.7 táblázat minden sora egységtesztként, az okkal együtt; a küszöbök határértékei (arány 1,5 és 2; 2/5 és 3/5 segítség).
+- [ ] Szótagszám a 7.2 szerint; szokásos tempó típusonként, az utolsó gyakorlási naphoz kötött 30 napos ablakkal, `tempo_min_meres` alatt nincs.
+- [ ] Friss idő: kézi és villantásos idő együtt, napi sorrendben; 3-nál kevesebb mérésnél nincs; lejárt villantás nem számít.
+- [ ] A négy darabszám összege = a jelenlegi listák összes tétele, listánként is.
 - [ ] Listatartalom-változás után a listanézet a jelenlegi tartalomból számol; 60% feletti átfedésű átnevezett lista megtartja a listaszintű adatait.
 - [ ] 30 napnál régebbi nyers események törlődnek, a napi összesítők megmaradnak.
+- [ ] A tárolt adat és formátum nem változik; a meglévő adatokból azonnal helyes besorolás.
 
 Felület:
-- [ ] Az áttekintés, a tétel részletei és az üres állapot a képernyőképeknek megfelelő tartalommal és sorrendben jelenik meg, asztalon, álló és fekvő telefonon.
+- [ ] Négy kártya a 8.2 sorrendjében, elrendezésével és szövegeivel; minden nem üres kártyán „Mutasd mindet →” link a csoport oldalára; a csoport oldalán a csoport összes tétele.
+- [ ] Az összefoglaló mondat a 8.2 szerint, mind a négy csoporttal.
+- [ ] A Haladás nézet az első naptól elérhető; csoport nélkül megjelenik az információs doboz.
+- [ ] A tétel részleteinél a fő mondat a 8.4 szerint, alatta az alkalmak és a napok száma és az első dátum.
+- [ ] Navigáció: áttekintés → csoport → tétel → vissza a csoporthoz → vissza az áttekintéshez, Esc-kel és a böngészővel is; visszalépve az előző görgetési pozíció áll vissza.
+- [ ] A „Honnan tudja ezt az Olvasóka?” rész a 8.2 szerint, a saját tempó magyarázatával.
+- [ ] Nincs „Egyre jobban megy”, nincs betűelemzés, nincs „Még N napon…”, nincs „Szerepel: …”, nincs „+ N további tétel”, nincs régi üres állapot.
 - [ ] Álló telefonon az „Ez csak statisztika” alapból csukott, billentyűvel és képernyőolvasóval is nyitható.
 - [ ] A felületi szövegekben nincs gondolatjel, nincs piros szín, nincs sorozat vagy pontszám.
+- [ ] A felület asztali, álló és fekvő elrendezésben megfelel a jóváhagyott designnak.
 - [ ] A Haladás gyakorlás közben nem érhető el.
 - [ ] Nincs export/import link és funkció (2. fázis).
 
 Konfiguráció:
-- [ ] A `haladas.json` értékei hatnak a szűrésre és az állapotokra (teszt: egy küszöb átírása más állapotot ad ugyanarra az adatra).
-- [ ] Hiányzó vagy hibás fájl esetén az alapértékekkel fut; hibás fájl esetén a deploy ellenőrzése megáll.
+- [ ] Minden küszöb a `haladas.json`-ból jön; értékei hatnak a besorolásra (teszt: egy küszöb átírása más csoportot ad ugyanarra az adatra).
+- [ ] Hiányzó vagy hibás fájl esetén az alapértékekkel fut; hibás vagy átfedő küszöbök esetén a deploy ellenőrzése megáll.
 
 Napszabály-kapcsoló:
-- [ ] `DEV_PROGRESS_SKIP_DAY_RULES=true` mellett a dev környezetben egyetlen gyakorlás után megjelennek a kártyák (nincs üres állapot), a „Gyakoroljuk még” is elérhető.
+- [ ] `DEV_PROGRESS_SKIP_DAY_RULES=true` mellett a dev környezetben napvárás nélkül, egyetlen napon belül is van besorolás, de csak legalább `min_alkalom` olvasás után.
+- [ ] Segítséggel sem kerül egy tétel hamarabb csoportba, mint segítség nélkül; a Még bizonytalan tétel mindig olvasta már segítség nélkül is; a Kevés adat szövege soha nem ír „legalább 0”-t.
 - [ ] Változó nélkül a 3 napos szabály érvényes; az éles kiadás alapból így megy.
 
 ## 12. Szállítás

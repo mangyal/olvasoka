@@ -1,4 +1,4 @@
-// A Haladás nézet küszöbei (docs/haladas-specifikacio.md, 7.1): a repó gyökerében lévő haladas.json
+// A Haladás nézet küszöbei (docs/haladas-specifikacio.md, 7.8): a repó gyökerében lévő haladas.json
 // ellenőrzése és futásra kész alakja. Tiszta modul.
 //
 // A fájl a parok.json mintáját követi: szakaszok, `_leiras` magyarázó mezőkkel. Ismeretlen vagy hiányzó
@@ -23,46 +23,33 @@ const SCHEMA = {
     veletlen_atugras_ms: ['ms', 400],
     takaras_ugyetlenseg_ms: ['ms', 1000],
     max_olvasasi_ido_ms: ['ms', 30000],
+    gyors_villantas_ms: ['ms', 5000],
   },
   allapot: {
-    kiindulas_n: ['count', 3],
-    uj_min_nap: ['days', 3],
-    megy_utolso_segitseg_nelkul: ['count', 3],
-    megy_relativ_ido_max: ['factor', 0.8],
-    megy_tipus_median_szorzo: ['factor', 0.8],
-    megy_gyors_villantas_ms: ['ms', 5000],
-    megy_gyors_villantas_db: ['count', 2],
-    javul_relativ_ido_max: ['factor', 0.9],
-    gyakorol_min_nap: ['days', 5],
-    gyakorol_min_eltelt_nap: ['days', 14],
+    min_nap: ['days', 3],
+    min_alkalom: ['count', 3],
+    megy_utolso_n: ['count', 3],
+    megy_ido_szorzo: ['factor', 1.5],
     gyakorol_utolso_n: ['count', 5],
-    gyakorol_segitseg_arany: ['ratio', 0.5],
-    gyakorol_relativ_ido_min: ['factor', 0.9],
-  },
-  betu: {
-    ablak_nap: ['window', 30],
-    min_tetel: ['count', 3],
-    kiemeles_szorzo: ['factor', 2],
-    kartya_megjegyzes_arany: ['ratio', 0.5],
-    kapcsolodo_max: ['count', 5],
+    gyakorol_segitseg_db: ['count', 3],
+    gyakorol_ido_szorzo: ['factor', 2],
+    friss_meres_db: ['count', 3],
+    tempo_ablak_nap: ['window', 30],
+    tempo_min_meres: ['count', 10],
   },
   tarolas: {
     nyers_megorzes_nap: ['window', 30],
     nyers_megorzes_kor: ['count', 30],
-    ures_allapot_min_nap: ['days', 3],
   },
 };
 
-/** A napszabály-kapcsoló (10.) ezeket nullázza; a többi feltétel változatlan. */
-export const DAY_RULES = Object.freeze([
-  ['allapot', 'uj_min_nap'], ['allapot', 'gyakorol_min_nap'], ['allapot', 'gyakorol_min_eltelt_nap'],
-  ['tarolas', 'ures_allapot_min_nap'],
-]);
+/** A napszabály-kapcsoló (10.) ezt nullázza; a többi feltétel (a min_alkalom és a tempó ablaka is) változatlan. */
+export const DAY_RULES = Object.freeze([['allapot', 'min_nap']]);
 
 const isObj = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
 const deepFreeze = (o) => Object.freeze(Object.fromEntries(Object.entries(o).map(([k, v]) => [k, isObj(v) ? deepFreeze(v) : v])));
 
-/** A beépített alapértékek (a 7.1 táblázata). */
+/** A beépített alapértékek (a 7.8 táblázata). */
 export const DEFAULTS = deepFreeze(Object.fromEntries(Object.entries(SCHEMA).map(([sec, keys]) =>
   [sec, Object.fromEntries(Object.entries(keys).map(([k, [, d]]) => [k, d]))])));
 
@@ -93,6 +80,15 @@ export function validate(cfg) {
     const f = cfg.szures;
     if (f.veletlen_atugras_ms >= f.javitott_melle_ms) p.push('szures.veletlen_atugras_ms: kisebb kell legyen, mint a javitott_melle_ms');
     if (f.javitott_melle_ms >= f.max_olvasasi_ido_ms) p.push('szures.javitott_melle_ms: kisebb kell legyen, mint a max_olvasasi_ido_ms');
+    // a „Megy” és a „Még gyakorolni kell” nem fedheti át egymást (7.8)
+    const a = cfg.allapot;
+    if (a.megy_ido_szorzo >= a.gyakorol_ido_szorzo) p.push('allapot.megy_ido_szorzo: kisebb kell legyen, mint a gyakorol_ido_szorzo');
+    // a Kevés adat kapuja a „Megy” alkalomszámát is lefedi, így a kártya szövege mindig a valódi okot mondja (7.5)
+    if (a.min_alkalom < a.megy_utolso_n) p.push('allapot.min_alkalom: legalább a megy_utolso_n kell legyen');
+    if (a.gyakorol_segitseg_db > a.gyakorol_utolso_n) p.push('allapot.gyakorol_segitseg_db: legfeljebb a gyakorol_utolso_n lehet');
+    else if (a.gyakorol_segitseg_db <= a.gyakorol_utolso_n - a.megy_utolso_n) {
+      p.push('allapot.gyakorol_segitseg_db: nagyobb kell legyen, mint gyakorol_utolso_n − megy_utolso_n (különben egy tétel egyszerre „Megy” és „Még gyakorolni kell”)');
+    }
   }
   return p;
 }

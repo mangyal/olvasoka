@@ -1,175 +1,179 @@
-// Tételállapotok és a Haladás nézet adatai a napi összesítőkből (docs/haladas-specifikacio.md, 7., 7.2, 8.).
+// Csoportok és a Haladás nézet adatai a napi összesítőkből (docs/haladas-specifikacio.md, 7., 8.).
 // Tiszta modul: az időt (`now`) és a konfigurációt kívülről kapja; DOM és tárolás nélkül.
 //
-// Állapotok: 'unseen' (nem látott), 'new' (még ismerkedik vele), 'fluent' (Már megy),
-// 'improving' (Egyre jobban megy), 'practice' (Gyakoroljuk még).
+// Csoportok: 'fluent' (Megy), 'unsure' (Még bizonytalan), 'practice' (Még gyakorolni kell),
+// 'lowdata' (Kevés adat). Ok (7.6): 'help' vagy 'slow' (a Még bizonytalan és a Még gyakorolni kell
+// csoportban), egyébként null. Kevés adatnál a hiányzó feltétel (`need`): 'days' (kevés nap) vagy 'count'
+// (kevés alkalom), egyébként null.
 
-import { tokenize, typeOf } from './grid.js';
-import { dayOf, median } from './exposures.js';
+import { typeOf } from './grid.js';
 import { itemKey } from './items.js';
 
 const DAY = 86400000;
 
-/** Két YYYY-MM-DD nap különbsége napokban (a nyári időszámítás nem zavar: déli időponttal számol). */
+/** A csoportok azonosítói, a felületi sorrendben. */
+export const GROUPS = Object.freeze(['fluent', 'unsure', 'practice', 'lowdata']);
+
+/** Két YYYY-MM-DD nap különbsége napokban (a nyári időszámítás nem zavar: UTC napokkal számol). */
 export function daysBetween(a, b) {
   const t = (d) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
   return Math.round((t(b) - t(a)) / DAY);
 }
 
-const ratio = (seq) => (seq.length ? [...seq].filter((c) => c === '1').length / seq.length : 0);
+/** Pontos középérték (kerekítés nélkül); üres listára null. */
+export function mid(xs) {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
 
-/** Egy tétel története a napi összesítőiből, időrendben. */
-function history(records) {
-  const days = [...records].sort((a, b) => a.day.localeCompare(b.day)).filter((d) => d.exposures > 0);
+const VOWELS = new Set('aáeéiíoóöőuúüű');
+/** Szótagszám (7.2): a kulcs magánhangzóinak száma, kis- és nagybetű egyaránt; ha 0, akkor 1. */
+export function syllables(item) {
+  let n = 0;
+  for (const ch of itemKey(item).toLowerCase()) if (VOWELS.has(ch)) n++;
+  return Math.max(1, n);
+}
+
+/**
+ * Egy tétel története a napi összesítőiből (7.1). Ugyanaz a nap több eszközről is jöhet: egy napnak
+ * számít; a napon belül előbb a kézi (`dwellMs`), utána a villantásos (`flashDwell`) idők.
+ */
+export function history(records) {
+  const byDay = new Map();
+  for (const r of [...records].sort((a, b) => a.day.localeCompare(b.day))) {
+    if (!(r.exposures > 0)) continue;
+    if (!byDay.has(r.day)) byDay.set(r.day, []);
+    byDay.get(r.day).push(r);
+  }
+  const days = [...byDay].map(([day, rs]) => ({
+    day,
+    count: rs.reduce((s, r) => s + r.exposures, 0),
+    helpedCount: rs.reduce((s, r) => s + (r.supportedExposures || 0), 0),
+    help: rs.map((r) => r.help || '').join(''),
+    times: [...rs.flatMap((r) => r.dwellMs || []), ...rs.flatMap((r) => (r.flashDwell || []).map((f) => f.ms))],
+  }));
   return {
     days,
     help: days.map((d) => d.help).join(''),
-    dwell: days.flatMap((d) => d.dwellMs),
-    fastFlash: days.reduce((s, d) => s + d.unsupportedFastFlash, 0),
-    exposures: days.reduce((s, d) => s + d.exposures, 0),
+    times: days.flatMap((d) => d.times),
+    exposures: days.reduce((s, d) => s + d.count, 0),
   };
 }
 
-/** A tétel betűi (a többjegyű egynek számít), és típusa (betű, szótag, szó). */
-const lettersOf = (item) => tokenize(item);
-
 /**
- * Az azonos típusú tételek karakterenkénti medián olvasási ideje az ablakban (7.: „Már megy”).
- * @returns {Map<string, number>} típus → ms/betű
+ * Szokásos tempó típusonként (7.3): az adott típus összes tételének szótagonkénti mért ideje az utolsó
+ * `tempo_ablak_nap` gyakorlási naphoz kötött ablakból, középértékkel; csak legalább `tempo_min_meres`
+ * mérésből. A záró nap az utolsó gyakorlási nap (hosszú szünet után sem ürül ki az ablak).
+ * @param {Map<string, object[]>} byItem  tétel → napi összesítők
+ * @returns {Map<string, number>} típus → ms/szótag
  */
-export function typeMedians(byItem, fromDay) {
+export function typeTempo(byItem, { window, minCount }) {
+  let last = null;
+  for (const recs of byItem.values()) for (const r of recs) if (r.exposures > 0 && (last == null || r.day > last)) last = r.day;
   const vals = new Map();
+  if (last == null) return vals;
   for (const [item, recs] of byItem) {
-    const n = lettersOf(item).length;
-    if (!n) continue;
-    const t = typeOf(item);
+    const t = typeOf(item), n = syllables(item);
     if (!vals.has(t)) vals.set(t, []);
-    for (const r of recs) if (r.day >= fromDay) vals.get(t).push(...r.dwellMs.map((x) => x / n));
+    for (const r of recs) {
+      if (!(r.exposures > 0) || daysBetween(r.day, last) >= window) continue;
+      for (const ms of r.dwellMs || []) vals.get(t).push(ms / n);
+      for (const f of r.flashDwell || []) vals.get(t).push(f.ms / n);
+    }
   }
-  return new Map([...vals].filter(([, v]) => v.length).map(([t, v]) => [t, median(v)]));
+  return new Map([...vals].filter(([, v]) => v.length >= minCount).map(([t, v]) => [t, mid(v)]));
 }
 
+/** Friss idő (7.4): az utolsó `n` mért idő szótagonkénti középértéke; ha nincs ennyi, null. */
+export function freshTime(item, times, n) {
+  return times.length >= n ? mid(times.slice(-n)) / syllables(item) : null;
+}
+
+const count1 = (s) => [...s].filter((c) => c === '1').length;
+
 /**
- * Egy tétel állapota és a részletekhez kellő számok.
+ * Egy tétel csoportja, oka és a részletekhez kellő számok (7.5, 7.6).
  * @param {string} item
  * @param {object[]} records  a tétel napi összesítői
- * @param {{ today: string, cfg: object, typeMedian?: number|null }} o
+ * @param {{ cfg: object, tempo?: number|null }} o  tempo: a tétel típusának szokásos tempója (ms/szótag)
  */
-export function itemState(item, records, { today, cfg, typeMedian = null }) {
+export function classify(item, records, { cfg, tempo = null }) {
   const a = cfg.allapot;
   const h = history(records);
-  const n = a.kiindulas_n;
-  const base = h.dwell.length >= n ? median(h.dwell.slice(0, n)) : null;
-  const recent = h.dwell.length >= n ? median(h.dwell.slice(-n)) : null;
-  const relative = base && recent != null ? recent / base : null;
-  const dayCount = h.days.length;
-  const firstDay = h.days[0]?.day ?? null;
-  const lastDay = h.days.at(-1)?.day ?? null;
-  const sinceFirst = firstDay ? daysBetween(firstDay, today) : 0;
-  const lastHelp = h.help.slice(-a.megy_utolso_segitseg_nelkul);
-  const recentHelp = h.help.slice(-a.gyakorol_utolso_n);
+  const fresh = freshTime(item, h.times, a.friss_meres_db);
+  const ratio = fresh != null && tempo ? fresh / tempo : null;
   const out = {
-    item, exposures: h.exposures, dayCount, firstDay, lastDay, sinceFirst, relative,
-    helpRecent: ratio(recentHelp),
-    days: h.days.map((d) => ({ day: d.day, helped: d.supportedExposures > 0 })),
-    coverMostly: false, state: 'unseen',
+    item, type: typeOf(item), exposures: h.exposures, dayCount: h.days.length,
+    firstDay: h.days[0]?.day ?? null, lastDay: h.days.at(-1)?.day ?? null,
+    // napi segítség: 'all' (minden alkalom segítséggel), 'some' (segítséggel és anélkül is), 'none'
+    days: h.days.map(({ day, count, helpedCount }) => ({ day, count, help: helpedCount <= 0 ? 'none' : helpedCount >= count ? 'all' : 'some' })),
+    ratio, fresh, group: 'lowdata', reason: null, need: null, helpN: 0, helpK: 0, helpRecent: 0,
   };
-  if (!h.exposures) return out;
+  // Közös kapu minden csoport előtt (7.5/1.): kevés nap vagy kevés alkalom → Kevés adat, a hiányzó feltétellel.
+  // A min_alkalom ≥ 1, így a még nem olvasott tétel a napszabály-kapcsolóval is Kevés adat.
+  if (h.days.length < a.min_nap) return { ...out, need: 'days' };
+  if (h.exposures < a.min_alkalom) return { ...out, need: 'count' };
 
-  // „takarás” vagy „segítség” a mondatban: a legutóbbi napokon a takarás volt-e a több
-  const tail = h.days.slice(-a.gyakorol_utolso_n);
-  const covers = tail.reduce((s, d) => s + d.covers, 0), others = tail.reduce((s, d) => s + d.pauses + d.prevs, 0);
-  out.coverMostly = covers > 0 && covers >= others;
-
-  const letters = lettersOf(item).length;
-  const perChar = recent != null && letters ? recent / letters : null;
-  const fluent = dayCount >= a.uj_min_nap
-    && lastHelp.length >= a.megy_utolso_segitseg_nelkul && !lastHelp.includes('1')
-    && ((relative != null && relative <= a.megy_relativ_ido_max)
-      || (perChar != null && typeMedian != null && perChar <= a.megy_tipus_median_szorzo * typeMedian)
-      || h.fastFlash >= a.megy_gyors_villantas_db);
-  const practice = !fluent && dayCount >= a.gyakorol_min_nap && sinceFirst >= a.gyakorol_min_eltelt_nap
-    && (ratio(recentHelp) >= a.gyakorol_segitseg_arany || (relative != null && relative > a.gyakorol_relativ_ido_min));
-  const improving = !fluent && !practice && dayCount >= a.uj_min_nap
-    && ((relative != null && relative <= a.javul_relativ_ido_max)
-      || (h.help.length >= n && ratio(h.help.slice(-n)) < ratio(h.help.slice(0, n))));
-  out.state = fluent ? 'fluent' : practice ? 'practice' : improving ? 'improving' : 'new';
-  return out;
-}
-
-/* ---------- betűk (7.2) ---------- */
-
-/**
- * Betűnkénti segítségarány az ablakban: a betűt tartalmazó tételek megjelenéseinek hányadánál volt segítség.
- * Csak az legalább `min_tetel` különböző tételben szereplő betű kap arányt.
- * @returns {{ rate: Map<string, number>, without: (letter: string) => number }}
- */
-export function letterStats(byItem, fromDay, minItems) {
-  const per = [];
-  for (const [item, recs] of byItem) {
-    let exp = 0, sup = 0;
-    for (const r of recs) if (r.day >= fromDay) { exp += r.exposures; sup += r.supportedExposures; }
-    if (exp) per.push({ letters: new Set(lettersOf(item)), exp, sup });
+  const recent = h.help.slice(-a.gyakorol_utolso_n);
+  out.helpN = recent.length; out.helpK = count1(recent);
+  out.helpRecent = recent.length ? out.helpK / recent.length : 0;
+  const helpCond = recent.length > 0 && out.helpK >= a.gyakorol_segitseg_db;
+  if (helpCond || (ratio != null && ratio >= a.gyakorol_ido_szorzo)) {
+    return { ...out, group: 'practice', reason: helpCond ? 'help' : 'slow' };
   }
-  const acc = new Map();
-  for (const p of per) for (const l of p.letters) {
-    const a = acc.get(l) || { items: 0, exp: 0, sup: 0 };
-    acc.set(l, { items: a.items + 1, exp: a.exp + p.exp, sup: a.sup + p.sup });
-  }
-  const rate = new Map([...acc].filter(([, a]) => a.items >= minItems).map(([l, a]) => [l, a.sup / a.exp]));
-  const without = (l) => {
-    let exp = 0, sup = 0;
-    for (const p of per) if (!p.letters.has(l)) { exp += p.exp; sup += p.sup; }
-    return exp ? sup / exp : 0;
-  };
-  return { rate, without };
-}
-
-/** A tétel leggyengébb betűje: a benne lévők közül a legnagyobb segítségarányú (ha van arány). */
-export function weakestLetter(item, rate) {
-  let best = null;
-  for (const l of new Set(lettersOf(item))) {
-    if (rate.has(l) && (best == null || rate.get(l) > rate.get(best))) best = l;
-  }
-  return best;
+  const last = h.help.slice(-a.megy_utolso_n);
+  const lastHelped = last.includes('1');
+  const slow = ratio != null && ratio > a.megy_ido_szorzo;
+  // a kapu miatt van legalább min_alkalom ≥ megy_utolso_n alkalom (7.8)
+  if (!lastHelped && !slow) return { ...out, group: 'fluent' };
+  // „Még bizonytalan” csak akkor, ha már olvasta segítség nélkül is; ha mindig segítség kellett, gyakorolni kell
+  if (lastHelped && !h.help.includes('0')) return { ...out, group: 'practice', reason: 'help' };
+  return { ...out, group: 'unsure', reason: lastHelped ? 'help' : 'slow' };
 }
 
 /* ---------- elemzés és nézetmodellek ---------- */
 
 /**
- * A teljes elemzés: tételenkénti állapot, betűstatisztika, gyakorlási napok.
+ * A teljes elemzés: tételenkénti csoport, szokásos tempók, gyakorlási napok.
  * @param {object[]} daily  a gyerek napi összesítői (bármelyik eszközről)
  * @param {{ now: number, cfg: object }} o
  */
 export function analyze(daily, { now, cfg }) {
-  const today = dayOf(now);
-  const fromDay = dayOf(now - cfg.betu.ablak_nap * DAY);
   const byItem = new Map();
   for (const d of daily) {
     if (!byItem.has(d.item)) byItem.set(d.item, []);
     byItem.get(d.item).push(d);
   }
-  const medians = typeMedians(byItem, fromDay);
+  const tempo = typeTempo(byItem, { window: cfg.allapot.tempo_ablak_nap, minCount: cfg.allapot.tempo_min_meres });
   const states = new Map();
-  for (const [item, recs] of byItem) {
-    states.set(item, itemState(item, recs, { today, cfg, typeMedian: medians.get(typeOf(item)) ?? null }));
-  }
-  const letters = letterStats(byItem, fromDay, cfg.betu.min_tetel);
+  for (const [item, recs] of byItem) states.set(item, classify(item, recs, { cfg, tempo: tempo.get(typeOf(item)) ?? null }));
   const practiceDays = new Set(daily.filter((d) => d.exposures > 0).map((d) => d.day));
-  return { today, cfg, states, letters, practiceDays: practiceDays.size, itemsRead: byItem.size };
+  return { now, cfg, states, tempo, practiceDays: practiceDays.size, itemsRead: [...states.values()].filter((s) => s.exposures > 0).length };
 }
 
-const unseen = (item) => ({ item, state: 'unseen', exposures: 0, days: [], dayCount: 0, relative: null, helpRecent: 0 });
-export const stateOf = (an, item) => an.states.get(itemKey(item)) || unseen(itemKey(item));
+/** Egy tétel állapota; a még nem olvasott tétel is (Kevés adat). */
+export const stateOf = (an, item) => an.states.get(itemKey(item)) || classify(itemKey(item), [], { cfg: an.cfg });
 
 /** A jelenlegi listák egyedi tételkulcsai, megjelenési sorrendben. */
 export const currentItems = (lists) => [...new Set(lists.flatMap((l) => l.items.map(itemKey)))];
 
-const ORDER = {
-  // Gyakoroljuk még: a legtöbb segítséget igénylő elöl; a többin a legutóbb látott elöl
-  practice: (a, b) => b.helpRecent - a.helpRecent || (b.relative ?? 0) - (a.relative ?? 0) || a.item.localeCompare(b.item, 'hu'),
-  recent: (a, b) => (b.lastDay || '').localeCompare(a.lastDay || '') || b.exposures - a.exposures || a.item.localeCompare(b.item, 'hu'),
-};
+/** Tételsorrend csoportonként (8.2); az egyenlők a listák sorrendjében maradnak (stabil rendezés). */
+const recentFirst = (a, b) => (b.lastDay || '').localeCompare(a.lastDay || '') || b.exposures - a.exposures;
+export const ORDER = Object.freeze({
+  fluent: recentFirst,
+  unsure: recentFirst,
+  // a legtöbb segítséget igénylő elöl (arány, majd darab), majd a nagyobb tempóarány
+  practice: (a, b) => b.helpRecent - a.helpRecent || b.helpK - a.helpK || (b.ratio ?? 0) - (a.ratio ?? 0),
+  // a több napon olvasott elöl, azonos napszámnál a legutóbb olvasott; a még nem olvasottak a végén
+  lowdata: (a, b) => b.dayCount - a.dayCount || recentFirst(a, b),
+});
+
+/** A jelenlegi listák tételei csoportonként, a 8.2 sorrendjében. */
+export function grouped(an, lists) {
+  const all = currentItems(lists).map((k) => stateOf(an, k));
+  return Object.fromEntries(GROUPS.map((g) => [g, all.filter((x) => x.group === g).sort(ORDER[g])]));
+}
 
 /**
  * Az áttekintés adatai (8.2).
@@ -177,75 +181,39 @@ const ORDER = {
  * @param {{ name: string, items: string[] }[]} lists  a jelenlegi listák (mind; az összes = ezek egyedi tételei)
  */
 export function overview(an, lists) {
-  const all = currentItems(lists).map((k) => stateOf(an, k));
-  const of = (s) => all.filter((x) => x.state === s);
-  const cards = {
-    fluent: of('fluent').sort(ORDER.recent),
-    improving: of('improving').sort(ORDER.recent),
-    practice: of('practice').sort(ORDER.practice),
-  };
+  const groups = grouped(an, lists);
+  const counts = Object.fromEntries(GROUPS.map((g) => [g, groups[g].length]));
   const perList = lists.map((l) => {
+    const c = Object.fromEntries(GROUPS.map((g) => [g, 0]));
     const keys = [...new Set(l.items.map(itemKey))];
-    const c = { fluent: 0, improving: 0, practice: 0 };
-    for (const k of keys) { const s = stateOf(an, k).state; if (s in c) c[s]++; }
+    for (const k of keys) c[stateOf(an, k).group]++;
     return { name: l.name, total: keys.length, ...c };
   });
-  const b = an.cfg.betu;
+  const total = GROUPS.reduce((s, g) => s + counts[g], 0);
   return {
-    total: all.length,
-    seen: all.filter((x) => x.state !== 'unseen').length,
-    counts: { fluent: cards.fluent.length, improving: cards.improving.length, practice: cards.practice.length },
-    cards,
-    practiceNote: cardLetter(cards.practice.map((x) => x.item), an.letters.rate, b.kartya_megjegyzes_arany),
-    perList,
-    empty: an.practiceDays < an.cfg.tarolas.ures_allapot_min_nap,
-    practiceDays: an.practiceDays, itemsRead: an.itemsRead, minDays: an.cfg.tarolas.ures_allapot_min_nap,
+    total,
+    seen: GROUPS.reduce((s, g) => s + groups[g].filter((x) => x.exposures > 0).length, 0),
+    grouped: total - counts.lowdata,
+    counts, groups, perList,
+    minDays: an.cfg.allapot.min_nap,
   };
 }
 
 /**
- * Kártya-megjegyzés (7.2): a „Gyakoroljuk még” tételek legalább `share` részében közös betű. Ha több ilyen
- * is van, a nagyobb segítségarányú (a gyenge betű a hasznos jel, nem a gyakori magánhangzó). Legalább 2 tétel kell.
+ * Egy csoport oldala (8.3). A Kevés adat csoportban két rész: olvasta (még kevés napon) és még nem olvasta.
+ * Ismeretlen csoportnál null.
  */
-export function cardLetter(items, rate, share) {
-  if (items.length < 2) return null;
-  const count = new Map();
-  for (const it of items) for (const l of new Set(lettersOf(it))) count.set(l, (count.get(l) || 0) + 1);
-  const cands = [...count].filter(([, c]) => c / items.length >= share).map(([l, c]) => ({ l, c, r: rate.get(l) ?? -1 }));
-  cands.sort((a, b) => b.r - a.r || b.c - a.c || a.l.localeCompare(b.l, 'hu'));
-  return cands[0]?.l ?? null;
+export function groupView(an, key, lists) {
+  if (!GROUPS.includes(key)) return null;
+  const items = grouped(an, lists)[key];
+  const parts = key === 'lowdata'
+    ? [{ key: 'read', items: items.filter((x) => x.exposures > 0) }, { key: 'unread', items: items.filter((x) => !x.exposures) }]
+    : null;
+  return { key, items, parts };
 }
 
-/**
- * A tétel részletei (8.3).
- * @param {object} an
- * @param {string} item
- * @param {{ name: string, items: string[] }[]} lists
- */
-export function detail(an, item, lists) {
+/** A tétel részletei (8.4): a csoport, az ok és a tények. */
+export function detail(an, item) {
   const s = stateOf(an, item);
-  const key = itemKey(item);
-  const b = an.cfg.betu;
-  let help = null;
-  if (s.state !== 'unseen' && typeOf(key) !== 'betű') {
-    const l = weakestLetter(key, an.letters.rate);
-    const r = l == null ? 0 : an.letters.rate.get(l);
-    if (l != null && r > 0 && r >= b.kiemeles_szorzo * an.letters.without(l)) {
-      const related = currentItems(lists)
-        .filter((k) => k !== key && new Set(lettersOf(k)).has(l))
-        .map((k) => stateOf(an, k))
-        .filter((x) => x.state === 'practice' || x.state === 'improving')
-        .sort((x, y) => (x.state === y.state ? ORDER.practice(x, y) : x.state === 'practice' ? -1 : 1))
-        .slice(0, b.kapcsolodo_max)
-        .map((x) => x.item);
-      if (related.length) help = { letter: l, related };
-    }
-  }
-  return {
-    ...s,
-    lists: lists.filter((l) => l.items.some((x) => itemKey(x) === key)).map((l) => l.name),
-    recentDays: s.days.slice(-14),
-    help,
-    slower: s.relative != null && s.relative > an.cfg.allapot.gyakorol_relativ_ido_min,
-  };
+  return { ...s, recentDays: s.days.slice(-14) };
 }

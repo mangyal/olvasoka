@@ -738,29 +738,55 @@ async function readRound(p, { count, pauseOn = [] }) {
   return seen;
 }
 
-test('Haladás: a fejléc gombjával nyílik; csempe → részletek; vissza linkkel, böngészővel és Esc-pel', async () => {
+test('Haladás: a fejléc gombjával nyílik; áttekintés → csoport → tétel → vissza a csoporthoz → az áttekintéshez (link, böngésző, Esc)', async () => {
   const { seedRoot } = await import('./haladas-seed.mjs');
-  const { c, p } = await progressPage({ seed: seedRoot({ fluent: ['ma', 'me', 'alma'], improving: ['mi'], practice: ['körte', 'szilva'] }) });
+  const { c, p } = await progressPage({ seed: seedRoot({ fluent: ['ma', 'me', 'alma'], unsure: ['mi'], practice: ['körte', 'szilva'] }) });
+  const hash = () => decodeURIComponent(new URL(p.url()).hash);
+  const h1 = () => p.textContent('#haladas h1');
   await p.locator('#progressBtn').click();
   await p.locator('#haladas .hl-cards').waitFor();
-  assert.equal(new URL(p.url()).hash, '#haladas');
+  assert.equal(hash(), '#haladas');
   assert.equal(await p.isVisible('#admin'), false);
   assert.match(await p.textContent('.hl-sum'), /^Eddig 6 tételt olvasott a 13-ból\./, 'összes = minden lista egyedi tételei (az „a” két listában is)');
   assert.equal(await p.evaluate(() => document.activeElement.tagName), 'H1', 'a fókusz a címen');
-  await p.locator('.hl-card[data-state=practice] .hl-tile', { hasText: 'körte' }).click();
+
+  // áttekintés → csoport oldala
+  await p.locator('.hl-card[data-group=practice] .hl-all').click();
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(hash(), '#haladas/csoport/practice');
+  assert.equal(await h1(), 'Még gyakorolni kell: 2 tétel');
+  assert.equal(await p.textContent('.hl-back'), '← Vissza az áttekintéshez');
+  assert.equal(await p.evaluate(() => document.activeElement.textContent), 'Még gyakorolni kell: 2 tétel', 'a fókusz a címen');
+  // csoport → tétel: a vissza a csoporthoz visz, a link szövege „← Vissza”
+  await p.locator('.hl-group .hl-tile', { hasText: 'körte' }).click();
   await p.locator('.hl-big').waitFor();
-  assert.equal(await p.textContent('.hl-big'), 'körte');
-  assert.equal(new URL(p.url()).hash, '#haladas/tetel/k%C3%B6rte');
-  await p.goBack();                                       // böngésző / rendszer vissza
-  await p.locator('#haladas .hl-cards').waitFor();
+  assert.equal(hash(), '#haladas/tetel/körte');
+  assert.equal(await p.textContent('.hl-back'), '← Vissza');
+  assert.equal(await p.getAttribute('.hl-back', 'href'), '#haladas/csoport/practice');
+  await p.locator('.hl-back').click();
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(hash(), '#haladas/csoport/practice');
+  // böngésző előre: a tétel, Esc-re ismét a csoport, onnan Esc-re az áttekintés
   await p.goForward();
   await p.locator('.hl-big').waitFor();
-  await p.locator('.hl-back').click();                    // ← Vissza az áttekintéshez
-  await p.locator('#haladas .hl-cards').waitFor();
-  await p.locator('.hl-tile', { hasText: 'alma' }).click();
+  assert.equal(await p.textContent('.hl-back'), '← Vissza');
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'overview');
+  assert.equal(hash(), '#haladas');
+  // böngésző vissza a csoport oldaláról
+  await p.locator('.hl-card[data-group=fluent] .hl-all').click();
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  await p.goBack();
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'overview');
+
+  // az áttekintésről nyitott tétel az áttekintéshez tér vissza
+  await p.locator('.hl-card .hl-tile', { hasText: 'alma' }).click();
   await p.locator('.hl-big').waitFor();
-  await p.keyboard.press('Escape');                       // részletekből az áttekintéshez
-  await p.locator('#haladas .hl-cards').waitFor();
+  assert.equal(await p.textContent('.hl-back'), '← Vissza az áttekintéshez');
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'overview');
   await p.keyboard.press('Escape');                       // áttekintésből a szülői felületre
   await p.locator('#admin').waitFor({ state: 'visible' });
   assert.equal(await p.isVisible('#haladas'), false);
@@ -770,6 +796,35 @@ test('Haladás: a fejléc gombjával nyílik; csempe → részletek; vissza link
   await p.locator('#haladas .hl-cards').waitFor();
   await p.locator('.hl-wrap > .hl-top .hl-back').click();   // ← Vissza
   await p.locator('#admin').waitFor({ state: 'visible' });
+  await c.close();
+});
+
+test('Haladás: újratöltés után is oda visz vissza, ahonnan a tételt megnyitotta; ismeretlen csoport → áttekintés', async () => {
+  const { seedRoot } = await import('./haladas-seed.mjs');
+  const { c, p } = await progressPage({ seed: seedRoot({ fluent: ['ma', 'me'], practice: ['körte'] }) });
+  await p.evaluate(() => { location.hash = '#haladas/csoport/fluent'; });
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  await p.locator('.hl-group .hl-tile', { hasText: 'me' }).click();
+  await p.locator('.hl-big').waitFor();
+  await p.reload();
+  await p.locator('.hl-big').waitFor();
+  assert.equal(await p.textContent('.hl-back'), '← Vissza');
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(new URL(p.url()).hash, '#haladas/csoport/fluent');
+  // közvetlen hash-sel nyitott tétel: az áttekintéshez
+  await p.evaluate(() => { history.replaceState(null, '', '#haladas/tetel/ma'); dispatchEvent(new HashChangeEvent('hashchange')); });
+  await p.locator('.hl-big').waitFor();
+  assert.equal(await p.textContent('.hl-back'), '← Vissza az áttekintéshez');
+  // üres csoport: az üres kártya; ismeretlen csoport: az áttekintés
+  await p.evaluate(() => { location.hash = '#haladas/csoport/unsure'; });
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(await p.textContent('#haladas h1'), 'Még bizonytalan: 0 tétel');
+  assert.equal(await p.textContent('.hl-group .hl-none'), 'Még nincs ilyen tétel.');
+  assert.equal(await p.$('.hl-group .hl-tile'), null);
+  await p.evaluate(() => { location.hash = '#haladas/csoport/improving'; });
+  await p.waitForFunction(() => document.getElementById('haladas').dataset.view === 'overview');
+  assert.equal(new URL(p.url()).hash, '#haladas');
   await c.close();
 });
 
@@ -787,23 +842,49 @@ test('Haladás: gyakorlás közben nem érhető el', async () => {
   await c.close();
 });
 
-test('napszabály-kapcsoló nélkül: egy gyakorlás után üres állapot (3 napos szabály)', async () => {
+test('napszabály-kapcsoló nélkül: egy gyakorlás után is megnyílik, minden Kevés adat, az információs doboz látszik', async () => {
   const { c, p } = await progressPage();
   const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
   await p.locator('#progressBtn').click();
-  await p.locator('.hl-empty').waitFor();
-  assert.equal(await p.textContent('.hl-empty-text p'),
-    `Eddig 1 napon gyakoroltatok, ${new Set(seen).size} tételt olvasott. Legalább 3 gyakorlási nap után látszik, mi megy már könnyen, és mi kér több gyakorlást.`);
+  await p.locator('#haladas .hl-cards').waitFor();
+  assert.equal(await p.$('.hl-empty'), null, 'a régi üres állapot megszűnt');
+  assert.equal(await p.textContent('.hl-sum'), `Eddig ${new Set(seen).size} tételt olvasott a 13-ból. Még mind a 13 tételről kevés az adat.`);
+  assert.equal(await p.textContent('.hl-info'), 'Az első tételek legkorábban a 3. napon kerülnek csoportba.');
+  assert.equal(await p.getAttribute('.hl-info', 'role'), 'status');
+  assert.deepEqual(await p.$$eval('.hl-card .hl-count', (e) => e.map((x) => x.textContent)), ['0', '0', '0', '13']);
   await c.close();
 });
 
-test('DEV_PROGRESS_SKIP_DAY_RULES=true: egyetlen gyakorlás után kártyák, a „Gyakoroljuk még” is', async () => {
+test('DEV_PROGRESS_SKIP_DAY_RULES=true: napvárás nélkül, de csak elég alkalom után sorol be; segítséggel sem hamarabb', async () => {
   const { c, p } = await progressPage({ skip: true });
-  const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
-  await p.locator('#progressBtn').click();
-  await p.locator('#haladas .hl-cards').waitFor();
-  assert.equal(await p.$('.hl-empty'), null, 'nincs üres állapot');
-  const practice = await p.$$eval('.hl-card[data-state=practice] .hl-tile', (t) => t.map((x) => x.textContent).sort());
-  assert.deepEqual(practice, [...new Set(seen.slice(0, 3))].sort(), 'a megállított tételek');
+  const tiles = (g) => p.$$eval(`.hl-card[data-group=${g}] .hl-tile`, (t) => t.map((x) => x.textContent));
+  const open = async () => { await p.locator('#progressBtn').click(); await p.locator('#haladas .hl-cards').waitFor(); };
+  const back = async () => { await p.keyboard.press('Escape'); await p.locator('#admin').waitFor({ state: 'visible' }); };
+
+  // egy kör után (minden tétel egyszer): még semmi nincs csoportban, a segítséggel olvasott sem
+  const reads = new Map();
+  const round = async () => {
+    const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
+    seen.forEach((it, k) => reads.set(it, (reads.get(it) || '') + (k <= 2 ? '1' : '0')));
+  };
+  await round();
+  await open();
+  assert.equal(await p.$('.hl-info'), null, 'kapcsolóval nincs információs doboz');
+  assert.ok([...reads.values()].every((h) => h.length === 1), 'a Szótagok lista 6 tétele egyszer-egyszer');
+  assert.deepEqual([...await tiles('fluent'), ...await tiles('unsure'), ...await tiles('practice')], [], 'kevés alkalom: minden Kevés adat');
+  assert.equal(await p.textContent('.hl-card[data-group=lowdata] .hl-means'),
+    'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.', 'nem „legalább 0 napon”');
+  await back();
+
+  // még két kör: amit legalább 3-szor olvasott, besorolódik; a Még bizonytalan mind olvasta segítség nélkül is
+  await round(); await round();
+  await open();
+  const grouped = { fluent: await tiles('fluent'), unsure: await tiles('unsure'), practice: await tiles('practice') };
+  for (const [g, items] of Object.entries(grouped)) {
+    for (const it of items) assert.ok((reads.get(it) || '').length >= 3, `${it} (${reads.get(it)}) → ${g}: kevés alkalom`);
+  }
+  for (const it of grouped.unsure) assert.ok(reads.get(it).includes('0'), `${it} (${reads.get(it)}) → unsure, de mindig segítséggel`);
+  const enough = [...reads].filter(([, h]) => h.length >= 3).map(([it]) => it);
+  assert.deepEqual(Object.values(grouped).flat().sort(), [...enough].sort(), 'pontosan a legalább 3-szor olvasottak sorolódtak be');
   await c.close();
 });

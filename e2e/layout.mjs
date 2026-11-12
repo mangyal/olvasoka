@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
 import { chromium } from 'playwright';
-import { seedRoot } from './haladas-seed.mjs';
+import { seedRoot, repoLists } from './haladas-seed.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain; charset=utf-8',
@@ -618,7 +618,9 @@ test('Keresd meg! tablet: nincs telefonos korlát', async () => {
 /* ---------- Haladás nézet (docs/haladas-specifikacio.md, 8.) ---------- */
 // A listák a repó lists.txt-jéből jönnek; a napló a haladas-seed.mjs kitalált napi összesítőiből.
 const PKEY = 'olvasoka-dev.haladas';
-const SEED = { fluent: ['ma', 'mi', 'fa', 'fe', 'ló', 'ke-fe', 'pa', 'pi'], improving: ['fó-ka', 'lu-fi', 'ká'], practice: ['fa-lu', 'fo-ci', 'ki', 'kó', 'pú'] };
+const SEED = { fluent: ['ma', 'mi', 'fa', 'fe', 'ló', 'ke-fe', 'pa', 'pi'], unsure: ['fó-ka', 'lu-fi', 'ká'], practice: ['fa-lu', 'fo-ci', 'ki', 'kó', 'pú'], low: ['te', 'me'], seenOnce: ['ce'] };
+/** Sok tétel: a repó lists.txt-jének összes tétele (124) csoportokra osztva, 14 még nem olvasott. */
+const MANY = (() => { const { items } = repoLists(); return { fluent: items.slice(0, 40), unsure: items.slice(40, 70), practice: items.slice(70, 100), low: items.slice(100, 110) }; })();
 
 async function openProgress(opts, hash = '#haladas', seed = seedRoot(SEED)) {
   const ctx = await browser.newContext({ serviceWorkers: 'block', ...opts });
@@ -655,29 +657,73 @@ const lowContrast = (page) => page.$$eval('#haladas *', (es) => {
 });
 const cardTitles = (page) => page.$$eval('.hl-card h2', (h) => h.map((x) => x.textContent));
 const tileCounts = (page) => page.$$eval('.hl-card', (cs) => cs.map((c) => c.querySelectorAll('.hl-tile').length));
+const rects = (page, sel) => page.$$eval(sel, (es) => es.map((e) => { const r = e.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width), height: Math.round(r.height) }; }));
+const view = (page) => page.getAttribute('#haladas', 'data-view');
+const noRed = (page) => page.$$eval('#haladas *', (es) => !es.flatMap((e) => { const s = getComputedStyle(e); return [s.color, s.backgroundColor, s.borderTopColor]; })
+  .some((c) => { const [r, g, b] = (c.match(/\d+/g) || []).map(Number); return r > 150 && g < 90 && b < 90; }));
 
-test('Haladás asztali 1280×800: sorrend, kártyák, csempék, listák, lábléc; nincs piros, gondolatjel, export', async () => {
+test('Haladás asztali 1280×800: sorrend, négy kártya, Kevés adat teljes szélességben, „Mutasd mindet” egy vonalban', async () => {
   const { page, ctx, errors } = await openProgress(DESKTOP);
   assert.equal(await page.isVisible('#admin'), false, 'a szülői felület helyére lép');
   const order = await page.$$eval('.hl-wrap > *', (es) => es.map((e) => e.className || e.tagName));
-  assert.deepEqual(order, ['hl-top', 'hl-cards', 'hl-lists', 'hl-how', 'hl-foot']);
+  assert.deepEqual(order, ['hl-top', 'hl-cards', 'hl-lists', 'hl-how', 'hl-foot'], 'van csoportba sorolt tétel: nincs információs doboz');
   assert.equal(await page.textContent('#haladas h1'), 'Hogy halad az olvasás?');
-  assert.match(await page.textContent('.hl-sum'), /^Eddig 16 tételt olvasott a \d+-b[óő]l\. 8 már megy, 3 egyre jobban megy, és 5 tételt érdemes még gyakorolni\.$/);
+  assert.equal(await page.textContent('.hl-sum'),
+    'Eddig 19 tételt olvasott a 124-ből. 16 már csoportba került: 8 megy, 3 még bizonytalan, 5-öt még gyakorolni kell. A többi 108 tételről még kevés az adat.');
+  assert.deepEqual(await page.$$eval('.hl-sum strong', (s) => s.map((x) => x.textContent)), ['19 tételt', '124', '16', '8', '3', '5', '108']);
   assert.equal(await page.isVisible('.hl-stat-btn'), false, 'asztalon a statisztika doboz nem csukható');
-  assert.ok(await page.isVisible('.hl-stat >> text=az a cél, hogy szívesen olvasson'));
-  assert.deepEqual(await cardTitles(page), ['Már megy', 'Egyre jobban megy', 'Gyakoroljuk még']);
-  assert.deepEqual(await tileCounts(page), [6, 3, 5]);
-  assert.equal(await page.textContent('.hl-card[data-state=fluent] .hl-more'), '+ 2 további tétel');
-  assert.equal(new Set(await tops(page, '.hl-card')).size, 1, 'a három kártya egy sorban');
+  assert.ok(await page.isVisible('.hl-stat >> text=Egy tétel csoportja idővel változhat, ez természetes.'));
+  assert.deepEqual(await cardTitles(page), ['Megy', 'Még bizonytalan', 'Még gyakorolni kell', 'Kevés adat']);
+  assert.deepEqual(await page.$$eval('.hl-count', (c) => c.map((x) => x.textContent)), ['8', '3', '5', '108']);
+  assert.deepEqual(await page.$$eval('.hl-means', (c) => c.map((x) => x.textContent)), [
+    'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.',
+    'Már olvasta segítség nélkül is, de néha még nehezen megy.',
+    'Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi tételt.',
+    'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.',
+  ]);
+  assert.deepEqual(await tileCounts(page), [6, 3, 5, 0], 'asztalon legfeljebb 6 csempe; a Kevés adat kártyán nincs');
+  const cards = await rects(page, '.hl-card');
+  assert.equal(new Set(cards.slice(0, 3).map((r) => r.top)).size, 1, 'az 1–3. kártya egy sorban');
+  assert.equal(new Set(cards.slice(0, 3).map((r) => r.height)).size, 1, 'egyforma magasan');
+  const [grid] = await rects(page, '.hl-cards');
+  assert.ok(cards[3].top > cards[0].bottom, 'a Kevés adat alattuk');
+  assert.equal(cards[3].width, grid.width, 'teljes szélességben');
+  const all = await rects(page, '.hl-all');
+  assert.equal(all.length, 4, 'minden nem üres kártyán „Mutasd mindet”');
+  assert.equal(new Set(all.slice(0, 3).map((r) => r.top)).size, 1, 'a linkek egy vonalban');
+  const [lowText] = await rects(page, '.hl-low-text');
+  assert.ok(all[3].left > lowText.right && Math.abs((all[3].top + all[3].bottom) / 2 - (lowText.top + lowText.bottom) / 2) < 4, 'a Kevés adat linkje jobbra, középen');
+  assert.deepEqual(await page.$$eval('.hl-all', (a) => a.map((x) => [x.textContent, x.getAttribute('aria-label'), x.getAttribute('href')])), [
+    ['Mutasd mindet', 'Megy: mind a 8 tétel', '#haladas/csoport/fluent'],
+    ['Mutasd mindet', 'Még bizonytalan: mind a 3 tétel', '#haladas/csoport/unsure'],
+    ['Mutasd mindet', 'Még gyakorolni kell: mind az 5 tétel', '#haladas/csoport/practice'],
+    ['Mutasd mindet', 'Kevés adat: mind a 108 tétel', '#haladas/csoport/lowdata'],
+  ]);
   assert.deepEqual(await page.$$eval('.hl-card', (cs) => cs.map((c) => getComputedStyle(c).borderTopColor)),
-    ['rgb(46, 107, 102)', 'rgb(141, 189, 182)', 'rgb(231, 185, 106)']);
-  assert.ok(await page.$$eval('.hl-bar', (b) => b.every((x) => x.getAttribute('role') === 'img' && /megy, .* tételből$/.test(x.getAttribute('aria-label')))));
+    ['rgb(46, 107, 102)', 'rgb(141, 189, 182)', 'rgb(231, 185, 106)', 'rgb(189, 180, 164)']);
+  // listánként: négy rész, 2 px rés, kiadják a sáv szélességét; a címke mind a négy számot tartalmazza
+  const bars = await page.$$eval('.hl-bar', (bs) => bs.map((b) => {
+    const r = b.getBoundingClientRect(), spans = [...b.children].map((s) => s.getBoundingClientRect());
+    return { label: b.getAttribute('aria-label'), parts: [...b.children].map((s) => s.dataset.group), fill: spans.reduce((s, x) => s + x.width, 0) + 2 * (spans.length - 1), width: r.width };
+  }));
+  for (const b of bars) {
+    assert.ok(Math.abs(b.fill - b.width) < 1.5, `${b.label}: ${b.fill} / ${b.width}`);
+    assert.match(b.label, /^.+: (\d+ megy, \d+ még bizonytalan, \d+ még gyakorolni kell, \d+ kevés adat, \d+ tételből|\d+ tételből mindegyikről kevés az adat)$/);
+  }
+  const p45 = bars.find((b) => b.label.startsWith('45. oldal'));
+  assert.deepEqual(p45.parts, ['fluent', 'unsure', 'practice', 'lowdata']);
+  assert.equal(bars.find((b) => b.label.startsWith('Két szótagú')).label, 'Két szótagú szavak: 19 tételből mindegyikről kevés az adat');
+  assert.deepEqual(bars.find((b) => b.label.startsWith('Két szótagú')).parts, ['lowdata'], 'a 0 darabos részek nincsenek');
+  assert.equal(await page.textContent('.hl-lists .hl-muted'), 'A szürke rész: erről a tételről még kevés az adat.');
+  assert.equal(await page.$$eval('.hl-how p', (p) => p.length), 2);
+  assert.match(await page.textContent('.hl-how'), /A tempót mindig a gyereked saját tempójához méri/);
+  assert.doesNotMatch(await page.textContent('.hl-how'), /akkor „megy”/);
   assert.equal(await page.textContent('.hl-foot'), 'Az adatok csak ezen az eszközön vannak.');
   const text = await page.textContent('#haladas');
   assert.doesNotMatch(text, /[–—]/, 'gondolatjel');
+  assert.doesNotMatch(text, /Egyre jobban|Gyakoroljuk még|Már megy|további tétel|Mi segíthet|Szerepel|Még kevés adat a trendekhez/);
   assert.doesNotMatch(text, /Átvitel|Export|Import|sorozat|pont/i, 'nincs export, sorozat, pontszám');
-  const colors = await page.$$eval('#haladas *', (es) => es.flatMap((e) => { const s = getComputedStyle(e); return [s.color, s.backgroundColor, s.borderTopColor]; }));
-  assert.ok(!colors.some((c) => { const [r, g, b] = (c.match(/\d+/g) || []).map(Number); return r > 150 && g < 90 && b < 90; }), 'nincs piros');
+  assert.ok(await noRed(page), 'nincs piros');
   assert.deepEqual(await smallTargets(page), []);
   assert.deepEqual(await lowContrast(page), []);
   assert.ok(await noHScroll(page));
@@ -685,7 +731,40 @@ test('Haladás asztali 1280×800: sorrend, kártyák, csempék, listák, láblé
   await ctx.close();
 });
 
-test('Haladás álló telefon 390×844: a statisztika doboz csukva, billentyűvel nyitható; 4 csempe; egymás alatt', async () => {
+test('Haladás első nap: információs doboz; üres kártyák szaggatott kerettel, link nélkül; Kevés adat linkkel', async () => {
+  const { page, ctx, errors } = await openProgress(DESKTOP, '#haladas', seedRoot({ seenOnce: ['ma', 'mi', 'fa'], low: ['fe'] }));
+  const order = await page.$$eval('.hl-wrap > *', (es) => es.map((e) => e.className || e.tagName));
+  assert.deepEqual(order, ['hl-top', 'hl-info', 'hl-cards', 'hl-lists', 'hl-how', 'hl-foot']);
+  assert.equal(await page.textContent('.hl-sum'), 'Eddig 4 tételt olvasott a 124-ből. Még mind a 124 tételről kevés az adat.');
+  assert.equal(await page.textContent('.hl-info'), 'Az első tételek legkorábban a 3. napon kerülnek csoportba.');
+  assert.equal(await page.getAttribute('.hl-info', 'role'), 'status');
+  assert.ok(await page.$eval('.hl-info svg', (s) => s.getAttribute('aria-hidden') === 'true'));
+  assert.equal(await page.$eval('.hl-info', (e) => getComputedStyle(e).color), await page.$eval('.hl-sum', (e) => getComputedStyle(e).color), 'nem figyelmeztetés-színű');
+  const empty = await page.$$eval('.hl-card[data-empty]', (cs) => cs.map((c) => {
+    const s = getComputedStyle(c), n = getComputedStyle(c.querySelector('.hl-count'));
+    return { g: c.dataset.group, border: s.borderLeftStyle, top: s.borderTopStyle, bg: s.backgroundColor, opacity: s.opacity, weight: n.fontWeight, none: c.querySelector('.hl-none')?.textContent, link: !!c.querySelector('.hl-all') };
+  }));
+  assert.deepEqual(empty.map((e) => e.g), ['fluent', 'unsure', 'practice']);
+  for (const e of empty) {
+    assert.deepEqual([e.border, e.top, e.bg, e.opacity, e.weight, e.none, e.link], ['dashed', 'solid', 'rgba(0, 0, 0, 0)', '1', '400', 'Még nincs ilyen tétel.', false], e.g);
+  }
+  assert.equal(await page.textContent('.hl-low .hl-count'), '124');
+  assert.equal(await page.getAttribute('.hl-low .hl-all', 'aria-label'), 'Kevés adat: mind a 124 tétel');
+  assert.deepEqual(await smallTargets(page), []);
+  assert.deepEqual(await lowContrast(page), []);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('Haladás még semmi nincs: a felhívó mondat; az információs doboz is látszik', async () => {
+  const { page, ctx } = await openProgress(PHONE, '#haladas', seedRoot({}));
+  assert.equal(await page.textContent('.hl-sum'), 'Kezdd el használni a programot, hogy láthasd a haladást!');
+  assert.ok(await page.isVisible('.hl-info'));
+  assert.ok(await noHScroll(page));
+  await ctx.close();
+});
+
+test('Haladás álló telefon 390×844: a statisztika doboz csukva, billentyűvel nyitható; 4 csempe; négy kártya egymás alatt', async () => {
   const { page, ctx } = await openProgress(PHONE);
   const btn = page.locator('.hl-stat-btn');
   assert.equal(await btn.getAttribute('aria-expanded'), 'false');
@@ -697,43 +776,126 @@ test('Haladás álló telefon 390×844: a statisztika doboz csukva, billentyűve
   await page.keyboard.press('Enter');
   assert.equal(await btn.getAttribute('aria-expanded'), 'true');
   assert.equal(await page.isVisible('#hlStatMore'), true);
-  assert.match(await btn.textContent(), /Kevesebb ▴/);
-  await page.keyboard.press('Space');
-  assert.equal(await btn.getAttribute('aria-expanded'), 'false');
-  assert.deepEqual(await tileCounts(page), [4, 3, 4]);
-  assert.equal(new Set(await tops(page, '.hl-card')).size, 3, 'a kártyák egymás alatt');
+  assert.match(await page.textContent('#hlStatMore'), /Egy tétel csoportja idővel változhat, ez természetes\.$/);
+  assert.deepEqual(await tileCounts(page), [4, 3, 4, 0]);
+  const cards = await rects(page, '.hl-card');
+  assert.deepEqual(await cardTitles(page), ['Megy', 'Még bizonytalan', 'Még gyakorolni kell', 'Kevés adat']);
+  for (let k = 1; k < 4; k++) assert.ok(cards[k].top > cards[k - 1].bottom, 'egymás alatt');
+  const all = await page.$$eval('.hl-card', (cs) => cs.map((c) => {
+    const a = c.querySelector('.hl-all').getBoundingClientRect(), r = c.getBoundingClientRect(), s = getComputedStyle(c);
+    return Math.round(r.width - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) - 2 - a.width);
+  }));
+  assert.deepEqual(all, [0, 0, 0, 0], 'a „Mutasd mindet” teljes szélességű');
   assert.deepEqual(await smallTargets(page), []);
   assert.deepEqual(await lowContrast(page), []);
   assert.ok(await noHScroll(page));
   await ctx.close();
 });
 
-test('Haladás fekvő telefon 844×390: összefoglaló és statisztika egymás mellett, három kártya egy sorban, 48 px margó', async () => {
+test('Haladás fekvő telefon 844×390: összefoglaló és statisztika egymás mellett, három kártya egy sorban, alatta a Kevés adat', async () => {
   const { page, ctx } = await openProgress(PHONE_LAND);
   const [head, stat] = await page.$$eval('.hl-top > *', (es) => es.map((e) => e.getBoundingClientRect()).map((r) => ({ top: Math.round(r.top), left: r.left, right: r.right })));
   assert.ok(stat.left >= head.right, 'egymás mellett');
   assert.equal(await page.isVisible('.hl-stat-btn'), false, 'fekvőben mindig nyitva');
-  assert.equal(new Set(await tops(page, '.hl-card')).size, 1);
-  assert.deepEqual(await tileCounts(page), [3, 3, 3]);
+  const cards = await rects(page, '.hl-card');
+  assert.equal(new Set(cards.slice(0, 3).map((r) => r.top)).size, 1);
+  assert.ok(cards[3].top > cards[0].bottom);
+  assert.equal(cards[3].width, (await rects(page, '.hl-cards'))[0].width);
+  assert.deepEqual(await tileCounts(page), [3, 3, 3, 0]);
   const left = await page.$eval('.hl-cards', (e) => e.getBoundingClientRect().left);
   assert.ok(left >= 48, `oldalsó margó: ${left}`);
   assert.deepEqual(await smallTargets(page), []);
+  assert.deepEqual(await lowContrast(page), []);
   assert.ok(await noHScroll(page));
   await ctx.close();
 });
 
-test('Haladás tétel részletei: asztalon egymás alatt, fekvőben két oszlop; a nagy tétel a gyakorló betűvel', async () => {
+test('Haladás csoport oldala (Megy, 40 tétel): cím, a kártya szövege, minden tétel a sorrendben, lábléc', async () => {
+  for (const opts of [DESKTOP, PHONE]) {
+    const { page, ctx, errors } = await openProgress(opts, '#haladas/csoport/fluent', seedRoot(MANY));
+    assert.equal(await view(page), 'group');
+    assert.equal(await page.textContent('.hl-back'), '← Vissza az áttekintéshez');
+    assert.equal(await page.textContent('#haladas h1'), 'Megy: 40 tétel');
+    assert.equal(await page.$eval('.hl-group', (e) => getComputedStyle(e).borderTopColor), 'rgb(46, 107, 102)');
+    assert.equal(await page.textContent('.hl-group .hl-means'), 'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.');
+    assert.deepEqual(await page.$$eval('.hl-group .hl-tile', (t) => t.map((x) => x.textContent)), MANY.fluent, 'mind, a listák sorrendjében (azonos utolsó nap)');
+    assert.equal(await page.$('.hl-sub'), null, 'listánkénti csoportosítás nincs');
+    assert.equal(await page.textContent('.hl-foot'), 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez.');
+    assert.deepEqual(await smallTargets(page), []);
+    assert.deepEqual(await lowContrast(page), []);
+    assert.ok(await noHScroll(page));
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
+
+test('Haladás csoport oldala (Kevés adat): két alcím a számokkal; üres résznek nincs alcíme', async () => {
+  const { page, ctx } = await openProgress(DESKTOP, '#haladas/csoport/lowdata', seedRoot(MANY));
+  assert.equal(await page.textContent('#haladas h1'), 'Kevés adat: 24 tétel');
+  assert.deepEqual(await page.$$eval('.hl-sub h2', (h) => h.map((x) => x.textContent)), ['Olvasta, még kevés napon (10)', 'Még nem olvasta (14)']);
+  assert.deepEqual(await page.$$eval('.hl-sub', (s) => s.map((x) => x.querySelectorAll('.hl-tile').length)), [10, 14]);
+  await ctx.close();
+  const { page: p2, ctx: c2 } = await openProgress(DESKTOP, '#haladas/csoport/lowdata', seedRoot({ low: ['ma'], fluent: repoLists().items.filter((x) => x !== 'ma') }));
+  assert.deepEqual(await p2.$$eval('.hl-sub h2', (h) => h.map((x) => x.textContent)), ['Olvasta, még kevés napon (1)']);
+  await c2.close();
+});
+
+test('Haladás: a tétel részleteiből visszalépve az előző görgetési pozíció áll vissza; előre lépve a tetejére', async () => {
+  const { page, ctx } = await openProgress({ ...PHONE, viewport: { width: 390, height: 520 } }, '#haladas', seedRoot(MANY));
+  const scroll = () => page.$eval('#haladas', (e) => Math.round(e.scrollTop));
+  await page.locator('.hl-card[data-group=fluent] .hl-all').scrollIntoViewIfNeeded();
+  const ov = await scroll();
+  assert.ok(ov > 0, 'az áttekintés is le van görgetve');
+  await page.click('.hl-card[data-group=fluent] .hl-all');
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(await scroll(), 0, 'előre lépve a tetején');
+  const last = page.locator('.hl-group .hl-tile').last();
+  await last.scrollIntoViewIfNeeded();
+  const before = await scroll();
+  assert.ok(before > 100, `legörgetve: ${before}`);
+  const name = await last.textContent();
+  await last.click();
+  await page.locator('.hl-big').waitFor();
+  assert.equal(await page.textContent('.hl-big'), name);
+  assert.equal(await scroll(), 0, 'a részletek a tetején');
+  await page.click('.hl-back');                            // ← Vissza: a csoporthoz, ugyanoda
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(await scroll(), before);
+  await last.click();
+  await page.locator('.hl-big').waitFor();
+  await page.keyboard.press('Escape');                     // Esc: ugyanígy
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(await scroll(), before);
+  await page.goForward();                                 // böngésző előre, majd vissza
+  await page.locator('.hl-big').waitFor();
+  await page.goBack();
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(await scroll(), before);
+  await page.click('.hl-back');                            // az áttekintéshez: ott is visszaáll
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.view === 'overview');
+  assert.equal(await scroll(), ov);
+  await page.click('.hl-card[data-group=fluent] .hl-all');   // újra megnyitva (előre): a tetején
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.view === 'group');
+  assert.equal(await scroll(), 0);
+  await ctx.close();
+});
+
+test('Haladás tétel részletei: fő mondat, tények, pöttyök alkalomszámmal; asztalon egymás alatt, fekvőben két oszlop', async () => {
   const { page, ctx, errors } = await openProgress(DESKTOP, '#haladas/tetel/fa-lu');
-  assert.equal(await page.getAttribute('#haladas', 'data-view'), 'item');
+  assert.equal(await view(page), 'item');
   assert.equal(await page.textContent('.hl-back'), '← Vissza az áttekintéshez');
   assert.equal(await page.textContent('.hl-big'), 'fa-lu');
   assert.match(await page.$eval('.hl-big', (e) => getComputedStyle(e).fontFamily), /^Arial/);
-  assert.equal(await page.textContent('.hl-main h1'), 'Gyakoroljuk még');
-  assert.match(await page.textContent('.hl-main p'), /^Két és fél hete olvassa, de még most is szinte mindig kell hozzá takarás, és nem lett gyorsabb\.$/);
+  assert.equal(await page.textContent('.hl-main h1'), 'Még gyakorolni kell');
+  assert.equal(await page.textContent('.hl-reason'), 'Az utóbbi 5 alkalomból 4-szer kellett segítség.');
+  assert.match(await page.textContent('.hl-facts'), /^Eddig 7 alkalommal olvasta, 7 különböző napon\. Először: [a-zá-ú]+\. \d+\.$/);
+  assert.deepEqual(await page.$$eval('.hl-facts strong', (s) => s.map((x) => x.textContent)), ['7', '7']);
+  assert.equal(await page.$eval('.hl-facts', (e) => getComputedStyle(e).borderTopStyle), 'solid', 'vékony vonal választja el');
   assert.equal(await page.$$eval('.hl-dots li', (l) => l.length), 7);
-  assert.equal(await page.$$eval('.hl-dots .hl-dot.helped', (l) => l.length), 7);
-  assert.match(await page.getAttribute('.hl-dots li', 'aria-label'), /segítséggel olvasta$/);
-  assert.match(await page.textContent('.hl-foot'), /^Szerepel: 45\. oldal · Ez csak statisztika\./);
+  assert.equal(await page.$$eval('.hl-dots .hl-dot.helped', (l) => l.length), 6);
+  assert.match(await page.getAttribute('.hl-dots li', 'aria-label'), /^[a-zá-ú]+\. \d+\., 1 alkalom, segítséggel$/);
+  assert.equal(await page.textContent('.hl-foot'), 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a tételnél.');
+  assert.doesNotMatch(await page.textContent('#haladas'), /Szerepel|Mi segíthet|Még \d+ napon/);
   const [main, side] = await page.$$eval('.hl-main, .hl-side', (es) => es.map((e) => e.getBoundingClientRect().top));
   assert.ok(side > main, 'asztalon egymás alatt');
   assert.deepEqual(await smallTargets(page), []);
@@ -746,22 +908,55 @@ test('Haladás tétel részletei: asztalon egymás alatt, fekvőben két oszlop;
   await ctx.close();
 });
 
-test('Haladás üres állapot: kevesebb mint 3 gyakorlási nap; 3 részes jelző; nincs export mondat', async () => {
-  const seed = seedRoot({ fluent: ['ma'], seenOnce: ['fa', 'fe'], days: 2 });
-  const { page, ctx } = await openProgress(DESKTOP, '#haladas', seed);
-  await page.waitForSelector('.hl-empty');
-  assert.equal(await page.textContent('#haladas h1'), 'Haladás');
-  assert.equal(await page.textContent('.hl-empty h2'), 'Még kevés adat a trendekhez');
-  assert.equal(await page.textContent('.hl-empty-text p'), 'Eddig 2 napon gyakoroltatok, 3 tételt olvasott. Legalább 3 gyakorlási nap után látszik, mi megy már könnyen, és mi kér több gyakorlást.');
-  assert.deepEqual(await page.$$eval('.hl-segs span', (s) => s.map((x) => x.className)), ['on', 'on', '']);
-  assert.equal(await page.getAttribute('.hl-segs', 'aria-label'), '3 szükséges napból 2 megvan');
-  assert.doesNotMatch(await page.textContent('#haladas'), /Export|Import|Átvitel/);
+test('Haladás tétel részletei: segítséggel és anélkül is olvasott nap félig sárga, félig fehér pötty; jelmagyarázat', async () => {
+  const { page, ctx, errors } = await openProgress(DESKTOP, '#haladas/tetel/ma');   // napok: '01', '00', '0', '0'
+  assert.deepEqual(await page.$$eval('.hl-dots .hl-dot', (d) => d.map((x) => x.className)), ['hl-dot mixed', 'hl-dot', 'hl-dot', 'hl-dot']);
+  assert.match(await page.getAttribute('.hl-dots li', 'aria-label'), /^[a-zá-ú]+\. \d+\., 2 alkalom, segítséggel és anélkül is$/);
+  const half = await page.$eval('.hl-dots .hl-dot.mixed', (e) => {
+    const b = getComputedStyle(e, '::before'), s = getComputedStyle(e);
+    return { inner: e.clientWidth, before: parseFloat(b.width), left: parseFloat(b.left), top: parseFloat(b.top), color: b.backgroundColor, bg: s.backgroundColor,
+      border: [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor], bw: s.borderLeftWidth };
+  });
+  assert.equal(half.before, half.inner / 2, 'a kereten belül középen elfelezve');
+  assert.deepEqual([half.left, half.top], [0, 0], 'a sárga fél a kereten belül van');
+  assert.deepEqual([half.color, half.bg], ['rgb(231, 185, 106)', 'rgb(255, 255, 255)'], 'bal fele sárga, jobb fele fehér');
+  assert.deepEqual(half.border, Array(4).fill('rgb(46, 107, 102)'), 'körben zöld keret, a bal felén is');
+  assert.equal(half.bw, '2px');
+  assert.deepEqual(await page.$$eval('.hl-legend > span', (s) => s.map((x) => `${x.querySelector('.hl-dot').className}: ${x.innerText.trim()}`)),
+    ['hl-dot helped: segítséggel olvasta', 'hl-dot: segítség nélkül', 'hl-dot mixed: segítséggel és anélkül is']);
+  await page.setViewportSize(PHONE_LAND.viewport);
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.layout === 'land');
+  assert.deepEqual(await page.$$eval('.hl-legend > span', (s) => s.map((x) => x.innerText.trim())), ['segítséggel', 'segítség nélkül', 'vegyesen']);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('Haladás tétel részletei: Még bizonytalan és Kevés adat; még nem olvasott tétel', async () => {
+  const cases = [
+    ['fó-ka', 'Még bizonytalan', 'Már olvasta segítség nélkül is, de néha még kell hozzá segítség.', /^Eddig 4 alkalommal olvasta, 3 különböző napon\./],
+    ['te', 'Kevés adat', 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.', /^Eddig 3 alkalommal olvasta, 2 különböző napon\./],
+    ['ma', 'Megy', 'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.', /^Eddig 6 alkalommal olvasta, 4 különböző napon\./],
+  ];
+  for (const [item, title, reason, fact] of cases) {
+    const { page, ctx } = await openProgress(PHONE, `#haladas/tetel/${encodeURIComponent(item)}`);
+    assert.equal(await page.textContent('.hl-main h1'), title, item);
+    assert.equal(await page.textContent('.hl-reason'), reason, item);
+    assert.match(await page.textContent('.hl-facts'), fact, item);
+    assert.deepEqual(await lowContrast(page), [], item);
+    await ctx.close();
+  }
+  const { page, ctx } = await openProgress(DESKTOP, '#haladas/tetel/t%C3%B3');
+  assert.equal(await page.textContent('.hl-main h1'), 'Kevés adat');
+  assert.equal(await page.textContent('.hl-unread'), 'Még nem olvasta.');
+  assert.equal(await page.$('.hl-facts'), null);
+  assert.equal(await page.$('.hl-days'), null);
+  assert.equal(await page.$eval('.hl-main', (e) => getComputedStyle(e).borderTopColor), 'rgb(189, 180, 164)');
   await ctx.close();
 });
 
 for (const [w, h] of [[320, 256], [320, 568], [568, 256]]) {
   test(`Haladás ${w}×${h} (a legkisebb támogatott méret körül): nem lóg ki, minden elérhető`, async () => {
-    for (const hash of ['#haladas', '#haladas/tetel/fa-lu']) {
+    for (const hash of ['#haladas', '#haladas/csoport/practice', '#haladas/csoport/lowdata', '#haladas/tetel/fa-lu']) {
       const { page, ctx } = await openProgress({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true }, hash);
       assert.ok(await noHScroll(page), `${hash}: vízszintes görgetés`);
       assert.deepEqual(await smallTargets(page), [], hash);

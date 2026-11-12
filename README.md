@@ -76,11 +76,12 @@ megállítja az időt; a következő tételnél minden szótag újra látszik.
 
 A beállítások az adott böngészőben maradnak meg.
 
-**Haladás** (fejléc): mely tételek mennek már, melyek egyre jobban, és melyeket érdemes még gyakorolni.
-Csak a meglévő mozdulatokból számol (lapozás, visszalépés, takarás, megállítás és ezek ideje); a helyességet
-nem tudja, azt a szülő hallja. Az adatok csak az adott eszközön vannak, fiók nélkül. A küszöbök a
+**Haladás** (fejléc): négy csoport (Megy, Még bizonytalan, Még gyakorolni kell, Kevés adat), mindegyik egy
+mondattal elmagyarázva; csoportonként az összes tétel, és tételenként a fő ok. Csak a meglévő mozdulatokból
+számol (lapozás, visszalépés, takarás, megállítás és ezek ideje), a tempót a gyerek saját tempójához méri; a
+helyességet nem tudja, azt a szülő hallja. Az adatok csak az adott eszközön vannak, fiók nélkül. A küszöbök a
 [`haladas.json`](haladas.json)-ban (a szülő nem látja); teszteléshez a `DEV_PROGRESS_SKIP_DAY_RULES` változó
-kikapcsolja a napszámon alapuló szabályokat (lásd lent). Részletek: [`docs/haladas-specifikacio.md`](docs/haladas-specifikacio.md).
+kikapcsolja a napszámon alapuló szabályt (`min_nap`, lásd lent). Részletek: [`docs/haladas-specifikacio.md`](docs/haladas-specifikacio.md).
 
 ## Felépítés
 
@@ -90,7 +91,7 @@ Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
 index.html          markup
 lists.txt           a listák
 parok.json          Keresd meg!: hasonló betűpárok, költségek, nehézségi görbe (docs/keresd-meg-heurisztika.md)
-haladas.json        Haladás: a szűrés és a tételállapotok küszöbei (docs/haladas-specifikacio.md, 7.1)
+haladas.json        Haladás: a szűrés és a csoportok küszöbei (docs/haladas-specifikacio.md, 7.)
 css/                tokens · szülői felület · gyakorló és jutalom nézet
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
 js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
@@ -114,7 +115,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   practice-log.js     Haladás: a Felolvasás kör naplóeseményei a reducer átmeneteiből
   exposures.js        Haladás: mellényomás-szűrés, megjelenések, napi tételösszesítők
   list-identity.js    Haladás: listaazonosság (átnevezett lista felismerése)
-  mastery.js          Haladás: tételállapotok, betűelemzés, a nézet adatai
+  mastery.js          Haladás: csoportok és okok, szokásos tempó, a nézetek adatai
   haladas-texts.js    Haladás: a felület szövegei egy helyen
   haladas-config.js   Haladás: a haladas.json ellenőrzése és alapértékei
 js/data/            localStorage, a Haladás naplója (progress-log.js) és a listák letöltése
@@ -187,7 +188,7 @@ variables → Actions → *Variables* fül → *New repository variable*.
 | `PROD_SHEET_EDIT_URL` | az éles táblázat szerkesztő címe („Listák szerkesztése” link) | a `js/core/config.js` alapértéke |
 | `DEV_SHEET_CSV_URL` | a dev táblázat CSV címe | az éles cím |
 | `DEV_SHEET_EDIT_URL` | a dev táblázat szerkesztő címe | az éles cím |
-| `DEV_PROGRESS_SKIP_DAY_RULES` | `true`: a Haladás nézet napszámon alapuló szabályai kimaradnak (teszteléshez, első gyakorlástól látszik minden) | kikapcsolva |
+| `DEV_PROGRESS_SKIP_DAY_RULES` | `true`: a Haladás nézet napszabálya (`min_nap`) kimarad (teszteléshez: napvárás nélkül besorol, de a `min_alkalom` alkalomszám ilyenkor is kell) | kikapcsolva |
 | `PROD_PROGRESS_SKIP_DAY_RULES` | ugyanez élesben; ha `true`, a kiadás figyelmeztetést ír | kikapcsolva |
 
 A változó módosítása magától nem ad ki új változatot: utána Actions → *Kiadás (GitHub Pages)* →

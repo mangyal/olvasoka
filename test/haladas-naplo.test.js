@@ -102,22 +102,40 @@ test('konfiguráció: ismeretlen kulcs, rossz típus, értelmetlen érték, hiá
   assert.match(bad((c) => { c.extra = {}; }).join(), /extra: ismeretlen szakasz/);
   assert.match(bad((c) => { c.szures.javitott_melle_ms = '2000'; }).join(), /javitott_melle_ms: pozitív egész/);
   assert.match(bad((c) => { c.szures.max_olvasasi_ido_ms = -1; }).join(), /max_olvasasi_ido_ms/);
-  assert.match(bad((c) => { c.allapot.gyakorol_segitseg_arany = 1.5; }).join(), /0 és 1 közötti/);
-  assert.match(bad((c) => { delete c.betu.min_tetel; }).join(), /betu\.min_tetel: hiányzik/);
+  assert.match(bad((c) => { c.allapot.megy_ido_szorzo = 0; }).join(), /megy_ido_szorzo: pozitív szám/);
+  assert.match(bad((c) => { c.allapot.min_nap = 1.5; }).join(), /min_nap: nemnegatív egész/);
+  assert.match(bad((c) => { delete c.allapot.friss_meres_db; }).join(), /allapot\.friss_meres_db: hiányzik/);
+  assert.match(bad((c) => { c.betu = { ablak_nap: 30 }; }).join(), /betu: ismeretlen szakasz/, 'a régi betűelemzés megszűnt');
+  assert.match(bad((c) => { c.tarolas.ures_allapot_min_nap = 3; }).join(), /ures_allapot_min_nap: ismeretlen kulcs/);
+  assert.match(bad((c) => { c.allapot.kiindulas_n = 3; }).join(), /kiindulas_n: ismeretlen kulcs/);
   assert.match(bad((c) => { c.szures.veletlen_atugras_ms = 5000; }).join(), /kisebb kell legyen/);
   assert.deepEqual(validate(null), ['a konfiguráció nem objektum']);
+});
+
+test('konfiguráció: a „Megy” és a „Még gyakorolni kell” küszöbei nem fedhetik át egymást', () => {
+  const base = () => structuredClone(JSON.parse(readFileSync(join(ROOT, 'haladas.json'), 'utf8')));
+  const bad = (f) => { const c = base(); f(c); return validate(c); };
+  assert.deepEqual(validate(base()), [], 'a kezdő értékek (3 / 5 / 3, 1,5 < 2) érvényesek');
+  assert.match(bad((c) => { c.allapot.megy_ido_szorzo = 2; }).join(), /megy_ido_szorzo: kisebb kell legyen/);
+  assert.match(bad((c) => { c.allapot.megy_ido_szorzo = 2.5; }).join(), /megy_ido_szorzo: kisebb kell legyen/);
+  assert.match(bad((c) => { c.allapot.gyakorol_segitseg_db = 2; }).join(), /gyakorol_segitseg_db: nagyobb kell legyen/, '3 segítség nélküli után 2/5 lehetne segítséges');
+  assert.match(bad((c) => { c.allapot.megy_utolso_n = 2; }).join(), /gyakorol_segitseg_db: nagyobb kell legyen/);
+  assert.match(bad((c) => { c.allapot.gyakorol_segitseg_db = 6; }).join(), /legfeljebb a gyakorol_utolso_n/);
+  assert.deepEqual(bad((c) => { c.allapot.megy_utolso_n = 4; c.allapot.min_alkalom = 4; c.allapot.gyakorol_segitseg_db = 2; }), [], '4 segítség nélküli után legfeljebb 1/5');
+  assert.match(bad((c) => { c.allapot.megy_utolso_n = 4; c.allapot.gyakorol_segitseg_db = 2; }).join(), /min_alkalom: legalább a megy_utolso_n/, 'a Kevés adat kapuja lefedi a „Megy” alkalomszámát');
+  assert.match(bad((c) => { c.allapot.min_alkalom = 0; }).join(), /min_alkalom: legalább 1 egész/);
+  assert.match(bad((c) => { delete c.allapot.min_alkalom; }).join(), /allapot\.min_alkalom: hiányzik/);
 });
 
 test('konfiguráció: hibás bemenetnél az alapértékek; a napszabály-kapcsoló csak a napszámokat nullázza', () => {
   assert.deepEqual(resolve({ szures: 1 }), DEFAULTS);
   assert.deepEqual(resolve(null), DEFAULTS);
   const s = resolve(null, { skipDayRules: true });
-  assert.equal(s.allapot.uj_min_nap, 0);
-  assert.equal(s.allapot.gyakorol_min_nap, 0);
-  assert.equal(s.allapot.gyakorol_min_eltelt_nap, 0);
-  assert.equal(s.tarolas.ures_allapot_min_nap, 0);
+  assert.equal(s.allapot.min_nap, 0);
+  assert.equal(s.allapot.tempo_ablak_nap, 30, 'a tempó ablaka nem napszabály');
   assert.equal(s.tarolas.nyers_megorzes_nap, 30, 'a megőrzés nem napszabály');
-  assert.equal(s.allapot.megy_utolso_segitseg_nelkul, 3, 'a többi feltétel változatlan');
+  assert.equal(s.allapot.min_alkalom, 3, 'az alkalomszám nem napszabály');
+  assert.deepEqual({ ...s.allapot, min_nap: 3 }, { ...DEFAULTS.allapot }, 'a többi feltétel változatlan');
   assert.ok(Object.isFrozen(s.allapot));
 });
 
@@ -134,6 +152,12 @@ test('kiadás: hibás vagy hiányzó haladas.json megállítja a check-haladas.m
   writeFileSync(join(dir, 'haladas.json'), JSON.stringify(cfg));
   const r = run();
   assert.equal(r.status, 1); assert.match(r.stderr, /ismeretlen kulcs/);
+  delete cfg.allapot.ismeretlen;
+  cfg.allapot.megy_ido_szorzo = 2;
+  writeFileSync(join(dir, 'haladas.json'), JSON.stringify(cfg));
+  const o = run();
+  assert.equal(o.status, 1, 'átfedő küszöbök: a kiadás megáll'); assert.match(o.stderr, /megy_ido_szorzo/);
+  cfg.allapot.megy_ido_szorzo = 1.5;
   delete cfg.allapot.ismeretlen;
   writeFileSync(join(dir, 'haladas.json'), JSON.stringify(cfg));
   assert.equal(run().status, 0);
