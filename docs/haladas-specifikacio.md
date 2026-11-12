@@ -15,6 +15,7 @@ Jóváhagyott design: https://claude.ai/artifact/N4rE1aqK15kpWbLvWXtcAr (vászon
 - Visszalépéskor (link, Esc, böngésző) az előző görgetési pozíció áll vissza; előre lépve a lap tetejére görget (8.1).
 - `haladas.json`: az `allapot` szakasz teljes cseréje (9 kulcs), a `betu` szakasz és a `tarolas.ures_allapot_min_nap` megszűnt. Az `unsupportedFastFlash` gyűjtésének küszöbe a `szures.gyors_villantas_ms` kulcsba költözött (érték változatlan, 5000). A kiadás ellenőrzi, hogy a „Megy” és a „Még gyakorolni kell” küszöbei ne fedjék át egymást (7.8).
 - A napszabály-kapcsoló csak a `min_nap`-ot nullázza (10.).
+- Az „Amikor olvasta” pöttyöknek három állapota van: segítséggel, segítség nélkül, és félig-félig, ha aznap segítséggel és anélkül is olvasta (8.4).
 - Nem változik: a naplózás, a mellényomás-szűrés (5.2), a tárolt adat és formátum (3. verzió), a `flashDwell` gyűjtése.
 
 ### 1.6 (az 1.5-höz képest)
@@ -409,7 +410,7 @@ A jóváhagyott design (lásd a dokumentum elején) a mérvadó. Szövegek: tege
 - {típus}: „betűt”, „szótagot” vagy „szót” a tétel típusa szerint.
 - {N}: a vizsgált alkalmak száma (legfeljebb `gyakorol_utolso_n`), {K}: ebből a segítségesek száma, a „-szor/-szer/-ször” rag a szám kiejtése szerint. Példa: „Az utóbbi 4 alkalomból 3-szor kellett segítség.”
 - A fő mondat alatt vékony vonal, alatta halványabb sor: „Eddig **X** alkalommal olvasta, **Y** különböző napon. Először: okt. 24.” Még nem olvasott tételnél ehelyett a kiemelt „Még nem olvasta.”
-- **„Amikor olvasta” pöttyök** (legfeljebb az utolsó 14 olvasási nap): kitöltött sárga, ha aznap volt segítség; fehér, zöld kerettel, ha nem. Jelmagyarázat alatta. Az akadálymentes címkében a napi alkalmak száma is: „okt. 28., 4 alkalom, segítséggel”.
+- **„Amikor olvasta” pöttyök** (legfeljebb az utolsó 14 olvasási nap): kitöltött sárga, ha aznap minden alkalommal kellett segítség; fehér, zöld kerettel, ha egyszer sem; függőlegesen elfelezve (bal fele sárga, jobb fele fehér, körben a fehér pötty zöld keretével), ha aznap segítséggel és anélkül is olvasta. Jelmagyarázat alatta mindhárom jellel („segítséggel olvasta”, „segítség nélkül”, „segítséggel és anélkül is”; fekvő telefonon röviden: „segítséggel”, „segítség nélkül”, „vegyesen”). Az akadálymentes címkében a napi alkalmak száma is: „okt. 28., 4 alkalom, segítséggel”, „nov. 11., 2 alkalom, segítséggel és anélkül is”.
 - **Lábléc:** „Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a tételnél.”
 
 ### 8.4a Tárolás nem elérhető

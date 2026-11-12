@@ -19,6 +19,9 @@ const PORTRAIT = matchMedia('(max-width: 599px)');
 /** Csempék kártyánként az áttekintésen (8.2). */
 export const TILES = Object.freeze({ desktop: 6, portrait: 4, land: 3 });
 
+/** A napi pötty osztálya: teljesen sárga, fehér, vagy félig-félig (segítséggel és anélkül is). */
+const DOT = Object.freeze({ all: ' helped', some: ' mixed', none: '' });
+
 const layout = () => (LAND.matches ? 'land' : PORTRAIT.matches ? 'portrait' : 'desktop');
 
 /** Kis DOM-építő: h('p', { class: 'x' }, 'szöveg', elem). Az attribútum `on*` kulcsa eseményfigyelő. */
@@ -186,12 +189,13 @@ export function createProgressView(root, { data, back, open }) {
       it.exposures ? rich('p', { class: 'hl-facts' }, facts(it)) : h('p', { class: 'hl-unread' }, T.notRead));
     const days = it.recentDays.length ? h('section', { class: 'hl-days', 'aria-labelledby': 'hlDaysH' },
       h('h2', { id: 'hlDaysH' }, T.whenRead),
-      h('ul', { class: 'hl-dots' }, it.recentDays.map((x) => h('li', { 'aria-label': dayAria(x.day, x.count, x.helped) },
-        h('span', { class: `hl-dot${x.helped ? ' helped' : ''}`, 'aria-hidden': 'true' }),
+      h('ul', { class: 'hl-dots' }, it.recentDays.map((x) => h('li', { 'aria-label': dayAria(x.day, x.count, x.help) },
+        h('span', { class: `hl-dot${DOT[x.help]}`, 'aria-hidden': 'true' }),
         h('span', { class: 'hl-date', 'aria-hidden': 'true' }, dateLabel(x.day))))),
       h('div', { class: 'hl-legend' },
         h('span', {}, h('span', { class: 'hl-dot helped', 'aria-hidden': 'true' }), h('span', { class: 'hl-legend-long' }, T.helped), h('span', { class: 'hl-legend-short' }, T.helpedShort)),
-        h('span', {}, h('span', { class: 'hl-dot', 'aria-hidden': 'true' }), T.unhelped))) : null;
+        h('span', {}, h('span', { class: 'hl-dot', 'aria-hidden': 'true' }), T.unhelped),
+        h('span', {}, h('span', { class: 'hl-dot mixed', 'aria-hidden': 'true' }), h('span', { class: 'hl-legend-long' }, T.mixed), h('span', { class: 'hl-legend-short' }, T.mixedShort)))) : null;
     return [
       backLink(from === '#haladas' ? T.backToOverview : T.back, from),
       notice(d),
