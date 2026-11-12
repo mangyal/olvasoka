@@ -1,13 +1,14 @@
 // A Haladás nézet minden felületi szövege egy helyen (docs/haladas-specifikacio.md, 8.). Tiszta modul.
 // Tegező forma, gondolatjel nélkül. A „tétel” szó ideiglenes: a TERM cseréjével mindenhol változik.
+// A szövegekben szereplő küszöbszámok a konfigurációból (haladas.json `allapot`) jönnek.
 //
 // A kiemelt részeket tartalmazó mondatok részek tömbjeként jönnek ([szöveg, kiemelt?]), így a felület
 // szövegként (nem HTML-ként) rakja össze őket.
 
-import { fromSuffix } from './progress.js';
+import { fromSuffix, accSuffix, timesSuffix } from './progress.js';
 import { art } from './items.js';
 
-export const TERM = Object.freeze({ nom: 'tétel', acc: 'tételt', from: 'tételből' });
+export const TERM = Object.freeze({ nom: 'tétel', acc: 'tételt', from: 'tételből', about: 'tételről', pl: 'tételek' });
 
 export const T = Object.freeze({
   open: 'Haladás',
@@ -16,107 +17,126 @@ export const T = Object.freeze({
   backToOverview: '← Vissza az áttekintéshez',
   statTitle: 'Ez csak statisztika',
   statFirst: `Többet számít, amit te látsz, és amit a gyereked érez egy-egy ${TERM.nom}nél.`,
-  statRest: `Ha szerinted egy ${TERM.nom} már megy, akkor valószínűleg megy, bármit mutat itt a program. Használd segítségnek, de ne hagyatkozz rá teljesen, és ne a számokat akard javítani: az a cél, hogy szívesen olvasson.`,
+  statRest: `Ha szerinted egy ${TERM.nom} már megy, akkor valószínűleg megy, bármit mutat itt a program. Használd segítségnek, de ne hagyatkozz rá teljesen, és ne a számokat akard javítani: az a cél, hogy szívesen olvasson. Egy ${TERM.nom} csoportja idővel változhat, ez természetes.`,
   more: 'Bővebben ▾',
   less: 'Kevesebb ▴',
+  showAll: 'Mutasd mindet',
   perList: 'Listánként',
-  grey: 'A szürke rész: még nem látott vagy épp most ismerkedik vele.',
+  grey: `A szürke rész: erről a ${TERM.about} még kevés az adat.`,
   howTitle: 'Honnan tudja ezt az Olvasóka?',
-  how: `Az Olvasóka nem tudja a helyes válaszokat, ezt te hallod a gyerek mellett. Így csak azt figyeli, mennyi idő alatt lapoztok tovább, és kellett-e takarás vagy visszalépés. Egy ${TERM.nom} akkor „megy”, ha több különböző napon is gyorsan, segítség nélkül olvasta.`,
+  how: [
+    'Az Olvasóka nem tudja a helyes válaszokat, ezt te hallod a gyerek mellett. Így csak azt figyeli, mennyi idő alatt lapoztok tovább, és kellett-e takarás vagy visszalépés.',
+    `A tempót mindig a gyereked saját tempójához méri, nem egy elvárt sebességhez. Csak azt nézi, hogy egy ${TERM.acc} nagyjából olyan gyorsan olvas-e, mint a többi betűt, szótagot vagy szót szokta. A hosszabb ${TERM.pl}nél a szótagok számával is számol. Más gyerekekhez nem hasonlítja.`,
+  ],
   local: 'Az adatok csak ezen az eszközön vannak.',
   noStorage: 'Ezen az eszközön nem menthető a haladás, mert a böngésző nem engedi az adatok tárolását.',
   emptyCard: `Még nincs ilyen ${TERM.nom}.`,
-  emptyTitle: 'Még kevés adat a trendekhez',
+  start: 'Kezdd el használni a programot, hogy láthasd a haladást!',
+  partRead: 'Olvasta, még kevés napon',
+  partUnread: 'Még nem olvasta',
+  notRead: 'Még nem olvasta.',
   whenRead: 'Amikor olvasta',
   helped: 'segítséggel olvasta',
   helpedShort: 'segítséggel',
   unhelped: 'segítség nélkül',
-  mayHelp: 'Mi segíthet?',
+  groupFoot: 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez.',
   footStat: `Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a ${TERM.nom}nél.`,
 });
 
+/** A négy csoport neve és színe, a felületi sorrendben (8.2). */
 export const CARDS = Object.freeze({
-  fluent: { title: 'Már megy', means: 'Több különböző napon is gyorsan, segítség nélkül olvasta.', color: '#2E6B66' },
-  improving: { title: 'Egyre jobban megy', means: 'Napról napra gyorsabban és kevesebb segítséggel olvassa.', color: '#8DBDB6' },
-  practice: { title: 'Gyakoroljuk még', means: 'Több napja olvassa, de még most is sokszor kell hozzá takarás vagy segítség.', color: '#E7B96A' },
+  fluent: { title: 'Megy', color: '#2E6B66', phrase: 'megy' },
+  unsure: { title: 'Még bizonytalan', color: '#8DBDB6', phrase: 'még bizonytalan' },
+  practice: { title: 'Még gyakorolni kell', color: '#E7B96A', phrase: 'még gyakorolni kell' },
+  lowdata: { title: 'Kevés adat', color: '#BDB4A4', phrase: 'kevés adat' },
 });
-export const CARD_ORDER = Object.freeze(['fluent', 'improving', 'practice']);
-export const STATE_NAME = Object.freeze({ ...Object.fromEntries(CARD_ORDER.map((k) => [k, CARDS[k].title])), new: 'Még ismerkedik vele', unseen: 'Még nem olvasta' });
+export const CARD_ORDER = Object.freeze(['fluent', 'unsure', 'practice', 'lowdata']);
 
+/** Szám a ragjával: „3-at”, „5-ször”. */
+const acc = (n) => `${n}-${accSuffix(n)}`;
+const times = (n) => `${n}-${timesSuffix(n)}`;
 /** „a 76-ból”, „az 5-ből” */
 const from = (n) => `${art(n)} ${n}-${fromSuffix(n)}`;
 
-/** „Eddig 63 tételt olvasott a 76-ból. 30 már megy, 16 egyre jobban megy, és 7 tételt érdemes még gyakorolni.” */
-export function summary({ seen, total, counts }) {
+/**
+ * A kártyák magyarázó mondata (8.2). `a`: a konfiguráció `allapot` szakasza.
+ * @returns {string}
+ */
+export function cardText(key, a) {
+  switch (key) {
+    case 'fluent': return `Az utóbbi ${a.megy_utolso_n} alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.`;
+    case 'unsure': return 'Már olvasta segítség nélkül is, de néha még nehezen megy.';
+    case 'practice': return `Az utóbbi ${a.gyakorol_utolso_n} alkalomból legalább ${times(a.gyakorol_segitseg_db)} kellett segítség, vagy sokkal lassabban olvasta, mint a többi ${TERM.acc}.`;
+    default: return `Egy ${TERM.about} csak akkor tudjuk a haladást megállapítani, ha legalább ${a.min_nap} különböző napon olvasta.`;
+  }
+}
+
+/** Információs doboz, ha még egy tétel sincs csoportban (8.2). */
+export const infoText = (minDays) => `Az első ${TERM.pl} legkorábban a ${minDays}. napon kerülnek csoportba.`;
+
+/**
+ * Az összefoglaló mondat (8.2): mind a négy csoportról, a 0 darabos csoportok nélkül.
+ * „Eddig 100 tételt olvasott a 140-ből. 12 már csoportba került: 5 megy, 4 még bizonytalan, 3-at még
+ * gyakorolni kell. A többi 128 tételről még kevés az adat.”
+ */
+export function summary({ seen, total, grouped, counts }) {
+  if (!seen) return [[T.start]];
   const parts = [['Eddig '], [`${seen} ${TERM.acc}`, true], [` olvasott ${art(total)} `], [`${total}`, true], [`-${fromSuffix(total)}.`]];
+  if (!grouped) return [...parts, [' Még mind a '], [`${total}`, true], [` ${TERM.about} kevés az adat.`]];
+  parts.push([' '], [`${grouped}`, true], [' már csoportba került: ']);
   const clauses = [
-    counts.fluent && [[`${counts.fluent} már megy`, true]],
-    counts.improving && [[`${counts.improving} egyre jobban megy`, true]],
-    counts.practice && [[`${counts.practice} ${TERM.acc} érdemes még gyakorolni`, true]],
+    counts.fluent && [[`${counts.fluent}`, true], [' megy']],
+    counts.unsure && [[`${counts.unsure}`, true], [' még bizonytalan']],
+    counts.practice && [[`${counts.practice}`, true], [`-${accSuffix(counts.practice)} még gyakorolni kell`]],
   ].filter(Boolean);
-  clauses.forEach((c, k) => {
-    parts.push([k === 0 ? ' ' : k === clauses.length - 1 ? ', és ' : ', '], ...c);
-  });
-  if (clauses.length) parts.push(['.']);
+  clauses.forEach((c, k) => { if (k) parts.push([', ']); parts.push(...c); });
+  parts.push(['.']);
+  if (counts.lowdata) parts.push([' A többi '], [`${counts.lowdata}`, true], [` ${TERM.about} még kevés az adat.`]);
   return parts;
 }
 
-/** A csempék alatti szám, ha nem fér ki mind. */
-export const moreText = (n) => `+ ${n} további ${TERM.nom}`;
-
 export const listText = (fluent, total) => `${fluent} megy ${from(total)}`;
-export const listAria = (l) => `${l.name}: ${l.fluent} megy, ${l.improving} egyre jobban megy, ${l.practice} gyakorolni való, ${l.total} ${TERM.from}`;
+/** A listasáv akadálymentes címkéje: mind a négy szám, vagy ha mind kevés adat, ennyi. */
+export function listAria(l) {
+  if (l.total && l.lowdata === l.total) return `${l.name}: ${l.total} ${TERM.from} mindegyikről kevés az adat`;
+  return `${l.name}: ${CARD_ORDER.map((k) => `${l[k]} ${CARDS[k].phrase}`).join(', ')}, ${l.total} ${TERM.from}`;
+}
 
-/** Az üres állapot mondata (8.4). */
-export const emptyText = (days, items) => [
-  ['Eddig '], [`${days} napon`, true], [' gyakoroltatok, '], [`${items} ${TERM.acc}`, true],
-  [' olvasott. Legalább 3 gyakorlási nap után látszik, mi megy már könnyen, és mi kér több gyakorlást.'],
-];
-export const emptyAria = (have, need) => `${need} szükséges napból ${have} megvan`;
-export const emptyCount = (have, need) => `${have} / ${need} nap`;
+/** A csoport oldalának címe: „Megy: 60 tétel”. */
+export const groupTitle = (key, n) => `${CARDS[key].title}: ${n} ${TERM.nom}`;
+/** A „Mutasd mindet” akadálymentes neve: „Megy: mind a 60 tétel”. */
+export const showAllAria = (key, n) => `${CARDS[key].title}: mind ${art(n)} ${n} ${TERM.nom}`;
 
-const NUM = ['', 'Egy', 'Két', 'Három', 'Négy', 'Öt', 'Hat', 'Hét', 'Nyolc', 'Kilenc', 'Tíz', 'Tizenegy', 'Tizenkét'];
-const num = (n) => NUM[n] || String(n);
+const TYPE_ACC = Object.freeze({ betű: 'betűt', szótag: 'szótagot', szó: 'szót' });
 
 /**
- * Időtartam szövegesen (8.4b): egy hónap alatt fél hetekre kerekítve, utána egész hónapokra.
- * 0–3 nap: „Pár napja”.
+ * A tétel részleteinek fő mondata (8.4) a csoport és az ok szerint.
+ * @param {{ group: string, reason: string|null, type: string, helpN: number, helpK: number }} d
  */
-export function durationText(days) {
-  if (days < 4) return 'Pár napja';
-  if (days < 30) {
-    const halves = Math.max(2, Math.round(days / 3.5));       // fél hetek, legalább egy hét
-    const w = Math.floor(halves / 2), half = halves % 2 === 1;
-    if (w === 1 && half) return 'Másfél hete';
-    return `${num(w)}${half ? ' és fél' : ''} hete`;
+export function reasonSentence(d, a) {
+  const tw = TYPE_ACC[d.type] || TYPE_ACC.szó;
+  if (d.group === 'unsure') {
+    return d.reason === 'slow'
+      ? `Segítség nélkül olvasta, de még lassabban, mint a többi ${tw}.`
+      : 'Már olvasta segítség nélkül is, de néha még kell hozzá segítség.';
   }
-  return `${num(Math.max(1, Math.round(days / 30)))} hónapja`;
+  if (d.group === 'practice') {
+    return d.reason === 'slow'
+      ? `Lassabban olvasta, mint a többi ${tw}.`
+      : `Az utóbbi ${d.helpN} alkalomból ${times(d.helpK)} kellett segítség.`;
+  }
+  return cardText(d.group, a);
 }
 
 const MONTHS = ['jan.', 'febr.', 'márc.', 'ápr.', 'máj.', 'jún.', 'júl.', 'aug.', 'szept.', 'okt.', 'nov.', 'dec.'];
 /** „2026-10-24” → „okt. 24.” */
 export const dateLabel = (day) => `${MONTHS[+day.slice(5, 7) - 1]} ${+day.slice(8, 10)}.`;
 
-/**
- * A tétel részleteinek mondata (8.3). A „Gyakoroljuk még” sablon a spec szerint változatlan; a
- * „szinte mindig” 80% fölött, a „takarás”, ha a legutóbbi napokon a takarás volt a több segítség.
- */
-export function detailSentence(d) {
-  switch (d.state) {
-    case 'fluent': return 'Több napon is gyorsan, segítség nélkül olvasta.';
-    case 'improving': return 'Egyre gyorsabban és kevesebb segítséggel olvassa.';
-    case 'practice':
-      return `${durationText(d.sinceFirst)} olvassa, de még most is ${d.helpRecent > 0.8 ? 'szinte mindig' : 'gyakran'} kell hozzá ${d.coverMostly ? 'takarás' : 'segítség'}${d.slower ? ', és nem lett gyorsabb' : ''}.`;
-    case 'new': return 'Most ismerkedik vele, még kevés alkalommal olvasta.';
-    default: return 'Még nem olvasta.';
-  }
-}
-
-export const mayHelpText = (letter) => [
-  [`Ezek a ${TERM.nom}ek is nehezebben mennek, mindegyikben `], [`„${letter}”`, true],
-  [` van. Lehet, hogy nem a ${TERM.nom}, hanem ez a betű a nehéz.`],
+/** A tényeket mutató sor (8.4): „Eddig 9 alkalommal olvasta, 4 különböző napon. Először: okt. 24.” */
+export const facts = (d) => [
+  ['Eddig '], [`${d.exposures}`, true], [' alkalommal olvasta, '], [`${d.dayCount}`, true],
+  [` különböző napon. Először: ${dateLabel(d.firstDay)}`],
 ];
-export const cardNote = (letter) => `A legtöbbjükben „${letter}” van.`;
-export const footLists = (names) => (names.length ? `Szerepel: ${names.join(', ')}` : '');
-export const tileLabel = (item, state) => `${item}, ${STATE_NAME[state].toLowerCase()}`;
-export const dayAria = (day, helped) => `${dateLabel(day)} ${helped ? T.helped : T.unhelped}`;
+
+/** A pötty akadálymentes címkéje: „okt. 28., 4 alkalom, segítséggel”. */
+export const dayAria = (day, count, helped) => `${dateLabel(day)}, ${count} alkalom, ${helped ? 'segítséggel' : T.unhelped}`;

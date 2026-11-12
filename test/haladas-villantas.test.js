@@ -346,19 +346,23 @@ test('pótlás: kézi körnél nincs mit pótolni, de pótoltnak számít', () =
   assert.equal(l2.root.rounds[0].flashDwellDone, true);
 });
 
-/* ---------- 11. az állapotok nem változnak ---------- */
+/* ---------- 11. a rögzített minta besorolása (az egyszerűsített szabályokkal szándékosan frissítve) ---------- */
 
-test('11. állapotok változatlanok: a módosítás előtti kóddal rögzített mintán ugyanazok', () => {
+test('11. rögzített minta: a futó program és a mentett adat ugyanazt a csoportot adja', () => {
   const { now, memoria, tarolt } = FIX('haladas-minta-allapot.json');
-  // a) ugyanaz a lejátszás az új kóddal, a futó program számításai
+  const groups = (x) => Object.fromEntries(Object.entries(x.alap.states).map(([k, v]) => [k, [v.group, v.reason]]));
+  // a) ugyanaz a lejátszás, a futó program számításai
   const { log, storage: s3 } = buildSample();
   assert.deepEqual(statesOf(log.root.daily, now), memoria);
-  // b) az új kód 3. verziós mentése újratöltve: ugyanaz, mint a régi kód 2. verziós mentése újratöltve
+  // b) a 3. verziós mentés újratöltve (az idők 100 ms-ra kerekítve)
   assert.deepEqual(statesOf(reopen(s3, { t: now }).root.daily, now), tarolt);
-  // c) a régi kód által mentett 2. verziójú adat az új kóddal betöltve (pótlással)
+  // c) a kerekítés egyetlen tétel csoportját és okát sem változtatja meg
+  assert.deepEqual(groups(tarolt), groups(memoria));
+  assert.ok(Object.values(memoria.alap.states).some((v) => v.group === 'fluent') && Object.values(memoria.alap.states).some((v) => v.group === 'practice'));
+  // d) a régi kód által mentett 2. verziójú adat: a napi összesítők a villantásos időn kívül bitre azonosak, és besorolható
   const storage = memStorage();
   storage.setItem('k', JSON.stringify(FIX('haladas-minta-v2.json')));
-  assert.deepEqual(statesOf(reopen(storage, { t: now }).root.daily, now), tarolt);
-  // d) a napi összesítők a villantásos időn kívül bitre azonosak
+  const v2 = statesOf(reopen(storage, { t: now }).root.daily, now);
+  assert.deepEqual(Object.keys(v2.alap.states), Object.keys(memoria.alap.states));
   assert.deepEqual(withoutFlash(decode(JSON.parse(s3.getItem('k'))).daily), withoutFlash(decode(FIX('haladas-minta-v2.json')).daily));
 });

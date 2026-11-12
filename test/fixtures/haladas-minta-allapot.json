@@ -4,283 +4,311 @@
   "alap": {
    "practiceDays": 35,
    "itemsRead": 16,
+   "tempo": {
+    "betű": 2372,
+    "szó": 1303.25,
+    "szótag": 2456
+   },
    "states": {
     "b": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 29,
      "dayCount": 23,
-     "relative": 1,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.034148397976391,
+     "helpN": 5,
+     "helpK": 2
     },
     "d": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 40,
      "dayCount": 27,
-     "relative": 0.8874890125988866,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.4131534569983137,
+     "helpN": 5,
+     "helpK": 1
     },
     "dzsungel": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "help",
      "exposures": 37,
      "dayCount": 25,
-     "relative": 0.3107943873605126,
-     "helpRecent": 0.6,
-     "coverMostly": true
+     "ratio": 1.0792250143871092,
+     "helpN": 5,
+     "helpK": 3
     },
     "gyöngy": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 24,
      "dayCount": 18,
-     "relative": 1,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.038273615635179,
+     "helpN": 5,
+     "helpK": 1
     },
     "ház": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 34,
      "dayCount": 23,
-     "relative": 0.700815956482321,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 0.8929153094462541,
+     "helpN": 5,
+     "helpK": 0
     },
     "ke-res": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 32,
      "dayCount": 25,
-     "relative": 2.7406555491661875,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.9384231728371379,
+     "helpN": 5,
+     "helpK": 1
     },
     "ló": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 30,
      "dayCount": 21,
-     "relative": 1.5954035275253875,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 1.24185667752443,
+     "helpN": 5,
+     "helpK": 0
     },
     "ma": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 41,
      "dayCount": 26,
-     "relative": 0.3217769575533878,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.9938925081433225,
+     "helpN": 5,
+     "helpK": 1
     },
     "ma-ma": {
-     "state": "improving",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 42,
      "dayCount": 27,
-     "relative": 0.5434171127846837,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.6625743333972762,
+     "helpN": 5,
+     "helpK": 2
     },
     "mama": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 24,
-     "relative": 0.8105047748976808,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.4329560713600613,
+     "helpN": 5,
+     "helpK": 1
     },
     "mé-z": {
-     "state": "fluent",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 30,
      "dayCount": 22,
-     "relative": 1.3668817204301076,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 2.5879478827361564,
+     "helpN": 5,
+     "helpK": 0
     },
     "pi": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 34,
      "dayCount": 25,
-     "relative": 0.8408079424854502,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.5317589576547231,
+     "helpN": 5,
+     "helpK": 2
     },
     "pi-ló": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 25,
      "dayCount": 22,
-     "relative": 1.847266881028939,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 0.9898331095338576,
+     "helpN": 5,
+     "helpK": 2
     },
     "sí": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 21,
-     "relative": 2.3637339055793993,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.11685667752443,
+     "helpN": 5,
+     "helpK": 1
     },
     "só": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 31,
      "dayCount": 20,
-     "relative": 2.2647412755716005,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 1.5325732899022801,
+     "helpN": 5,
+     "helpK": 2
     },
     "Ő": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 30,
      "dayCount": 23,
-     "relative": 0.4990149495885966,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.7668634064080945,
+     "helpN": 5,
+     "helpK": 2
     }
-   },
-   "letters": {
-    "a": 0.20481927710843373,
-    "l": 0.22727272727272727,
-    "m": 0.2018348623853211,
-    "s": 0.08823529411764706,
-    "ó": 0.171875
    }
   },
   "napszabaly_nelkul": {
    "practiceDays": 35,
    "itemsRead": 16,
+   "tempo": {
+    "betű": 2372,
+    "szó": 1303.25,
+    "szótag": 2456
+   },
    "states": {
     "b": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 29,
      "dayCount": 23,
-     "relative": 1,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.034148397976391,
+     "helpN": 5,
+     "helpK": 2
     },
     "d": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 40,
      "dayCount": 27,
-     "relative": 0.8874890125988866,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.4131534569983137,
+     "helpN": 5,
+     "helpK": 1
     },
     "dzsungel": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "help",
      "exposures": 37,
      "dayCount": 25,
-     "relative": 0.3107943873605126,
-     "helpRecent": 0.6,
-     "coverMostly": true
+     "ratio": 1.0792250143871092,
+     "helpN": 5,
+     "helpK": 3
     },
     "gyöngy": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 24,
      "dayCount": 18,
-     "relative": 1,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.038273615635179,
+     "helpN": 5,
+     "helpK": 1
     },
     "ház": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 34,
      "dayCount": 23,
-     "relative": 0.700815956482321,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 0.8929153094462541,
+     "helpN": 5,
+     "helpK": 0
     },
     "ke-res": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 32,
      "dayCount": 25,
-     "relative": 2.7406555491661875,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.9384231728371379,
+     "helpN": 5,
+     "helpK": 1
     },
     "ló": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 30,
      "dayCount": 21,
-     "relative": 1.5954035275253875,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 1.24185667752443,
+     "helpN": 5,
+     "helpK": 0
     },
     "ma": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 41,
      "dayCount": 26,
-     "relative": 0.3217769575533878,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.9938925081433225,
+     "helpN": 5,
+     "helpK": 1
     },
     "ma-ma": {
-     "state": "improving",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 42,
      "dayCount": 27,
-     "relative": 0.5434171127846837,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.6625743333972762,
+     "helpN": 5,
+     "helpK": 2
     },
     "mama": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 24,
-     "relative": 0.8105047748976808,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.4329560713600613,
+     "helpN": 5,
+     "helpK": 1
     },
     "mé-z": {
-     "state": "fluent",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 30,
      "dayCount": 22,
-     "relative": 1.3668817204301076,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 2.5879478827361564,
+     "helpN": 5,
+     "helpK": 0
     },
     "pi": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 34,
      "dayCount": 25,
-     "relative": 0.8408079424854502,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.5317589576547231,
+     "helpN": 5,
+     "helpK": 2
     },
     "pi-ló": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 25,
      "dayCount": 22,
-     "relative": 1.847266881028939,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 0.9898331095338576,
+     "helpN": 5,
+     "helpK": 2
     },
     "sí": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 21,
-     "relative": 2.3637339055793993,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.11685667752443,
+     "helpN": 5,
+     "helpK": 1
     },
     "só": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 31,
      "dayCount": 20,
-     "relative": 2.2647412755716005,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 1.5325732899022801,
+     "helpN": 5,
+     "helpK": 2
     },
     "Ő": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 30,
      "dayCount": 23,
-     "relative": 0.4990149495885966,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.7668634064080945,
+     "helpN": 5,
+     "helpK": 2
     }
-   },
-   "letters": {
-    "a": 0.20481927710843373,
-    "l": 0.22727272727272727,
-    "m": 0.2018348623853211,
-    "s": 0.08823529411764706,
-    "ó": 0.171875
    }
   }
  },
@@ -288,283 +316,311 @@
   "alap": {
    "practiceDays": 35,
    "itemsRead": 16,
+   "tempo": {
+    "betű": 2350,
+    "szó": 1300,
+    "szótag": 2500
+   },
    "states": {
     "b": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 29,
      "dayCount": 23,
-     "relative": 1,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.0425531914893615,
+     "helpN": 5,
+     "helpK": 2
     },
     "d": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 40,
      "dayCount": 27,
-     "relative": 0.8823529411764706,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.446808510638298,
+     "helpN": 5,
+     "helpK": 1
     },
     "dzsungel": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "help",
      "exposures": 37,
      "dayCount": 25,
-     "relative": 0.3076923076923077,
-     "helpRecent": 0.6,
-     "coverMostly": true
+     "ratio": 1.0769230769230769,
+     "helpN": 5,
+     "helpK": 3
     },
     "gyöngy": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 24,
      "dayCount": 18,
-     "relative": 1,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.04,
+     "helpN": 5,
+     "helpK": 1
     },
     "ház": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 34,
      "dayCount": 23,
-     "relative": 0.6818181818181818,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 0.88,
+     "helpN": 5,
+     "helpK": 0
     },
     "ke-res": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 32,
      "dayCount": 25,
-     "relative": 2.823529411764706,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.9230769230769231,
+     "helpN": 5,
+     "helpK": 1
     },
     "ló": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 30,
      "dayCount": 21,
-     "relative": 1.5789473684210527,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 1.24,
+     "helpN": 5,
+     "helpK": 0
     },
     "ma": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 41,
      "dayCount": 26,
-     "relative": 0.3157894736842105,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.96,
+     "helpN": 5,
+     "helpK": 1
     },
     "ma-ma": {
-     "state": "improving",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 42,
      "dayCount": 27,
-     "relative": 0.5454545454545454,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.6538461538461537,
+     "helpN": 5,
+     "helpK": 2
     },
     "mama": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 24,
-     "relative": 0.8082191780821918,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.4230769230769231,
+     "helpN": 5,
+     "helpK": 1
     },
     "mé-z": {
-     "state": "fluent",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 30,
      "dayCount": 22,
-     "relative": 1.3617021276595744,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 2.56,
+     "helpN": 5,
+     "helpK": 0
     },
     "pi": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 34,
      "dayCount": 25,
-     "relative": 0.8620689655172413,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.52,
+     "helpN": 5,
+     "helpK": 2
     },
     "pi-ló": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 25,
      "dayCount": 22,
-     "relative": 1.9166666666666667,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 1,
+     "helpN": 5,
+     "helpK": 2
     },
     "sí": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 21,
-     "relative": 2.4444444444444446,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.08,
+     "helpN": 5,
+     "helpK": 1
     },
     "só": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 31,
      "dayCount": 20,
-     "relative": 2.235294117647059,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 1.52,
+     "helpN": 5,
+     "helpK": 2
     },
     "Ő": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 30,
      "dayCount": 23,
-     "relative": 0.5,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.7659574468085106,
+     "helpN": 5,
+     "helpK": 2
     }
-   },
-   "letters": {
-    "a": 0.20481927710843373,
-    "l": 0.22727272727272727,
-    "m": 0.2018348623853211,
-    "s": 0.08823529411764706,
-    "ó": 0.171875
    }
   },
   "napszabaly_nelkul": {
    "practiceDays": 35,
    "itemsRead": 16,
+   "tempo": {
+    "betű": 2350,
+    "szó": 1300,
+    "szótag": 2500
+   },
    "states": {
     "b": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 29,
      "dayCount": 23,
-     "relative": 1,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.0425531914893615,
+     "helpN": 5,
+     "helpK": 2
     },
     "d": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 40,
      "dayCount": 27,
-     "relative": 0.8823529411764706,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.446808510638298,
+     "helpN": 5,
+     "helpK": 1
     },
     "dzsungel": {
-     "state": "practice",
+     "group": "practice",
+     "reason": "help",
      "exposures": 37,
      "dayCount": 25,
-     "relative": 0.3076923076923077,
-     "helpRecent": 0.6,
-     "coverMostly": true
+     "ratio": 1.0769230769230769,
+     "helpN": 5,
+     "helpK": 3
     },
     "gyöngy": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 24,
      "dayCount": 18,
-     "relative": 1,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.04,
+     "helpN": 5,
+     "helpK": 1
     },
     "ház": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 34,
      "dayCount": 23,
-     "relative": 0.6818181818181818,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 0.88,
+     "helpN": 5,
+     "helpK": 0
     },
     "ke-res": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 32,
      "dayCount": 25,
-     "relative": 2.823529411764706,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.9230769230769231,
+     "helpN": 5,
+     "helpK": 1
     },
     "ló": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 30,
      "dayCount": 21,
-     "relative": 1.5789473684210527,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 1.24,
+     "helpN": 5,
+     "helpK": 0
     },
     "ma": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 41,
      "dayCount": 26,
-     "relative": 0.3157894736842105,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 0.96,
+     "helpN": 5,
+     "helpK": 1
     },
     "ma-ma": {
-     "state": "improving",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 42,
      "dayCount": 27,
-     "relative": 0.5454545454545454,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 2.6538461538461537,
+     "helpN": 5,
+     "helpK": 2
     },
     "mama": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 24,
-     "relative": 0.8082191780821918,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.4230769230769231,
+     "helpN": 5,
+     "helpK": 1
     },
     "mé-z": {
-     "state": "fluent",
+     "group": "practice",
+     "reason": "slow",
      "exposures": 30,
      "dayCount": 22,
-     "relative": 1.3617021276595744,
-     "helpRecent": 0,
-     "coverMostly": false
+     "ratio": 2.56,
+     "helpN": 5,
+     "helpK": 0
     },
     "pi": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 34,
      "dayCount": 25,
-     "relative": 0.8620689655172413,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.52,
+     "helpN": 5,
+     "helpK": 2
     },
     "pi-ló": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 25,
      "dayCount": 22,
-     "relative": 1.9166666666666667,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 1,
+     "helpN": 5,
+     "helpK": 2
     },
     "sí": {
-     "state": "fluent",
+     "group": "fluent",
+     "reason": null,
      "exposures": 28,
      "dayCount": 21,
-     "relative": 2.4444444444444446,
-     "helpRecent": 0.2,
-     "coverMostly": true
+     "ratio": 1.08,
+     "helpN": 5,
+     "helpK": 1
     },
     "só": {
-     "state": "practice",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 31,
      "dayCount": 20,
-     "relative": 2.235294117647059,
-     "helpRecent": 0.4,
-     "coverMostly": true
+     "ratio": 1.52,
+     "helpN": 5,
+     "helpK": 2
     },
     "Ő": {
-     "state": "improving",
+     "group": "unsure",
+     "reason": "help",
      "exposures": 30,
      "dayCount": 23,
-     "relative": 0.5,
-     "helpRecent": 0.4,
-     "coverMostly": false
+     "ratio": 0.7659574468085106,
+     "helpN": 5,
+     "helpK": 2
     }
-   },
-   "letters": {
-    "a": 0.20481927710843373,
-    "l": 0.22727272727272727,
-    "m": 0.2018348623853211,
-    "s": 0.08823529411764706,
-    "ó": 0.171875
    }
   }
  }

@@ -1,4 +1,4 @@
-// A Haladás nézet küszöbeinek ellenőrzése kiadáskor (docs/haladas-specifikacio.md, 7.1).
+// A Haladás nézet küszöbeinek ellenőrzése kiadáskor (docs/haladas-specifikacio.md, 7.8).
 //
 // Használat: node check-haladas.mjs <a kiadott fa gyökere>
 // A <gyökér>/haladas.json-t a fa saját js/core/haladas-config.js-ével ellenőrzi. Hiányzó, nem olvasható
