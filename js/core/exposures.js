@@ -13,6 +13,8 @@
 //   egyéb ← (szünetből is)                     valódi újraolvasás: segítség azon a tételen, ahová visszalép;
 //                                               az újraolvasás ideje nem számít bele az olvasási időbe
 //   olvasási idő > max_olvasasi_ido_ms         a megjelenés számít, az idő nem
+// Villantásos olvasási idő (flashDwellMs): villantásos körben ugyanez az idő, ha a tétel utolsó, nem
+// újraolvasó látogatása gombnyomásos továbblépéssel ért véget (nem a villantás járt le, nem kilépés).
 // Látható idő: az oldal elrejtése (hidden → visible) nem olvasási idő; a megállítás alatt eltelt idő igen.
 
 import { itemKey } from './items.js';
@@ -85,7 +87,7 @@ export function roundExposures(round, events, szures) {
   const visits = visitsOf(events);
   const by = new Map();             // i → gyűjtő
   const acc = (v) => {
-    if (!by.has(v.i)) by.set(v.i, { i: v.i, item: v.item, t: v.start, seenMs: 0, chain: 0, dwell: null, covers: 0, pauses: 0, prevs: 0 });
+    if (!by.has(v.i)) by.set(v.i, { i: v.i, item: v.item, t: v.start, seenMs: 0, chain: 0, dwell: null, flashDwell: null, covers: 0, pauses: 0, prevs: 0 });
     return by.get(v.i);
   };
   let corrections = 0;
@@ -103,6 +105,8 @@ export function roundExposures(round, events, szures) {
     if (me === 'reread') a.prevs++;
     else a.chain = me === 'continue' ? a.chain + v.ms : v.ms;
     if (me !== 'reread' && v.leave === 'next' && !v.auto) a.dwell = a.chain;
+    // villantásos idő: csak ha az utolsó nem újraolvasó látogatás gombnyomással ért véget
+    if (me !== 'reread') a.flashDwell = v.leave === 'next' && !v.auto ? a.chain : null;
     kind = v.leave === 'prev' ? 'reread' : 'normal';
   }
 
@@ -112,9 +116,10 @@ export function roundExposures(round, events, szures) {
     .sort((x, y) => x.t - y.t)
     .map((a) => {
       const dwellMs = manual && a.dwell != null && a.dwell <= szures.max_olvasasi_ido_ms ? a.dwell : null;
+      const flashDwellMs = !manual && a.flashDwell != null && a.flashDwell <= szures.max_olvasasi_ido_ms ? a.flashDwell : null;
       return {
         round: round.id, i: a.i, item: itemKey(a.item), t: a.t, day: dayOf(a.t), flashMs: round.flashMs, manual,
-        dwellMs, covers: a.covers, pauses: a.pauses, prevs: a.prevs, supported: a.covers + a.pauses + a.prevs > 0,
+        dwellMs, flashDwellMs, covers: a.covers, pauses: a.pauses, prevs: a.prevs, supported: a.covers + a.pauses + a.prevs > 0,
       };
     });
   const last = events.at(-1);
@@ -123,6 +128,9 @@ export function roundExposures(round, events, szures) {
 }
 
 /* ---------- napi összesítők ---------- */
+
+/** Villantásos olvasási idők egy összesítőből; régi (mező nélküli) adatnál üres. */
+const flashOf = (d) => d.flashDwell || [];
 
 /**
  * Két összesítő ugyanarra a tétel × napra (a meglévő és egy újabb kör megjelenései) egyben.
@@ -135,6 +143,7 @@ export function mergeDaily(a, b) {
     ...a,
     exposures: add('exposures'), manualExposures: add('manualExposures'),
     dwellMs: dwell, medianDwellMs: median(dwell),
+    flashDwell: keepEnds([...flashOf(a), ...flashOf(b)]),
     covers: add('covers'), pauses: add('pauses'), prevs: add('prevs'),
     supportedExposures: add('supportedExposures'), unsupportedFastFlash: add('unsupportedFastFlash'),
     help: keepEnds([...a.help, ...b.help]).join(''),
@@ -151,7 +160,8 @@ export function keepEnds(xs, n = 20) {
  * @param {object[]} exposures  bármennyi kör megjelenései
  * @param {{ deviceId: string, child: string, fastFlashMs: number }} o
  * @returns {object[]} a 4.2 szerinti rekordok, `help` mezővel: megjelenésenként '1' (segítséggel) vagy '0',
- *   időrendben (legfeljebb 20: az első és az utolsó 10)
+ *   időrendben (legfeljebb 20: az első és az utolsó 10); `flashDwell`: a villantásos olvasási idők a
+ *   villantás hosszával ({ ms, flashMs }), időrendben, ugyanígy legfeljebb 20
  */
 export function dailyRecords(exposures, { deviceId, child, fastFlashMs }) {
   const groups = new Map();
@@ -173,6 +183,12 @@ export function dailyRecords(exposures, { deviceId, child, fastFlashMs }) {
       supportedExposures: xs.filter((e) => e.supported).length,
       unsupportedFastFlash: xs.filter((e) => !e.supported && !e.manual && e.flashMs <= fastFlashMs).length,
       help: keepEnds(xs.map((e) => (e.supported ? '1' : '0'))).join(''),
+      flashDwell: flashDwellOf(xs),
     };
   });
+}
+
+/** A megjelenések villantásos olvasási idői a villantás hosszával, időrendben (`keepEnds`). */
+export function flashDwellOf(exposures) {
+  return keepEnds(exposures.filter((e) => e.flashDwellMs != null).map((e) => ({ ms: e.flashDwellMs, flashMs: e.flashMs })));
 }
