@@ -2,9 +2,9 @@
 // kézi és villantásos körökkel, takarással, megállítással, mellényomással, elrejtett oldallal, kilépéssel.
 // Ugyanaz a mag mindig ugyanazt az eseménysort adja, a napló kódjától függetlenül (csak a reducer számít).
 //
-// Használat: test/haladas-allapot-valtozatlan.test.js; a rögzített kimenet
-// (haladas-minta-v2.json, haladas-minta-allapot.json) a villantásos olvasási idő bevezetése előtti
-// kóddal készült (node test/fixtures/haladas-minta.mjs --write).
+// Használat: test/haladas-villantas.test.js. A haladas-minta-v2.json a villantásos olvasási idő bevezetése
+// előtti kóddal mentett adat (nem írjuk felül). A haladas-minta-allapot.json a várt besorolás az egyszerűsített
+// szabályokkal (node test/fixtures/haladas-minta.mjs --write-allapot).
 import { startRound, step } from '../../js/core/round.js';
 import { createProgressLog } from '../../js/data/progress-log.js';
 import { analyze } from '../../js/core/mastery.js';
@@ -91,7 +91,7 @@ export function buildSample({ seed = 20261112, days = DAYS, config = DEFAULTS } 
   return { log, storage, clock, now: START + days * DAY };
 }
 
-/** Az állapotszámítás összehasonlítható kivonata (tételállapotok és betűarányok). */
+/** A besorolás összehasonlítható kivonata (tételenként csoport, ok és a számításhoz használt számok). */
 export function statesOf(daily, now) {
   const out = {};
   for (const [name, cfg] of [['alap', DEFAULTS], ['napszabaly_nelkul', resolve(null, { skipDayRules: true })]]) {
@@ -99,22 +99,19 @@ export function statesOf(daily, now) {
     out[name] = {
       practiceDays: an.practiceDays,
       itemsRead: an.itemsRead,
+      tempo: Object.fromEntries([...an.tempo].sort(([a], [b]) => (a < b ? -1 : 1))),
       states: Object.fromEntries([...an.states].sort(([a], [b]) => (a < b ? -1 : 1))
-        .map(([k, v]) => [k, { state: v.state, exposures: v.exposures, dayCount: v.dayCount, relative: v.relative, helpRecent: v.helpRecent, coverMostly: v.coverMostly }])),
-      letters: Object.fromEntries([...an.letters.rate].sort(([a], [b]) => (a < b ? -1 : 1))),
+        .map(([k, v]) => [k, { group: v.group, reason: v.reason, exposures: v.exposures, dayCount: v.dayCount, ratio: v.ratio, helpN: v.helpN, helpK: v.helpK }])),
     };
   }
   return out;
 }
 
-if (process.argv.includes('--write')) {
+if (process.argv.includes('--write-allapot')) {
   const { writeFileSync } = await import('node:fs');
   const { log, storage, now } = buildSample();
-  const dir = new URL('.', import.meta.url);
-  writeFileSync(new URL('haladas-minta-v2.json', dir), storage.getItem('k'));
   const { decode } = await import('../../js/data/progress-codec.js');
-  // memoria: a futó program számításai; tarolt: a mentett (100 ms-ra kerekített) adatból újratöltve
   const out = { now, memoria: statesOf(log.root.daily, now), tarolt: statesOf(decode(JSON.parse(storage.getItem('k'))).daily, now) };
-  writeFileSync(new URL('haladas-minta-allapot.json', dir), JSON.stringify(out, null, 1) + '\n');
-  console.log('kész:', log.root.rounds.length, 'kör,', log.root.daily.length, 'napi összesítő');
+  writeFileSync(new URL('haladas-minta-allapot.json', new URL('.', import.meta.url)), JSON.stringify(out, null, 1) + '\n');
+  console.log('kész: haladas-minta-allapot.json');
 }
