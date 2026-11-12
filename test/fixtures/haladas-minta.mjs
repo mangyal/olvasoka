@@ -112,6 +112,9 @@ if (process.argv.includes('--write')) {
   const { log, storage, now } = buildSample();
   const dir = new URL('.', import.meta.url);
   writeFileSync(new URL('haladas-minta-v2.json', dir), storage.getItem('k'));
-  writeFileSync(new URL('haladas-minta-allapot.json', dir), JSON.stringify({ now, ...statesOf(log.root.daily, now) }, null, 1) + '\n');
+  const { decode } = await import('../../js/data/progress-codec.js');
+  // memoria: a futó program számításai; tarolt: a mentett (100 ms-ra kerekített) adatból újratöltve
+  const out = { now, memoria: statesOf(log.root.daily, now), tarolt: statesOf(decode(JSON.parse(storage.getItem('k'))).daily, now) };
+  writeFileSync(new URL('haladas-minta-allapot.json', dir), JSON.stringify(out, null, 1) + '\n');
   console.log('kész:', log.root.rounds.length, 'kör,', log.root.daily.length, 'napi összesítő');
 }
