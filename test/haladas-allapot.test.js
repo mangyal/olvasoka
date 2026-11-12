@@ -173,8 +173,60 @@ test('napszabály-kapcsoló: min_nap = 0 mellett 1 napos adat is besorolódik; a
   assert.deepEqual(pick(cls('gyöngy', hard, null, SKIP)), { group: 'practice', reason: 'help' });
   assert.equal(cls('ma', days('ma', [[0, { help: '000' }]]), null, SKIP).group, 'fluent');
   assert.equal(cls('ma', days('ma', [[0, { help: '0' }]]), null, SKIP).group, 'lowdata', '3 alkalom nélkül nem „Megy”');
-  assert.deepEqual(pick(cls('ma', days('ma', [[0, { help: '01' }]]), null, SKIP)), { group: 'unsure', reason: 'help' });
+  assert.equal(cls('ma', days('ma', [[0, { help: '01' }]]), null, SKIP).group, 'lowdata', '2 alkalom: kevés adat, segítséggel sem sorolódik be hamarabb');
+  assert.deepEqual(pick(cls('ma', days('ma', [[0, { help: '001' }]]), null, SKIP)), { group: 'unsure', reason: 'help' });
   assert.equal(cls('ma', [], null, SKIP).group, 'lowdata');
+});
+
+test('Kevés adat kapu: kevés nap vagy kevés alkalom; a hiányzó feltétel (need)', () => {
+  const need = (recs, cfg = CFG) => { const s = cls('ma', recs, null, cfg); return [s.group, s.need]; };
+  assert.deepEqual(need([]), ['lowdata', 'days']);
+  assert.deepEqual(need(days('ma', [[2, { help: '000' }], [1, { help: '000' }]])), ['lowdata', 'days']);
+  assert.deepEqual(need([], SKIP), ['lowdata', 'count'], 'kapcsolóval a nem olvasott is alkalomhiány');
+  assert.deepEqual(need(days('ma', [[0, { help: '00' }]]), SKIP), ['lowdata', 'count']);
+  const many = resolve({ ...structuredClone(CFG), allapot: { ...A, min_alkalom: 5 } });
+  assert.deepEqual(need(days('ma', [[3, { help: '0' }], [2, { help: '0' }], [1, { help: '0' }]]), many), ['lowdata', 'count'], '3 nap, de csak 3 alkalom');
+  assert.deepEqual(need(days('ma', [[3, { help: '00' }], [2, { help: '00' }], [1, { help: '0' }]]), many), ['fluent', null]);
+});
+
+test('ugyanaz a mérce segítséggel és anélkül: a segítség nem sorol be hamarabb', () => {
+  for (const cfg of [CFG, SKIP]) {
+    for (let n = 1; n < A.min_alkalom; n++) {
+      for (const help of ['0'.repeat(n), '1'.repeat(n), '0'.repeat(n - 1) + '1']) {
+        assert.equal(cls('ma', days('ma', [[0, { help }]]), null, cfg).group, 'lowdata', `${help} (min_nap=${cfg.allapot.min_nap})`);
+      }
+    }
+  }
+});
+
+test('Még bizonytalan csak akkor, ha már olvasta segítség nélkül is (véletlen sorokkal, kapcsolóval és anélkül)', () => {
+  let seed = 11;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed / 2 ** 31; };
+  const loose = resolve({ ...structuredClone(CFG), allapot: { ...A, gyakorol_segitseg_db: 4 } });
+  for (const cfg of [CFG, SKIP, loose, resolve(loose, { skipDayRules: true })]) {
+    for (let k = 0; k < 1500; k++) {
+      const n = 1 + Math.floor(rnd() * 5);
+      const list = Array.from({ length: n }, (_, d) => [n - d, { help: Array.from({ length: 1 + Math.floor(rnd() * 3) }, () => (rnd() < 0.5 ? '1' : '0')).join('') }]);
+      const s = cls('ma', days('ma', list), null, cfg);
+      const help = list.map(([, o]) => o.help).join('');
+      if (s.group === 'unsure') assert.ok(help.includes('0'), `${help} → unsure`);
+      if (s.group !== 'lowdata') assert.ok(help.length >= cfg.allapot.min_alkalom && s.dayCount >= cfg.allapot.min_nap, `${help} → ${s.group}`);
+    }
+  }
+  assert.deepEqual(pick(cls('ma', days('ma', [[0, { help: '111' }]]), null, resolve(loose, { skipDayRules: true }))), { group: 'practice', reason: 'help' }, 'mindig segítséggel: gyakorolni kell, akkor is, ha a segítség-küszöb nem teljesül');
+});
+
+test('a képernyőképek esetei (dev, napszabály-kapcsolóval)', () => {
+  const g = (item, list) => cls(item, days(item, list), null, SKIP).group;
+  assert.equal(g('áf', [[0, { help: '0' }]]), 'lowdata');
+  assert.equal(g('pa-pa', [[0, { help: '0' }]]), 'lowdata');
+  assert.equal(g('cu-ki', [[0, { help: '00' }]]), 'lowdata');
+  assert.equal(g('ke-le', [[0, { help: '1' }]]), 'lowdata', 'korábban: Még bizonytalan, segítség nélküli olvasás nélkül');
+  assert.equal(g('úl', [[1, { help: '1' }], [0, { help: '0' }]]), 'lowdata', '2 alkalom');
+  assert.equal(g('pe-le', [[1, { help: '0' }], [0, { help: '00' }]]), 'fluent');
+  const kele = cls('ke-le', days('ke-le', [[0, { help: '1' }]]), null, SKIP);
+  assert.equal(TX.reasonSentence(kele, SKIP.allapot), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
+  assert.doesNotMatch(TX.cardText('lowdata', SKIP.allapot), /\b0\b/, 'soha nem „legalább 0”');
 });
 
 test('a haladas.json értéke hat: más küszöb más csoportot ad ugyanarra az adatra', () => {
@@ -280,7 +332,12 @@ test('kártyák: a szövegek a spec szerint, a számok a konfigurációból', ()
   const a = { ...A, megy_utolso_n: 4, gyakorol_utolso_n: 6, gyakorol_segitseg_db: 5, min_nap: 2 };
   assert.match(TX.cardText('fluent', a), /utóbbi 4 alkalommal/);
   assert.match(TX.cardText('practice', a), /utóbbi 6 alkalomból legalább 5-ször/);
-  assert.match(TX.cardText('lowdata', a), /legalább 2 különböző/);
+  assert.match(TX.cardText('lowdata', a), /legalább 2 különböző napon és összesen legalább 3-szor olvasta\./, 'a min_alkalom több, mint a min_nap');
+  assert.equal(TX.cardText('lowdata', SKIP.allapot), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
+  assert.equal(TX.lowdataText(A, 'count'), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
+  assert.equal(TX.lowdataText(A, 'days'), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
+  assert.equal(TX.partRead(A), 'Olvasta, még kevés napon');
+  assert.equal(TX.partRead(SKIP.allapot), 'Olvasta, még kevésszer');
   assert.equal(TX.infoText(3), 'Az első tételek legkorábban a 3. napon kerülnek csoportba.');
   assert.equal(TX.groupTitle('fluent', 60), 'Megy: 60 tétel');
   assert.equal(TX.showAllAria('fluent', 60), 'Megy: mind a 60 tétel');
@@ -295,6 +352,7 @@ test('fő mondat mind a 7 esetben (a design szövegkatalógusa)', () => {
   assert.equal(s('practice', 'help', 'szó', 5, 3), 'Az utóbbi 5 alkalomból 3-szor kellett segítség.');
   assert.equal(s('practice', 'slow', 'szótag'), 'Lassabban olvasta, mint a többi szótagot.');
   assert.equal(s('practice', 'slow', 'betű'), 'Lassabban olvasta, mint a többi betűt.');
+  assert.equal(TX.reasonSentence({ group: 'lowdata', reason: null, need: 'days', type: 'szó' }, A), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
   assert.equal(s('lowdata', null, 'szótag'), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
 });
 

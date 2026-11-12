@@ -855,13 +855,36 @@ test('napszabály-kapcsoló nélkül: egy gyakorlás után is megnyílik, minden
   await c.close();
 });
 
-test('DEV_PROGRESS_SKIP_DAY_RULES=true: egyetlen gyakorlás után is besorol; a segítséggel olvasottak „Még bizonytalan”', async () => {
+test('DEV_PROGRESS_SKIP_DAY_RULES=true: napvárás nélkül, de csak elég alkalom után sorol be; segítséggel sem hamarabb', async () => {
   const { c, p } = await progressPage({ skip: true });
-  const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
-  await p.locator('#progressBtn').click();
-  await p.locator('#haladas .hl-cards').waitFor();
-  assert.equal(await p.$('.hl-info'), null, 'van csoportba sorolt tétel');
-  const unsure = await p.$$eval('.hl-card[data-group=unsure] .hl-tile', (t) => t.map((x) => x.textContent).sort());
-  assert.deepEqual(unsure, [...new Set(seen.slice(0, 3))].sort(), 'a megállított tételek');
+  const tiles = (g) => p.$$eval(`.hl-card[data-group=${g}] .hl-tile`, (t) => t.map((x) => x.textContent));
+  const open = async () => { await p.locator('#progressBtn').click(); await p.locator('#haladas .hl-cards').waitFor(); };
+  const back = async () => { await p.keyboard.press('Escape'); await p.locator('#admin').waitFor({ state: 'visible' }); };
+
+  // egy kör után (minden tétel egyszer): még semmi nincs csoportban, a segítséggel olvasott sem
+  const reads = new Map();
+  const round = async () => {
+    const seen = await readRound(p, { count: 6, pauseOn: [0, 1, 2] });
+    seen.forEach((it, k) => reads.set(it, (reads.get(it) || '') + (k <= 2 ? '1' : '0')));
+  };
+  await round();
+  await open();
+  assert.equal(await p.$('.hl-info'), null, 'kapcsolóval nincs információs doboz');
+  assert.ok([...reads.values()].every((h) => h.length === 1), 'a Szótagok lista 6 tétele egyszer-egyszer');
+  assert.deepEqual([...await tiles('fluent'), ...await tiles('unsure'), ...await tiles('practice')], [], 'kevés alkalom: minden Kevés adat');
+  assert.equal(await p.textContent('.hl-card[data-group=lowdata] .hl-means'),
+    'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.', 'nem „legalább 0 napon”');
+  await back();
+
+  // még két kör: amit legalább 3-szor olvasott, besorolódik; a Még bizonytalan mind olvasta segítség nélkül is
+  await round(); await round();
+  await open();
+  const grouped = { fluent: await tiles('fluent'), unsure: await tiles('unsure'), practice: await tiles('practice') };
+  for (const [g, items] of Object.entries(grouped)) {
+    for (const it of items) assert.ok((reads.get(it) || '').length >= 3, `${it} (${reads.get(it)}) → ${g}: kevés alkalom`);
+  }
+  for (const it of grouped.unsure) assert.ok(reads.get(it).includes('0'), `${it} (${reads.get(it)}) → unsure, de mindig segítséggel`);
+  const enough = [...reads].filter(([, h]) => h.length >= 3).map(([it]) => it);
+  assert.deepEqual(Object.values(grouped).flat().sort(), [...enough].sort(), 'pontosan a legalább 3-szor olvasottak sorolódtak be');
   await c.close();
 });
