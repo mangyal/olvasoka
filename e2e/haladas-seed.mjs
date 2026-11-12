@@ -1,5 +1,10 @@
 // Haladás: kitalált, de a valós formátumú napló a böngészős tesztekhez (e2e/layout.mjs, e2e/app.mjs).
 // A napi összesítők a mai naphoz képest készülnek, így a tesztek bármelyik napon ugyanazt mutatják.
+// Mért idő nincs bennük, így nincs szokásos tempó: a csoportot csak a napok és a segítség dönti el
+// (az időfeltételt a unit tesztek fedik le).
+
+import { readFileSync } from 'node:fs';
+import { parseListsText } from '../js/core/lists.js';
 
 /** k nappal ezelőtti helyi nap (YYYY-MM-DD). */
 export function ago(k, now = Date.now()) {
@@ -8,35 +13,36 @@ export function ago(k, now = Date.now()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function rec(item, day, help, dwell = []) {
+function rec(item, day, help) {
   const sup = [...help].filter((c) => c === '1').length;
   return {
     id: `r-seed|default|${item}|${day}`, child: 'default', item, day,
-    exposures: help.length, manualExposures: dwell.length, dwellMs: dwell, medianDwellMs: null,
-    covers: sup, pauses: 0, prevs: 0, supportedExposures: sup, unsupportedFastFlash: 0, help,
+    exposures: help.length, manualExposures: 0, dwellMs: [], medianDwellMs: null,
+    covers: sup, pauses: 0, prevs: 0, supportedExposures: sup, unsupportedFastFlash: 0, help, flashDwell: [],
   };
 }
 
-/** Már megy: 3 nap, gyorsuló, segítség nélkül. */
-const fluent = (item, now) => [rec(item, ago(6, now), '0', [3000]), rec(item, ago(4, now), '0', [3000]), rec(item, ago(2, now), '0', [3000]),
-  rec(item, ago(1, now), '00', [1500, 1500]), rec(item, ago(0, now), '0', [1500])];
-/** Egyre jobban megy: kezdetben segítséggel, mostanra kevesebbel. */
-const improving = (item, now) => [rec(item, ago(5, now), '111'), rec(item, ago(3, now), '1'), rec(item, ago(1, now), '100')];
-/** Gyakoroljuk még: 18 napja, szinte mindig segítséggel, nem gyorsult. */
-const practice = (item, now) => [18, 14, 11, 8, 5, 2, 0].map((k) => rec(item, ago(k, now), '1', [4000]));
+/** Csoportonként a napok és a segítségsor: [k nappal ezelőtt, segítség]. */
+const PLAN = {
+  fluent: [[6, '01'], [4, '00'], [2, '0'], [0, '0']],          // 6 alkalom, 4 napon, az utolsó 3 segítség nélkül
+  unsure: [[5, '0'], [3, '10'], [1, '0']],                      // az utolsó 3-ban volt segítség, 5-ből 1
+  practice: [[18, '1'], [14, '1'], [11, '0'], [8, '1'], [5, '1'], [2, '1'], [0, '1']], // 5-ből 5
+  low: [[3, '00'], [1, '0']],                                   // 2 napon olvasta
+  seenOnce: [[0, '0']],
+};
 
 /**
  * Tárolt Haladás-gyökér.
- * @param {{ fluent?: string[], improving?: string[], practice?: string[], seenOnce?: string[], days?: number }} o
- *   days: ha meg van adva, csak ennyi különböző napon volt gyakorlás (üres állapothoz)
+ * @param {{ fluent?: string[], unsure?: string[], practice?: string[], low?: string[], seenOnce?: string[] }} o
  */
 export function seedRoot(o, now = Date.now()) {
-  let daily = [
-    ...(o.fluent || []).flatMap((x) => fluent(x, now)),
-    ...(o.improving || []).flatMap((x) => improving(x, now)),
-    ...(o.practice || []).flatMap((x) => practice(x, now)),
-    ...(o.seenOnce || []).map((x) => rec(x, ago(0, now), '0')),
-  ];
-  if (o.days != null) daily = daily.filter((d) => d.day > ago(o.days, now));
+  const daily = Object.entries(PLAN).flatMap(([g, plan]) => (o[g] || []).flatMap((x) => plan.map(([k, help]) => rec(x, ago(k, now), help))));
   return { v: 1, deviceId: 'r-seed', child: 'default', events: [], daily, rounds: [], lists: {} };
+}
+
+/** A repó lists.txt-jének listái és egyedi tételei (a localhoston ezek töltődnek be). */
+export function repoLists() {
+  const { lists } = parseListsText(readFileSync(new URL('../lists.txt', import.meta.url), 'utf8'));
+  const items = [...new Set(lists.flatMap((l) => l.items.map((x) => x.normalize('NFC').trim())))];
+  return { lists, items };
 }

@@ -77,18 +77,27 @@ const roundListNames = () => (app.settings.source === 'all' ? app.lists.map((l) 
 
 const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); }, progress });
 
-/* ---------- Haladás nézet (8.1): #haladas, #haladas/tetel/<tételkulcs> ---------- */
+/* ---------- Haladás nézet (8.1): #haladas, #haladas/csoport/<csoport>, #haladas/tetel/<tételkulcs> ---------- */
 // A hash miatt a rendszer vissza gombja és gesztusa is működik. Gyakorlás közben nem érhető el.
+// A tétel részleteinél a history.state `from` mezője mondja meg, honnan jött (újratöltés után is megmarad).
+const GROUP_IDS = ['fluent', 'unsure', 'practice', 'lowdata'];
 function parseRoute(hash) {
   if (hash === '#haladas') return { view: 'overview' };
+  const g = /^#haladas\/csoport\/(.*)$/.exec(hash);
+  if (g) return GROUP_IDS.includes(g[1]) ? { view: 'group', group: g[1] } : { view: 'overview', redirect: '#haladas' };
   const m = /^#haladas\/tetel\/(.+)$/.exec(hash);
-  if (m) { try { return { view: 'item', item: decodeURIComponent(m[1]) }; } catch { return { view: 'overview' }; } }
+  if (m) {
+    const from = typeof history.state?.from === 'string' && history.state.from.startsWith('#haladas/csoport/') ? history.state.from : '#haladas';
+    try { return { view: 'item', item: decodeURIComponent(m[1]), from }; } catch { return { view: 'overview', redirect: '#haladas' }; }
+  }
   return null;
 }
 const trail = [];                 // a munkamenetben bejárt címek: a „Vissza” a böngésző előzményét használja, ha lehet
 const plainUrl = () => location.pathname + location.search;
+let goingBack = false;            // a „Vissza” link vagy az Esc előzmény nélkül (újratöltés után) is visszalépés
 function back(target) {
   if (trail.length > 1 && trail.at(-2) === target) { history.back(); return; }
+  goingBack = true;
   history.replaceState(null, '', target || plainUrl());
   route();
 }
@@ -98,15 +107,19 @@ const progressView = createProgressView(el.haladas, {
     lists: app.lists, cfg: progress.config, now: Date.now(), available: progress.available,
   }),
   back,
+  open(hash, from) { history.pushState({ from }, '', hash); route(); },
 });
 function route() {
   const hash = location.hash;
-  if (trail.at(-2) === hash) trail.pop(); else if (trail.at(-1) !== hash) trail.push(hash);
+  let restore = goingBack;
+  goingBack = false;
+  if (trail.at(-2) === hash) { trail.pop(); restore = true; } else if (trail.at(-1) !== hash) trail.push(hash);
   const r = parseRoute(hash);
   if (r && practice.active) { history.replaceState(null, '', plainUrl()); trail.pop(); return; }
+  if (r?.redirect) { history.replaceState(null, '', r.redirect); trail.pop(); route(); return; }
   if (r) {
     el.admin.hidden = true; el.haladas.hidden = false;
-    progressView.show(r);
+    progressView.show(r, { restore });
   } else if (!el.haladas.hidden) {
     el.haladas.hidden = true; el.admin.hidden = false;
     admin.render();
@@ -205,7 +218,7 @@ async function loadPairs() {
 }
 
 /* ---------- Haladás küszöbei (haladas.json) ---------- */
-// Hiányzó vagy hibás fájlnál a beépített alapértékekkel fut, és a konzolra figyelmeztet (7.1).
+// Hiányzó vagy hibás fájlnál a beépített alapértékekkel fut, és a konzolra figyelmeztet (7.8).
 async function loadProgressConfig() {
   try {
     progress.setConfig(resolveProgress(await fetchProgressConfig(), { skipDayRules: ENV.skipDayRules }));
