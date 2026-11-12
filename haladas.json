@@ -10,8 +10,9 @@
     "gyors_villantas_ms": 5000
   },
   "allapot": {
-    "_leiras": "Csoportok (7.). A min_nap kulcsot a napszabály-kapcsoló nullázza; a tempo_ablak_nap ablak, nem nullázódik.",
+    "_leiras": "Csoportok (7.). Besorolás csak legalább min_nap különböző napon és összesen legalább min_alkalom olvasás után. A min_nap kulcsot a napszabály-kapcsoló nullázza; a min_alkalom és a tempo_ablak_nap nem nullázódik.",
     "min_nap": 3,
+    "min_alkalom": 3,
     "megy_utolso_n": 3,
     "megy_ido_szorzo": 1.5,
     "gyakorol_utolso_n": 5,

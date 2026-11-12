@@ -3,7 +3,8 @@
 //
 // Csoportok: 'fluent' (Megy), 'unsure' (Még bizonytalan), 'practice' (Még gyakorolni kell),
 // 'lowdata' (Kevés adat). Ok (7.6): 'help' vagy 'slow' (a Még bizonytalan és a Még gyakorolni kell
-// csoportban), egyébként null.
+// csoportban), egyébként null. Kevés adatnál a hiányzó feltétel (`need`): 'days' (kevés nap) vagy 'count'
+// (kevés alkalom), egyébként null.
 
 import { typeOf } from './grid.js';
 import { itemKey } from './items.js';
@@ -107,10 +108,12 @@ export function classify(item, records, { cfg, tempo = null }) {
     firstDay: h.days[0]?.day ?? null, lastDay: h.days.at(-1)?.day ?? null,
     // napi segítség: 'all' (minden alkalom segítséggel), 'some' (segítséggel és anélkül is), 'none'
     days: h.days.map(({ day, count, helpedCount }) => ({ day, count, help: helpedCount <= 0 ? 'none' : helpedCount >= count ? 'all' : 'some' })),
-    ratio, fresh, group: 'lowdata', reason: null, helpN: 0, helpK: 0, helpRecent: 0,
+    ratio, fresh, group: 'lowdata', reason: null, need: null, helpN: 0, helpK: 0, helpRecent: 0,
   };
-  // a még nem olvasott tétel mindig Kevés adat, a napszabály-kapcsolóval is
-  if (!h.exposures || h.days.length < a.min_nap) return out;
+  // Közös kapu minden csoport előtt (7.5/1.): kevés nap vagy kevés alkalom → Kevés adat, a hiányzó feltétellel.
+  // A min_alkalom ≥ 1, így a még nem olvasott tétel a napszabály-kapcsolóval is Kevés adat.
+  if (h.days.length < a.min_nap) return { ...out, need: 'days' };
+  if (h.exposures < a.min_alkalom) return { ...out, need: 'count' };
 
   const recent = h.help.slice(-a.gyakorol_utolso_n);
   out.helpN = recent.length; out.helpK = count1(recent);
@@ -122,10 +125,10 @@ export function classify(item, records, { cfg, tempo = null }) {
   const last = h.help.slice(-a.megy_utolso_n);
   const lastHelped = last.includes('1');
   const slow = ratio != null && ratio > a.megy_ido_szorzo;
-  if (!lastHelped && !slow) {
-    // „Megy”-hez kell legalább megy_utolso_n alkalom (csak a napszabály-kapcsolóval lehet kevesebb)
-    return last.length >= a.megy_utolso_n ? { ...out, group: 'fluent' } : out;
-  }
+  // a kapu miatt van legalább min_alkalom ≥ megy_utolso_n alkalom (7.8)
+  if (!lastHelped && !slow) return { ...out, group: 'fluent' };
+  // „Még bizonytalan” csak akkor, ha már olvasta segítség nélkül is; ha mindig segítség kellett, gyakorolni kell
+  if (lastHelped && !h.help.includes('0')) return { ...out, group: 'practice', reason: 'help' };
   return { ...out, group: 'unsure', reason: lastHelped ? 'help' : 'slow' };
 }
 

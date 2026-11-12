@@ -1,9 +1,17 @@
 # Olvasóka: Haladás (tétel-elsajátítás) specifikáció
 
-Verzió: 1.7 · 2026. november 12.
+Verzió: 1.8 · 2026. november 12.
 Jóváhagyott design: https://claude.ai/artifact/N4rE1aqK15kpWbLvWXtcAr (vászon: „Olvasóka – egyszerűsített Haladás nézet”). Ha a design és ez a dokumentum ellentmond egymásnak, a design a mérvadó (lásd 8. fejezet).
 
 ## 0. Változások
+
+### 1.8 (az 1.7-hez képest): közös adatkapu
+A dev környezetben (napszabály-kapcsolóval) talált ellentmondások javítása: egyetlen, segítséggel olvasott tétel „Még bizonytalan” lett („Már olvasta segítség nélkül is…”), miközben két önálló olvasás után még Kevés adat volt; a Kevés adat kártya „legalább 0 különböző napon” szöveget írt.
+- **Közös kapu minden csoport előtt** (7.5/1.): Kevés adat, ha az olvasási napok száma < `min_nap`, **vagy** az alkalmak száma < `min_alkalom`. Új kulcs: `allapot.min_alkalom` (kezdő érték 3). A napszabály-kapcsoló nem nullázza (10.). A segítség így nem sorol be hamarabb.
+- **Még bizonytalan csak valódi önálló olvasás után** (7.5/4.): ha a tételt még soha nem olvasta segítség nélkül, Még gyakorolni kell (`help`), akkor is, ha a segítség-küszöb nem teljesül.
+- A „Megy” külön alkalomszám-feltétele megszűnt: a kapu lefedi. Új kereszt-ellenőrzés: `min_alkalom ≥ megy_utolso_n` (7.8).
+- Kevés adatnál a számítás megadja a hiányzó feltételt (`need`: `days` / `count`); a kártya, a tétel részletei és a csoport oldalának alcíme ebből szól, „0” soha nem jelenik meg (8.2–8.4).
+- Élesben (`min_nap` = 3 ≥ `min_alkalom` = 3) a besorolás és a szövegek nem változnak.
 
 ### 1.7 (az 1.6-hoz képest): egyszerűsített Haladás
 - Öt állapot és 14 küszöb helyett **négy csoport**: Megy, Még bizonytalan, Még gyakorolni kell, Kevés adat; mindegyik egy mondattal elmagyarázva. A kártyák összege mindig kiadja a jelenlegi listák összes tételét (7., 8.2).
@@ -232,10 +240,11 @@ Minden a meglévő napi összesítőkből számolható, visszamenőleg is. Tiszt
 ### 7.5 Csoportok
 A vizsgálat sorrendje:
 
-1. **Kevés adat:** az olvasási napok száma kisebb, mint `min_nap`. Ide tartozik az is, amit még egyszer sem olvasott (a napszabály-kapcsolóval is).
+1. **Kevés adat:** az olvasási napok száma kisebb, mint `min_nap`, **vagy** az alkalmak száma kisebb, mint `min_alkalom`. Ez a kapu minden más csoport előtt áll, segítséggel és anélkül ugyanúgy. Ide tartozik az is, amit még egyszer sem olvasott (a napszabály-kapcsolóval is, mert `min_alkalom` ≥ 1). A számítás megadja a hiányzó feltételt: `days` (kevés nap; ezt vizsgálja előbb) vagy `count` (kevés alkalom).
 2. **Még gyakorolni kell:** az utolsó `gyakorol_utolso_n` alkalomból legalább `gyakorol_segitseg_db` segítséggel volt, **vagy** az arány ≥ `gyakorol_ido_szorzo`. Ha `gyakorol_utolso_n`-nél kevesebb alkalom van, a meglévőkből számol.
-3. **Megy:** az utolsó `megy_utolso_n` alkalom mind segítség nélkül, **és** (nincs arány, **vagy** az arány ≤ `megy_ido_szorzo`). Ha `megy_utolso_n`-nél kevesebb alkalom van (csak a napszabály-kapcsolóval fordulhat elő), a tétel Kevés adat.
-4. **Még bizonytalan:** minden más.
+3. **Megy:** az utolsó `megy_utolso_n` alkalom mind segítség nélkül, **és** (nincs arány, **vagy** az arány ≤ `megy_ido_szorzo`). A kapu miatt mindig van legalább `megy_utolso_n` alkalom (`min_alkalom` ≥ `megy_utolso_n`, 7.8).
+4. **Még gyakorolni kell (`help`)**, ha a tételt még egyszer sem olvasta segítség nélkül. (A kezdő értékekkel ez a 2. pontban már teljesül; a szabály azt biztosítja, hogy a Még bizonytalan mondata – „Már olvasta segítség nélkül is” – minden konfigurációban igaz legyen.)
+5. **Még bizonytalan:** minden más.
 
 A 2. és a 3. a kezdő értékekkel nem fedi át egymást (3 segítség nélküli alkalom után az utolsó 5-ből legfeljebb 2 segítséges; 1,5 < 2). A konfiguráció-ellenőrzés ezt kikényszeríti (7.8).
 
@@ -244,11 +253,11 @@ A számítás a csoport mellé egy okot is visszaad, ebből lesz a tétel részl
 
 | Csoport | Ok | Mikor |
 |---|---|---|
-| Még gyakorolni kell | `help` | a segítség-feltétel teljesült (akkor is, ha az arány is ≥ `gyakorol_ido_szorzo`) |
+| Még gyakorolni kell | `help` | a segítség-feltétel teljesült (akkor is, ha az arány is ≥ `gyakorol_ido_szorzo`), vagy még soha nem olvasta segítség nélkül (7.5/4.) |
 | Még gyakorolni kell | `slow` | csak az arány-feltétel teljesült |
 | Még bizonytalan | `help` | az utolsó `megy_utolso_n` alkalomban volt segítség |
 | Még bizonytalan | `slow` | nem volt segítség, de az arány > `megy_ido_szorzo` |
-| Megy, Kevés adat | nincs | |
+| Megy, Kevés adat | nincs | Kevés adatnál helyette a hiányzó feltétel: `days` vagy `count` (7.5/1.) |
 
 `help` oknál a számítás a mondathoz szükséges két számot is visszaadja: hány alkalmat vizsgált (legfeljebb `gyakorol_utolso_n`) és ebből hányszor volt segítség.
 
@@ -269,14 +278,16 @@ A számítás a csoport mellé egy okot is visszaad, ebből lesz a tétel részl
 - Ellenőrzés (`js/core/haladas-config.js`, `validate`): ismeretlen vagy hiányzó kulcs, rossz típus vagy értelmetlen érték esetén **a deploy megáll** (`.github/scripts/check-haladas.mjs` a kiadásban, és a tesztek a PR-on). Kereszt-ellenőrzések:
   - `megy_ido_szorzo < gyakorol_ido_szorzo`;
   - `gyakorol_segitseg_db ≤ gyakorol_utolso_n`;
-  - `gyakorol_segitseg_db > gyakorol_utolso_n − megy_utolso_n` (különben egy tétel egyszerre lehetne „Megy” és „Még gyakorolni kell”).
+  - `gyakorol_segitseg_db > gyakorol_utolso_n − megy_utolso_n` (különben egy tétel egyszerre lehetne „Megy” és „Még gyakorolni kell”);
+  - `min_alkalom ≥ megy_utolso_n` (a Kevés adat kapuja lefedi a „Megy” alkalomszámát, így a Kevés adat szövege mindig a valódi okot mondja).
 - A szülő nem látja és nem állítja.
 
 `allapot` szakasz:
 
 | Kulcs | Kezdő érték | Jelentés |
 |---|---|---|
-| `min_nap` | 3 | ennyi különböző olvasási nap kell a besoroláshoz |
+| `min_nap` | 3 | ennyi különböző olvasási nap kell a besoroláshoz (a napszabály-kapcsoló nullázza) |
+| `min_alkalom` | 3 | ennyi alkalom (összesen) kell a besoroláshoz; legalább `megy_utolso_n` |
 | `megy_utolso_n` | 3 | „Megy”: az utolsó ennyi alkalom segítség nélkül |
 | `megy_ido_szorzo` | 1.5 | „Megy”: arány legfeljebb ennyi |
 | `gyakorol_utolso_n` | 5 | „Még gyakorolni kell”: ennyi utolsó alkalomból… |
@@ -300,6 +311,7 @@ Teljes szerkezet:
   },
   "allapot": {
     "min_nap": 3,
+    "min_alkalom": 3,
     "megy_utolso_n": 3,
     "megy_ido_szorzo": 1.5,
     "gyakorol_utolso_n": 5,
@@ -374,7 +386,9 @@ A jóváhagyott design (lásd a dokumentum elején) a mérvadó. Szövegek: tege
 | 1 | Megy | Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta. | `#2E6B66` |
 | 2 | Még bizonytalan | Már olvasta segítség nélkül is, de néha még nehezen megy. | `#8DBDB6` |
 | 3 | Még gyakorolni kell | Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi tételt. | `#E7B96A` |
-| 4 | Kevés adat | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta. | `#BDB4A4` |
+| 4 | Kevés adat | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.¹ | `#BDB4A4` |
+
+   ¹ A Kevés adat szövege csak az érvényes feltételeket mondja: `min_nap` = 0 mellett (napszabály-kapcsoló) „…ha legalább 3-szor olvasta.”; ha `min_alkalom` > `min_nap`, „…ha legalább 3 különböző napon és összesen legalább 4-szer olvasta.”; egyébként a fenti. „Legalább 0” soha nem jelenik meg.
 
    - Elrendezés: asztali és fekvő: az 1–3. kártya egy sorban, egyforma magasan; a Kevés adat kártya alattuk, teljes szélességben, egy sorban: balra cím, darabszám és szöveg, jobbra a link. Álló: mind a négy egymás alatt.
    - 1–3. kártya: fejléc (cím, darabszám), a kártya szövege, legfeljebb 8.1a szerinti számú csempe; alul „Mutasd mindet →” link, ha a csoportban legalább 1 tétel van (akkor is, ha minden kifér). A link a csoport oldalára visz, akadálymentes neve pl. „Megy: mind a 60 tétel”. A link a kártya aljához igazodik.
@@ -391,7 +405,7 @@ A jóváhagyott design (lásd a dokumentum elején) a mérvadó. Szövegek: tege
 ### 8.3 Csoport oldala
 - Fent a vissza link (8.1).
 - Egy kártya a csoport színével: cím „Megy: 60 tétel” formában (csoport neve, kettőspont, darabszám, `TERM`), alatta a kártya szövege (8.2), alatta a csoport összes tétele csempeként, a 8.2 sorrendjében. Listánkénti csoportosítás nincs.
-- Kevés adat oldalon a tételek két alcím alatt: „Olvasta, még kevés napon (88)” és „Még nem olvasta (40)”. Üres résznek az alcíme sem jelenik meg.
+- Kevés adat oldalon a tételek két alcím alatt: „Olvasta, még kevés napon (88)” és „Még nem olvasta (40)”. Üres résznek az alcíme sem jelenik meg. Napszabály-kapcsolóval (`min_nap` = 0) az első alcím: „Olvasta, még kevésszer”.
 - Az oldal alján: „Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez.”
 - Csempére kattintva a tétel részletei nyílnak meg (a vissza ide hoz).
 
@@ -405,7 +419,8 @@ A jóváhagyott design (lásd a dokumentum elején) a mérvadó. Szövegek: tege
 | Még bizonytalan | `slow` | Segítség nélkül olvasta, de még lassabban, mint a többi {típus}. |
 | Még gyakorolni kell | `help` | Az utóbbi {N} alkalomból {K}-szor kellett segítség. |
 | Még gyakorolni kell | `slow` | Lassabban olvasta, mint a többi {típus}. |
-| Kevés adat | | a kártya szövege (8.2) |
+| Kevés adat | `days` | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább {min_nap} különböző napon olvasta. |
+| Kevés adat | `count` | Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább {min_alkalom}-szor olvasta. |
 
 - {típus}: „betűt”, „szótagot” vagy „szót” a tétel típusa szerint.
 - {N}: a vizsgált alkalmak száma (legfeljebb `gyakorol_utolso_n`), {K}: ebből a segítségesek száma, a „-szor/-szer/-ször” rag a szám kiejtése szerint. Példa: „Az utóbbi 4 alkalomból 3-szor kellett segítség.”
@@ -439,7 +454,7 @@ Egyetlen kapcsoló: **a napszabály kihagyása**, környezetenként, GitHub repo
 | `DEV_PROGRESS_SKIP_DAY_RULES` | `true` vagy üres | üres (a szabályok érvényesek) |
 | `PROD_PROGRESS_SKIP_DAY_RULES` | `true` vagy üres | üres; ha élesben `true`, a deploy figyelmeztetést ír (`::warning::`) |
 
-Ha a kapcsoló be van kapcsolva, a `min_nap` nullának számít, így a besorolás az első gyakorlástól látszik, akár néhány megjelenés alapján is. A többi feltétel (alkalmak száma, segítség, arány) és a tempó ablaka (`tempo_ablak_nap`) változatlan. A még nem olvasott tétel ilyenkor is Kevés adat; „Megy”-hez ilyenkor is kell `megy_utolso_n` alkalom.
+Ha a kapcsoló be van kapcsolva, a `min_nap` nullának számít, így a besorolás napvárás nélkül, már az első gyakorlás napján látszik, amint egy tételt legalább `min_alkalom`-szor olvasott. A többi feltétel (`min_alkalom`, segítség, arány) és a tempó ablaka (`tempo_ablak_nap`) változatlan, így a besorolás ugyanazt a mércét követi, mint élesben: segítséggel sem kerül egy tétel hamarabb csoportba. A még nem olvasott tétel ilyenkor is Kevés adat.
 
 Helyi futtatásnál (localhost) a `js/core/config.js` repóbeli értéke számít; alapból kikapcsolva.
 
@@ -484,7 +499,8 @@ Konfiguráció:
 - [ ] Hiányzó vagy hibás fájl esetén az alapértékekkel fut; hibás vagy átfedő küszöbök esetén a deploy ellenőrzése megáll.
 
 Napszabály-kapcsoló:
-- [ ] `DEV_PROGRESS_SKIP_DAY_RULES=true` mellett a dev környezetben egyetlen gyakorlás után is van besorolás.
+- [ ] `DEV_PROGRESS_SKIP_DAY_RULES=true` mellett a dev környezetben napvárás nélkül, egyetlen napon belül is van besorolás, de csak legalább `min_alkalom` olvasás után.
+- [ ] Segítséggel sem kerül egy tétel hamarabb csoportba, mint segítség nélkül; a Még bizonytalan tétel mindig olvasta már segítség nélkül is; a Kevés adat szövege soha nem ír „legalább 0”-t.
 - [ ] Változó nélkül a 3 napos szabály érvényes; az éles kiadás alapból így megy.
 
 ## 12. Szállítás

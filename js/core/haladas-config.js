@@ -27,6 +27,7 @@ const SCHEMA = {
   },
   allapot: {
     min_nap: ['days', 3],
+    min_alkalom: ['count', 3],
     megy_utolso_n: ['count', 3],
     megy_ido_szorzo: ['factor', 1.5],
     gyakorol_utolso_n: ['count', 5],
@@ -42,7 +43,7 @@ const SCHEMA = {
   },
 };
 
-/** A napszabály-kapcsoló (10.) ezt nullázza; a többi feltétel (a tempó ablaka is) változatlan. */
+/** A napszabály-kapcsoló (10.) ezt nullázza; a többi feltétel (a min_alkalom és a tempó ablaka is) változatlan. */
 export const DAY_RULES = Object.freeze([['allapot', 'min_nap']]);
 
 const isObj = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
@@ -82,6 +83,8 @@ export function validate(cfg) {
     // a „Megy” és a „Még gyakorolni kell” nem fedheti át egymást (7.8)
     const a = cfg.allapot;
     if (a.megy_ido_szorzo >= a.gyakorol_ido_szorzo) p.push('allapot.megy_ido_szorzo: kisebb kell legyen, mint a gyakorol_ido_szorzo');
+    // a Kevés adat kapuja a „Megy” alkalomszámát is lefedi, így a kártya szövege mindig a valódi okot mondja (7.5)
+    if (a.min_alkalom < a.megy_utolso_n) p.push('allapot.min_alkalom: legalább a megy_utolso_n kell legyen');
     if (a.gyakorol_segitseg_db > a.gyakorol_utolso_n) p.push('allapot.gyakorol_segitseg_db: legfeljebb a gyakorol_utolso_n lehet');
     else if (a.gyakorol_segitseg_db <= a.gyakorol_utolso_n - a.megy_utolso_n) {
       p.push('allapot.gyakorol_segitseg_db: nagyobb kell legyen, mint gyakorol_utolso_n − megy_utolso_n (különben egy tétel egyszerre „Megy” és „Még gyakorolni kell”)');

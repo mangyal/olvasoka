@@ -9,7 +9,7 @@
 import { overview, groupView, detail, analyze, GROUPS } from '../core/mastery.js';
 import { itemKey } from '../core/items.js';
 import {
-  T, CARDS, CARD_ORDER, summary, cardText, infoText, listText, listAria, groupTitle, showAllAria,
+  T, CARDS, CARD_ORDER, summary, cardText, partRead, infoText, listText, listAria, groupTitle, showAllAria,
   reasonSentence, facts, dateLabel, dayAria,
 } from '../core/haladas-texts.js';
 
@@ -166,7 +166,7 @@ export function createProgressView(root, { data, back, open }) {
     const tiles = (items) => h('div', { class: 'hl-tiles' }, items.map((x) => tile(x.item, from)));
     const body = g.parts
       ? g.parts.filter((p) => p.items.length).map((p) => h('section', { class: 'hl-sub', 'data-part': p.key, 'aria-labelledby': `hlSub-${p.key}` },
-        h('h2', { id: `hlSub-${p.key}` }, p.key === 'read' ? T.partRead : T.partUnread, ' ', h('span', { class: 'hl-sub-n' }, `(${p.items.length})`)),
+        h('h2', { id: `hlSub-${p.key}` }, p.key === 'read' ? partRead(d.cfg.allapot) : T.partUnread, ' ', h('span', { class: 'hl-sub-n' }, `(${p.items.length})`)),
         tiles(p.items)))
       : [g.items.length ? tiles(g.items) : null];
     return [

@@ -121,7 +121,10 @@ test('konfiguráció: a „Megy” és a „Még gyakorolni kell” küszöbei n
   assert.match(bad((c) => { c.allapot.gyakorol_segitseg_db = 2; }).join(), /gyakorol_segitseg_db: nagyobb kell legyen/, '3 segítség nélküli után 2/5 lehetne segítséges');
   assert.match(bad((c) => { c.allapot.megy_utolso_n = 2; }).join(), /gyakorol_segitseg_db: nagyobb kell legyen/);
   assert.match(bad((c) => { c.allapot.gyakorol_segitseg_db = 6; }).join(), /legfeljebb a gyakorol_utolso_n/);
-  assert.deepEqual(bad((c) => { c.allapot.megy_utolso_n = 4; c.allapot.gyakorol_segitseg_db = 2; }), [], '4 segítség nélküli után legfeljebb 1/5');
+  assert.deepEqual(bad((c) => { c.allapot.megy_utolso_n = 4; c.allapot.min_alkalom = 4; c.allapot.gyakorol_segitseg_db = 2; }), [], '4 segítség nélküli után legfeljebb 1/5');
+  assert.match(bad((c) => { c.allapot.megy_utolso_n = 4; c.allapot.gyakorol_segitseg_db = 2; }).join(), /min_alkalom: legalább a megy_utolso_n/, 'a Kevés adat kapuja lefedi a „Megy” alkalomszámát');
+  assert.match(bad((c) => { c.allapot.min_alkalom = 0; }).join(), /min_alkalom: legalább 1 egész/);
+  assert.match(bad((c) => { delete c.allapot.min_alkalom; }).join(), /allapot\.min_alkalom: hiányzik/);
 });
 
 test('konfiguráció: hibás bemenetnél az alapértékek; a napszabály-kapcsoló csak a napszámokat nullázza', () => {
@@ -131,6 +134,7 @@ test('konfiguráció: hibás bemenetnél az alapértékek; a napszabály-kapcsol
   assert.equal(s.allapot.min_nap, 0);
   assert.equal(s.allapot.tempo_ablak_nap, 30, 'a tempó ablaka nem napszabály');
   assert.equal(s.tarolas.nyers_megorzes_nap, 30, 'a megőrzés nem napszabály');
+  assert.equal(s.allapot.min_alkalom, 3, 'az alkalomszám nem napszabály');
   assert.deepEqual({ ...s.allapot, min_nap: 3 }, { ...DEFAULTS.allapot }, 'a többi feltétel változatlan');
   assert.ok(Object.isFrozen(s.allapot));
 });

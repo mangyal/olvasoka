@@ -32,7 +32,6 @@ export const T = Object.freeze({
   noStorage: 'Ezen az eszközön nem menthető a haladás, mert a böngésző nem engedi az adatok tárolását.',
   emptyCard: `Még nincs ilyen ${TERM.nom}.`,
   start: 'Kezdd el használni a programot, hogy láthasd a haladást!',
-  partRead: 'Olvasta, még kevés napon',
   partUnread: 'Még nem olvasta',
   notRead: 'Még nem olvasta.',
   whenRead: 'Amikor olvasta',
@@ -69,9 +68,26 @@ export function cardText(key, a) {
     case 'fluent': return `Az utóbbi ${a.megy_utolso_n} alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.`;
     case 'unsure': return 'Már olvasta segítség nélkül is, de néha még nehezen megy.';
     case 'practice': return `Az utóbbi ${a.gyakorol_utolso_n} alkalomból legalább ${times(a.gyakorol_segitseg_db)} kellett segítség, vagy sokkal lassabban olvasta, mint a többi ${TERM.acc}.`;
-    default: return `Egy ${TERM.about} csak akkor tudjuk a haladást megállapítani, ha legalább ${a.min_nap} különböző napon olvasta.`;
+    default: return lowdataText(a);
   }
 }
+
+/**
+ * A Kevés adat mondata (8.2, 8.4). `need` nélkül a csoport egészére: csak a ténylegesen érvényes feltételek
+ * (a napszabály-kapcsolóval nincs napfeltétel; ha a napok száma már kiadja az alkalmakat, csak a napok).
+ * `need`-del ('days' / 'count') egy tételre: a még hiányzó feltétel.
+ */
+export function lowdataText(a, need = null) {
+  const head = `Egy ${TERM.about} csak akkor tudjuk a haladást megállapítani, ha`;
+  const days = `legalább ${a.min_nap} különböző napon`, count = `legalább ${times(a.min_alkalom)}`;
+  const useDays = need ? need === 'days' : a.min_nap > 0;
+  const useCount = need ? need === 'count' : a.min_nap === 0 || a.min_alkalom > a.min_nap;
+  if (useDays && useCount) return `${head} ${days} és összesen ${count} olvasta.`;
+  return `${head} ${useDays ? days : count} olvasta.`;
+}
+
+/** A Kevés adat csoport oldalának „olvasta” alcíme (8.3): napszabály-kapcsolóval nem napokról szól. */
+export const partRead = (a) => (a.min_nap > 0 ? 'Olvasta, még kevés napon' : 'Olvasta, még kevésszer');
 
 /** Információs doboz, ha még egy tétel sincs csoportban (8.2). */
 export const infoText = (minDays) => `Az első ${TERM.pl} legkorábban a ${minDays}. napon kerülnek csoportba.`;
@@ -113,7 +129,7 @@ const TYPE_ACC = Object.freeze({ betű: 'betűt', szótag: 'szótagot', szó: 's
 
 /**
  * A tétel részleteinek fő mondata (8.4) a csoport és az ok szerint.
- * @param {{ group: string, reason: string|null, type: string, helpN: number, helpK: number }} d
+ * @param {{ group: string, reason: string|null, need?: string|null, type: string, helpN: number, helpK: number }} d
  */
 export function reasonSentence(d, a) {
   const tw = TYPE_ACC[d.type] || TYPE_ACC.szó;
@@ -127,6 +143,7 @@ export function reasonSentence(d, a) {
       ? `Lassabban olvasta, mint a többi ${tw}.`
       : `Az utóbbi ${d.helpN} alkalomból ${times(d.helpK)} kellett segítség.`;
   }
+  if (d.group === 'lowdata') return lowdataText(a, d.need);
   return cardText(d.group, a);
 }
 
