@@ -13,7 +13,7 @@ import { roundExposures, dailyRecords, mergeDaily, dayOf, listHash, keepEnds, me
 import { reconcileLists, overlap } from '../js/core/list-identity.js';
 import { validate, resolve, DEFAULTS } from '../js/core/haladas-config.js';
 import { createProgressLog } from '../js/data/progress-log.js';
-import { encode, decode } from '../js/data/progress-codec.js';
+import { encode, decode, VERSION } from '../js/data/progress-codec.js';
 import { itemKey } from '../js/core/items.js';
 import { tokenize } from '../js/core/grid.js';
 import { envConfig } from '../js/core/env.js';
@@ -326,7 +326,7 @@ test('30 napnál régebbi nyers események törlődnek, a napi összesítők meg
   assert.ok(log.root.events.every((e) => e.item === 'me'));
   assert.deepEqual(log.root.daily.map((d) => d.item).sort(), ['ma', 'me']);
   const saved = decode(JSON.parse(storage.getItem('k')));
-  assert.equal(saved.v, 2);
+  assert.equal(saved.v, VERSION);
   assert.equal(saved.daily.length, 2);
   assert.equal(saved.rounds.length, 2);
 });
@@ -365,7 +365,7 @@ test('tömör formátum: oda-vissza alakítás után ugyanaz a napló, ugyanazok
     ['TICK', 6000], ['NEXT', 6100], ['NEXT', 7000], ['EXIT', 7500],
   ]);
   const stored = JSON.parse(storage.getItem('k'));
-  assert.equal(stored.v, 2);
+  assert.equal(stored.v, VERSION);
   assert.deepEqual(strip(decode(stored)), strip(log.root));
   assert.deepEqual(decode(encode(log.root)).daily, log.root.daily);
   const again = createProgressLog({ key: 'k', storage, now: () => clock.t, newId: ids });
@@ -383,7 +383,7 @@ test('az 1. verzió (olvasható objektumok) betöltéskor átalakul, a következ
   assert.deepEqual(l2.root.rounds[0].items, ['ma', 'me'], 'a kör tételei az eseményekből');
   play(l2, clock, { items: ['mi'], start: T0 + 60000 }, [['NEXT', 2000]]);
   const saved = JSON.parse(storage.getItem('k'));
-  assert.equal(saved.v, 2);
+  assert.equal(saved.v, VERSION);
   assert.equal(decode(saved).events.filter((e) => e.item === 'ma').length, 2, 'a régi események is átkerültek');
 });
 
@@ -428,10 +428,10 @@ test('tárolás nélkül a napló memóriában fut, és nem dob', () => {
 
 test('ismeretlen (újabb) verzió: nem írjuk felül', () => {
   const storage = memStorage();
-  storage.setItem('k', JSON.stringify({ v: 3, events: [], daily: [{ x: 1 }] }));
+  storage.setItem('k', JSON.stringify({ v: VERSION + 1, events: [], daily: [{ x: 1 }] }));
   const { log, clock } = fresh({ storage });
   play(log, clock, { items: ['ma'] }, [['NEXT', 2000]]);
-  assert.equal(JSON.parse(storage.getItem('k')).v, 3);
+  assert.equal(JSON.parse(storage.getItem('k')).v, VERSION + 1);
   assert.equal(log.available, false);
 });
 

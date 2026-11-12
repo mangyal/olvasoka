@@ -601,7 +601,7 @@ test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éle
   await page.locator('#admin').waitFor({ state: 'visible' });
 
   const root = await progressRoot();
-  assert.equal(root.v, 2);
+  assert.equal(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).v, PROGRESS_KEY), 3, 'tárolt verzió');
   assert.match(root.deviceId, /^r-[0-9a-z]{10}$/);
   assert.ok((await page.evaluate((k) => localStorage.getItem(k).length, PROGRESS_KEY)) < 3000, 'tömör tárolt alak');
   const [r] = root.rounds;
@@ -612,6 +612,25 @@ test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éle
   assert.ok(d.dwellMs[0] >= 1100, `az idő összeadódik: ${d.dwellMs[0]}`);
   assert.ok(root.daily.every((x) => LISTS.Szótagok.includes(x.item)));
   assert.equal(await page.evaluate(() => localStorage.getItem('olvasoka.haladas')), null, 'az éles kulcs érintetlen');
+});
+
+test('Haladás napló: villantásos körben a gombnyomás ideje a flashDwell-be kerül, a lejárté nem', async () => {
+  await startRound({ flash: 1, count: 2 });
+  const first = await item();
+  await page.waitForTimeout(500);
+  await page.keyboard.press('ArrowRight');                // a 1 mp-es villantás lejárta előtt
+  const second = await item();
+  await page.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward', null, { timeout: 5000 });   // a második lejár
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  const root = await progressRoot();
+  const d = (it) => root.daily.find((x) => x.item === it);
+  assert.equal(d(first).flashDwell.length, 1);
+  assert.equal(d(first).flashDwell[0].flashMs, 1000);
+  assert.ok(d(first).flashDwell[0].ms >= 400 && d(first).flashDwell[0].ms < 1000, `idő: ${d(first).flashDwell[0].ms}`);
+  assert.deepEqual(d(first).dwellMs, [], 'a kézi olvasási idő üres');
+  if (second !== first) assert.deepEqual(d(second).flashDwell, [], 'lejárt villantás: nincs idő');
+  assert.ok(root.rounds.every((r) => r.flashDwellDone));
 });
 
 test('Haladás napló: kilépés a kör közben is naplózódik', async () => {
