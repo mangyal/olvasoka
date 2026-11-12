@@ -48,7 +48,7 @@ export function history(records) {
   const days = [...byDay].map(([day, rs]) => ({
     day,
     count: rs.reduce((s, r) => s + r.exposures, 0),
-    helped: rs.some((r) => r.supportedExposures > 0),
+    helpedCount: rs.reduce((s, r) => s + (r.supportedExposures || 0), 0),
     help: rs.map((r) => r.help || '').join(''),
     times: [...rs.flatMap((r) => r.dwellMs || []), ...rs.flatMap((r) => (r.flashDwell || []).map((f) => f.ms))],
   }));
@@ -105,7 +105,8 @@ export function classify(item, records, { cfg, tempo = null }) {
   const out = {
     item, type: typeOf(item), exposures: h.exposures, dayCount: h.days.length,
     firstDay: h.days[0]?.day ?? null, lastDay: h.days.at(-1)?.day ?? null,
-    days: h.days.map(({ day, count, helped }) => ({ day, count, helped })),
+    // napi segítség: 'all' (minden alkalom segítséggel), 'some' (segítséggel és anélkül is), 'none'
+    days: h.days.map(({ day, count, helpedCount }) => ({ day, count, help: helpedCount <= 0 ? 'none' : helpedCount >= count ? 'all' : 'some' })),
     ratio, fresh, group: 'lowdata', reason: null, helpN: 0, helpK: 0, helpRecent: 0,
   };
   // a még nem olvasott tétel mindig Kevés adat, a napszabály-kapcsolóval is

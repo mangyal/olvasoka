@@ -235,7 +235,9 @@ test('részletek: alkalmak, különböző napok, első nap, napi alkalomszám; l
   const an = analyze([...days('ma', [[5, { help: '01' }], [3, { help: '000' }]]), rec('ma', ago(3), { device: 'b' })], { now: NOW, cfg: CFG });
   const d = detail(an, 'ma');
   assert.deepEqual([d.exposures, d.dayCount, d.firstDay], [6, 2, ago(5)]);
-  assert.deepEqual(d.recentDays, [{ day: ago(5), count: 2, helped: true }, { day: ago(3), count: 4, helped: false }]);
+  assert.deepEqual(d.recentDays, [{ day: ago(5), count: 2, help: 'some' }, { day: ago(3), count: 4, help: 'none' }]);
+  const all = detail(analyze(days('mi', [[2, { help: '11' }], [1, { help: '1' }, ], [0, { help: '10' }]]), { now: NOW, cfg: CFG }), 'mi');
+  assert.deepEqual(all.recentDays.map((x) => x.help), ['all', 'all', 'some']);
   const long = detail(analyze(Array.from({ length: 20 }, (_, k) => rec('ma', ago(19 - k))), { now: NOW, cfg: CFG }), 'ma');
   assert.equal(long.recentDays.length, 14);
   assert.equal(detail(an, 'zs').exposures, 0);
@@ -298,8 +300,9 @@ test('fő mondat mind a 7 esetben (a design szövegkatalógusa)', () => {
 
 test('részletek szövegei: tények, dátum, pötty címkéje', () => {
   assert.equal(join(TX.facts({ exposures: 9, dayCount: 4, firstDay: '2026-10-24' })), 'Eddig 9 alkalommal olvasta, 4 különböző napon. Először: okt. 24.');
-  assert.equal(TX.dayAria('2026-10-28', 4, true), 'okt. 28., 4 alkalom, segítséggel');
-  assert.equal(TX.dayAria('2026-11-03', 2, false), 'nov. 3., 2 alkalom, segítség nélkül');
+  assert.equal(TX.dayAria('2026-10-28', 4, 'all'), 'okt. 28., 4 alkalom, segítséggel');
+  assert.equal(TX.dayAria('2026-11-03', 2, 'none'), 'nov. 3., 2 alkalom, segítség nélkül');
+  assert.equal(TX.dayAria('2026-11-11', 2, 'some'), 'nov. 11., 2 alkalom, segítséggel és anélkül is');
   assert.equal(TX.dateLabel('2026-03-05'), 'márc. 5.');
 });
 

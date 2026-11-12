@@ -39,6 +39,8 @@ export const T = Object.freeze({
   helped: 'segítséggel olvasta',
   helpedShort: 'segítséggel',
   unhelped: 'segítség nélkül',
+  mixed: 'segítséggel és anélkül is',
+  mixedShort: 'vegyesen',
   groupFoot: 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez.',
   footStat: `Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a ${TERM.nom}nél.`,
 });
@@ -138,5 +140,6 @@ export const facts = (d) => [
   [` különböző napon. Először: ${dateLabel(d.firstDay)}`],
 ];
 
-/** A pötty akadálymentes címkéje: „okt. 28., 4 alkalom, segítséggel”. */
-export const dayAria = (day, count, helped) => `${dateLabel(day)}, ${count} alkalom, ${helped ? 'segítséggel' : T.unhelped}`;
+const DAY_HELP = Object.freeze({ all: 'segítséggel', some: T.mixed, none: T.unhelped });
+/** A pötty akadálymentes címkéje: „okt. 28., 4 alkalom, segítséggel” / „…, segítséggel és anélkül is”. */
+export const dayAria = (day, count, help) => `${dateLabel(day)}, ${count} alkalom, ${DAY_HELP[help] || T.unhelped}`;

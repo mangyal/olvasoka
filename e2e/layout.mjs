@@ -908,6 +908,25 @@ test('Haladás tétel részletei: fő mondat, tények, pöttyök alkalomszámmal
   await ctx.close();
 });
 
+test('Haladás tétel részletei: segítséggel és anélkül is olvasott nap félig sárga, félig fehér pötty; jelmagyarázat', async () => {
+  const { page, ctx, errors } = await openProgress(DESKTOP, '#haladas/tetel/ma');   // napok: '01', '00', '0', '0'
+  assert.deepEqual(await page.$$eval('.hl-dots .hl-dot', (d) => d.map((x) => x.className)), ['hl-dot mixed', 'hl-dot', 'hl-dot', 'hl-dot']);
+  assert.match(await page.getAttribute('.hl-dots li', 'aria-label'), /^[a-zá-ú]+\. \d+\., 2 alkalom, segítséggel és anélkül is$/);
+  const half = await page.$eval('.hl-dots .hl-dot.mixed', (e) => {
+    const r = e.getBoundingClientRect(), b = getComputedStyle(e, '::before'), s = getComputedStyle(e);
+    return { w: Math.round(r.width), before: Math.round(parseFloat(b.width)), color: b.backgroundColor, bg: s.backgroundColor, border: s.borderTopColor };
+  });
+  assert.equal(half.before, half.w / 2, 'középen elfelezve');
+  assert.deepEqual([half.color, half.bg, half.border], ['rgb(231, 185, 106)', 'rgb(255, 255, 255)', 'rgb(46, 107, 102)'], 'bal fele sárga, jobb fele fehér, zöld kerettel');
+  assert.deepEqual(await page.$$eval('.hl-legend > span', (s) => s.map((x) => `${x.querySelector('.hl-dot').className}: ${x.innerText.trim()}`)),
+    ['hl-dot helped: segítséggel olvasta', 'hl-dot: segítség nélkül', 'hl-dot mixed: segítséggel és anélkül is']);
+  await page.setViewportSize(PHONE_LAND.viewport);
+  await page.waitForFunction(() => document.getElementById('haladas').dataset.layout === 'land');
+  assert.deepEqual(await page.$$eval('.hl-legend > span', (s) => s.map((x) => x.innerText.trim())), ['segítséggel', 'segítség nélkül', 'vegyesen']);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('Haladás tétel részletei: Még bizonytalan és Kevés adat; még nem olvasott tétel', async () => {
   const cases = [
     ['fó-ka', 'Még bizonytalan', 'Már olvasta segítség nélkül is, de néha még kell hozzá segítség.', /^Eddig 4 alkalommal olvasta, 3 különböző napon\./],
