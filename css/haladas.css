@@ -94,9 +94,9 @@
 .hl-dots li{display:flex;flex-direction:column;align-items:center;gap:6px;width:72px}
 .hl-dot{display:inline-block;width:36px;height:36px;border-radius:50%;background:#fff;border:2px solid var(--accent);flex:none}
 .hl-dot.helped{background:#E7B96A;border-color:#E7B96A}
-/* segítséggel és anélkül is: függőlegesen elfelezve, bal fele a sárga pötty (kerettel együtt), jobb fele a fehér */
-.hl-dot.mixed{position:relative}
-.hl-dot.mixed::before{content:'';position:absolute;top:-2px;bottom:-2px;left:-2px;width:calc(50% + 2px);background:#E7B96A;border-radius:999px 0 0 999px}
+/* segítséggel és anélkül is: függőlegesen elfelezve, bal fele sárga, jobb fele fehér; körben a zöld keret */
+.hl-dot.mixed{position:relative;overflow:hidden}
+.hl-dot.mixed::before{content:'';position:absolute;top:0;bottom:0;left:0;width:50%;background:#E7B96A}
 .hl-date{font-size:13px;color:var(--ink-2);white-space:nowrap}
 .hl-legend{display:flex;flex-wrap:wrap;gap:20px;font-size:14px}
 .hl-legend>span{display:inline-flex;align-items:center;gap:8px}

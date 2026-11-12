@@ -913,11 +913,15 @@ test('Haladás tétel részletei: segítséggel és anélkül is olvasott nap f�
   assert.deepEqual(await page.$$eval('.hl-dots .hl-dot', (d) => d.map((x) => x.className)), ['hl-dot mixed', 'hl-dot', 'hl-dot', 'hl-dot']);
   assert.match(await page.getAttribute('.hl-dots li', 'aria-label'), /^[a-zá-ú]+\. \d+\., 2 alkalom, segítséggel és anélkül is$/);
   const half = await page.$eval('.hl-dots .hl-dot.mixed', (e) => {
-    const r = e.getBoundingClientRect(), b = getComputedStyle(e, '::before'), s = getComputedStyle(e);
-    return { w: Math.round(r.width), before: Math.round(parseFloat(b.width)), color: b.backgroundColor, bg: s.backgroundColor, border: s.borderTopColor };
+    const b = getComputedStyle(e, '::before'), s = getComputedStyle(e);
+    return { inner: e.clientWidth, before: parseFloat(b.width), left: parseFloat(b.left), top: parseFloat(b.top), color: b.backgroundColor, bg: s.backgroundColor,
+      border: [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor], bw: s.borderLeftWidth };
   });
-  assert.equal(half.before, half.w / 2, 'középen elfelezve');
-  assert.deepEqual([half.color, half.bg, half.border], ['rgb(231, 185, 106)', 'rgb(255, 255, 255)', 'rgb(46, 107, 102)'], 'bal fele sárga, jobb fele fehér, zöld kerettel');
+  assert.equal(half.before, half.inner / 2, 'a kereten belül középen elfelezve');
+  assert.deepEqual([half.left, half.top], [0, 0], 'a sárga fél a kereten belül van');
+  assert.deepEqual([half.color, half.bg], ['rgb(231, 185, 106)', 'rgb(255, 255, 255)'], 'bal fele sárga, jobb fele fehér');
+  assert.deepEqual(half.border, Array(4).fill('rgb(46, 107, 102)'), 'körben zöld keret, a bal felén is');
+  assert.equal(half.bw, '2px');
   assert.deepEqual(await page.$$eval('.hl-legend > span', (s) => s.map((x) => `${x.querySelector('.hl-dot').className}: ${x.innerText.trim()}`)),
     ['hl-dot helped: segítséggel olvasta', 'hl-dot: segítség nélkül', 'hl-dot mixed: segítséggel és anélkül is']);
   await page.setViewportSize(PHONE_LAND.viewport);
