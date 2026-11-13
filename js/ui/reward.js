@@ -46,7 +46,7 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
     active = true;
     void stage.offsetWidth;
     stage.classList.add('sky');                       // U-R1: háttér papír → ég, 1,8 s
-    placeBlower(skipSky);
+    if (!reduced()) placeBlower(skipSky);            // F-R11: álló lufiknál nincs szél, nincs fúvó
     later(reduced() || skipSky ? 0 : 1800, reduced() ? spawnStatic : spawnFlying);
   }
 
@@ -72,7 +72,7 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
     blower.style.setProperty('--tilt', `${TILT}deg`);
     // az ég már kész: a fúvó késleltetés nélkül, de ugyanúgy beúszik (nem ugrik be)
     if (skipSky) { blower.style.transitionDelay = '0s'; blower.style.opacity = '0'; }
-    stage.insertBefore(blower, balloonsEl);
+    balloonsEl.after(blower);                         // F-R8: a lufik a fúvó mögött szállnak el
     if (skipSky) { void blower.offsetWidth; blower.style.opacity = ''; }
     wind = { dir: left ? 1 : -1 };
   }

@@ -52,6 +52,7 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | # | Terület | Változás | Érintett pontok |
 |---|---|---|---|
 | 1 | Jutalom | **Jutalomválasztó:** a kör végén a gyerek választ a lufipukkasztás és a panda-ugrálás közül (két kártya, szöveg nélkül). A véletlen váltakozás megszűnt; a `?jutalom=` paraméter továbbra is rögzít, és a választó kimarad. | 2., F-R14, 12.5b |
+| 2 | Hőlégfúvó | Csökkentett mozgásnál (álló lufik) nem jelenik meg; mozgással a lufik a fúvó mögött szállnak el. | F-R8, F-R11 |
 
 ### 2.12 (a 2.11-hez képest)
 
@@ -555,6 +556,7 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
 - **F-R8** **Hőlégfúvó:** a jutalom alatt egy 128 px-es hőlégfúvó ikon (`img/hoslegfuvo.svg`) áll
   véletlenszerűen a bal vagy a jobb szélen, az alsó harmad közepén, 12°-kal felfelé fordítva. Jobb
   oldalt balra fúj; bal oldalt a függőleges tengelye körül tükrözve jobbra. Helyben marad, a jutalom végéig látszik; animált (F-R13).
+  A lufik a fúvó **mögött** szállnak el (a fúvó takarja őket); a szélcsíkok a lufik mögött vannak.
 - **F-R9** **Felszállás:** a kör végén a háttér 1,8 mp alatt papírszínről égkékre vált, a dekoráció
   elhalványul. Utána a lufik a képernyő alja alól úsznak be, 2,5 mp alatt elcsúsztatva, és
   felszállnak: egy lufi 8–12 mp alatt ér fel. A fúvó szele oldalra sodorja őket (átlagosan 20–40 px/s),
@@ -563,7 +565,7 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
 - **F-R10** A felül vagy oldalt kiment lufi alul, új helyen visszajön; a jutalom akkor ér véget,
   ha mind kipukkadt (F-R5).
 - **F-R11** Érintés csak pukkaszt, a lufi mozgását nem befolyásolja. Csökkentett mozgásnál
-  (`prefers-reduced-motion`) a lufik helyben lebegnek (F-R2, U-R1), a fúvó ugyanúgy látszik.
+  (`prefers-reduced-motion`) a lufik helyben lebegnek (F-R2, U-R1), és **nincs fúvó** (szél és szélcsík sincs).
 - **F-R14** **Melyik jutalom – a gyerek választ:** két jutalomjáték van, a lufipukkasztás (5.) és a
   panda-ugrálás (5a.). Minden Felolvasás- és Keresd meg!-kör végén megjelenik a **jutalomválasztó**
   (CHOOSE, 12.5b): két kártya, balra (álló telefonon fent) a lufik, jobbra (lent) a panda. A gyerek
