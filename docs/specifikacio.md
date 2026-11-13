@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.12** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.13** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,12 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.13 (a 2.12-höz képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Jutalom | **Jutalomválasztó:** a kör végén a gyerek választ a lufipukkasztás és a panda-ugrálás közül (két kártya, szöveg nélkül). A véletlen váltakozás megszűnt; a `?jutalom=` paraméter továbbra is rögzít, és a választó kimarad. | 2., F-R14, 12.5b |
 
 ### 2.12 (a 2.11-hez képest)
 
@@ -165,10 +171,12 @@ A tartalom gyakran változik. A szülő a listákat egy Google táblázatban sze
 | **Szülői felület (admin)** | szülő | lista kiválasztása, beállítások, kör indítása |
 | **Gyakorlónézet** | gyerek (a szülő vezérli) | a villantott tétel, időjelző, haladásjelző, vezérlők, dekoráció |
 | **Keresd meg! nézet** | gyerek (a szülő mondja ki a kártyát) | N kártyás rács, haladásjelző, vezérlők, dekoráció |
-| **Jutalomnézet** | gyerek | jutalomjáték: lufipukkasztás vagy panda-ugrálás (F-R14) |
+| **Jutalomválasztó** | gyerek | két kártya: lufipukkasztás vagy panda-ugrálás (F-R14, 12.5b) |
+| **Jutalomnézet** | gyerek | a választott jutalomjáték: lufipukkasztás vagy panda-ugrálás (F-R14) |
 
-Állapotgép: `ADMIN → PRACTICE → REWARD → ADMIN`, illetve Keresd meg! módban `ADMIN → FIND → REWARD → ADMIN`.
-Az **Esc** a PRACTICE, FIND és REWARD állapotból bármikor visszavisz ADMIN-ba.
+Állapotgép: `ADMIN → PRACTICE → CHOOSE → REWARD → ADMIN`, illetve Keresd meg! módban
+`ADMIN → FIND → CHOOSE → REWARD → ADMIN`. A `?jutalom=` paraméterrel a CHOOSE kimarad (F-R14).
+Az **Esc** a PRACTICE, FIND, CHOOSE és REWARD állapotból bármikor visszavisz ADMIN-ba.
 
 A PRACTICE állapotot a `js/core/round.js` írja le:
 `{ seq, flash, gap, index, phase: 'showing' | 'gap', paused, deadline, remaining, done, covered }`.
@@ -556,11 +564,26 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
   ha mind kipukkadt (F-R5).
 - **F-R11** Érintés csak pukkaszt, a lufi mozgását nem befolyásolja. Csökkentett mozgásnál
   (`prefers-reduced-motion`) a lufik helyben lebegnek (F-R2, U-R1), a fúvó ugyanúgy látszik.
-- **F-R14** **Melyik jutalom:** két jutalomjáték van, a lufipukkasztás (5.) és a panda-ugrálás (5a.).
-  Körönként véletlenszerűen jön az egyik, de kétszer egymás után nem ugyanaz; két játéknál ez váltakozást
-  jelent. Az első a program indítása után véletlen. A cím `?jutalom=lufi` / `?jutalom=panda` paramétere
-  rögzíti (kipróbáláshoz, tesztekhez); érvénytelen érték nem számít. Logika: `js/core/rewards.js`.
-  A F-R6 (Esc, ✕, kurzor) és a F-R7 mindkét játékra érvényes.
+- **F-R14** **Melyik jutalom – a gyerek választ:** két jutalomjáték van, a lufipukkasztás (5.) és a
+  panda-ugrálás (5a.). Minden Felolvasás- és Keresd meg!-kör végén megjelenik a **jutalomválasztó**
+  (CHOOSE, 12.5b): két kártya, balra (álló telefonon fent) a lufik, jobbra (lent) a panda. A gyerek
+  választ, a választott játék indul. Véletlen sorsolás, időkorlát, automatikus választás, szülői beállítás
+  és emlékezés az előző választásra nincs: induláskor egyik kártya sincs kiemelve.
+  - **Sorrend:** kör vége (a háttér 1,8 mp alatt papír → ég, mint eddig) → a választó két kártyája
+    beúszik → választás → a választott játék a saját belépőjével indul (a lufik felszállnak / a padok
+    beúsznak), a saját égváltása nélkül, mert a háttér már ég → vissza ADMIN-ba, mint eddig.
+  - **Bemenet:** az első 600 ms-ban minden bemenet elnyelődik. Koppintás / kattintás egy kártyára
+    `pointerup`-ra azonnal indít, ha a lenyomás is a választón történt (a kör végi koppintás nem számít).
+    Billentyű: ← a Lufit, → a Pandát emeli ki; Space, Enter vagy ↑ a kiemeltet indítja, kiemelés nélkül
+    semmit (a kör végéről átjött → / Space-sorozat magától nem indít játékot). Egérrel a kártya fölé
+    állva ugyanez a kiemelés jelenik meg; mindig egy kártya kiemelt, az utolsó bemenet (egér vagy nyíl) nyer.
+  - **Választás után** a választott kártya azonnal kiemelt keretet kap, a másik 300 ms alatt elhalványul,
+    utána a választott is (300 ms), majd indul a játék.
+  - **Esc / ✕:** vissza ADMIN-ba, játék nélkül (F-R6); a ✕ úgy viselkedik, mint a jutalom alatt.
+  - A cím `?jutalom=lufi` / `?jutalom=panda` paramétere rögzíti a játékot, és a választó kimarad
+    (kipróbáláshoz, tesztekhez); érvénytelen érték nem számít. Logika: `js/core/choose.js` (választó),
+    `js/core/rewards.js` (paraméter). A Haladás naplója a választást nem rögzíti.
+  - A F-R6 (Esc, ✕, kurzor) és a F-R7 mindkét játékra és a választóra is érvényes.
 
 ---
 
@@ -811,9 +834,13 @@ Az „automata” jelölésűeket a `test/` alatti tesztek ellenőrzik.
 35. *(automata)* Panda-ugrálás: a pálya minden képernyőméreten (320×256-tól 1920×1080-ig) a képen belül van,
     minden lépés iránya egyértelmű, és a jó irány a következő pad közepére visz; a ↑ sosem ejt le; rossz
     oldalra ugorva leesik, vagy egy lejjebb lévő padon megáll (F-J2–F-J6).
-36. *(automata)* Két egymást követő kör jutalma nem azonos; a `?jutalom=` paraméter rögzíti (F-R14).
+36. *(automata)* A kör végén a jutalomválasztó jön, egyik kártya sincs kiemelve; az első 600 ms-ban
+    nincs választás; ← → kiemel, Space / Enter / ↑ a kiemeltet indítja, kiemelés nélkül semmit; koppintás
+    a kártyára indít; Esc játék nélkül ADMIN-ba visz; a `?jutalom=` paraméterrel a választó kimarad (F-R14).
 37. Panda-ugrálás végigjátszva billentyűvel és koppintással is 30 mp alatt; a célnál konfetti, leesésnél
     csendes visszatérés; Esc és ✕ bármikor kilép. Telefon álló és fekvő nézetben is játszható.
+38. *(automata)* A jutalomválasztó két kártyája 1280×800-tól 320×256-ig a képen belül, egymást nem fedve
+    látszik; álló telefonon egymás alatt (Lufi fent), egyébként egymás mellett (Lufi balra) (12.5b).
 
 ---
 
@@ -917,6 +944,8 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Második jutalom: panda-ugrálás, körönként váltakozva a lufival (2.12) | A gyerek ne unja meg a jutalmat; egyetlen lufis játék sokadszorra már kevésbé motivál. A váltakozás kiszámítható, nincs szülői beállítás. |
 | Segített ugrás és veszélytelen ↑ | Egy 7 éves a nyíl irányát könnyen eltalálja, a pontos időzítést nem; a kihívás az irány, nem az ügyesség. |
 | Leesésnél csendes vége, nincs újrakezdés | Jutalomról van szó: nincs kudarcélmény, és a kör nem nyúlik meg. |
+| A jutalmat a gyerek választja, a véletlen váltakozás helyett (2.13) | A gyerek tudja, mit szeretne; a választás maga is jutalom. Felirat nincs (U-E4), a két kép önmagáért beszél. Nincs szülői beállítás és emlékezés az előző választásra: mindkét játék mindig egyenlő eséllyel indul. |
+| Rögzített kártyasorrend, kiemelés nélküli indulás, 600 ms-os bemenetzár | Ugyanazon a helyen van mindig ugyanaz, így a gyerek megtanulja. A kör végi →/Space-sorozat ne indítson játékot magától. |
 | A minta tördelődő címkesor, nem fix rács | Keskeny nézetben (360–390 px) a 6 oszlopos rács ~55 px-es cellájából a háromszótagú szavak kilógtak; a betű kicsinyítése 11–12 px-et adna, ami olvashatatlan. |
 
 ---
@@ -1135,10 +1164,31 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
 - **U-J5 Tipp-nyíl:** chevron, `--ink` 45%, 24–40 px, enyhén előre-hátra lüktet.
 - **U-J6 Háttér:** a jutalom égkékje (`--sky`), öt fehér felhő 70%-os átlátszósággal. A ✕ (F-R6) felül marad.
 
+### 12.5b Jutalomválasztó nézet
+- **U-C1 Méretek:** asztali nézet: négyzetes kártyák, legfeljebb 260 px, 48 px rés, mindkét irányban
+  középen. Álló telefon (szélesség ≤ 600 px, álló tájolás): egymás alatt, szélesség min(220 px, 56vw),
+  24 px rés. Fekvő telefon / alacsony ablak (`max-height: 500px`): egymás mellett, a kártya a magasság
+  52%-a (legfeljebb 200 px), 32 px rés. 320×256-ig a kártyák a rövidebb oldallal együtt zsugorodnak.
+- **U-C2 Kártya:** a Keresd meg! kártyája (U-K2): `--field`, 2 px `--line` keret, 24 px sarok (telefonon
+  18 px), árnyék nincs. Kiemelve és választva a jelölt kártya kerete (U-K3): 5 px `--accent`, plusz
+  −4 px emelés és 1,03-szoros nagyítás (150 ms); a háttér `--field` marad. A kiemelés a fókusz: a kiemelt
+  kártya kapja a fókuszt.
+- **U-C3 Rajz:** a kártya 82%-a, a játékok saját rajza: három lufi az F-R2 palettájából; a panda (U-J2)
+  egy bambuszpadon, a következő pad jobbra fent. Mozgás csak ennyi: a lufik ±6 px / ±2°-ot lebegnek
+  (mint F-R2), a panda 3 mp-enként kicsit ugrik. Felirat nincs (U-E4).
+- **U-C4 Átmenetek:** a két kártya elhalványulva és 16 px-et emelkedve úszik be (300 ms, a második +80 ms).
+  Választás után a másik, majd a választott kártya halványul el (300 + 300 ms).
+- **U-C5 Háttér:** csak `--sky`. Felhő, számláló, haladásjelző, vezérlősáv nincs; a ✕ (F-R6) mint a
+  jutalom alatt: érintőképernyőn végig, egérrel mozgatásra látszik. A kurzor a 32 px-es gyerekkurzor (U-R2).
+- **U-C6 Csökkentett mozgás:** nincs beúszás és lebegés; a kiemelés és az elhalványulás azonnali.
+
 ### 12.6 Akadálymentesség
 - Kontraszt: tétel ≥ 7:1, admin szöveg ≥ 4,5:1, ikonok és keretek ≥ 3:1.
 - Az admin minden funkciója billentyűzettel elérhető; fókuszgyűrű 2 px `--accent`, csak `:focus-visible`.
 - Az ikon gombok `aria-label`-t kapnak („Szünet”, „Folytatás”, „Előző”, „Következő”, „Kilépés”).
+- Jutalomválasztó: a tároló `role="group"`, `aria-label` „Válassz játékot”; a kártyák `button`-ok,
+  `aria-label` „Lufipukkasztás” és „Panda-ugrálás”. Az `--accent` keret a kártyán 5,8:1; a nyugalmi
+  keret díszítés.
 - Keresd meg!: a kártyák `button`-ok, `aria-label` a tétel, a jelölés `aria-pressed`; a rács `role="group"`,
   `aria-label` „3. feladat a 10-ből”; a nyilak „Előző feladat”, „Következő feladat”.
 - Elsődleges képernyő: 1366×768 és 1920×1080; támogatott minimum: 1024×600. Tablet és telefon

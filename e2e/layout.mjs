@@ -148,8 +148,86 @@ test('20 tétel fölött sáv + „N/M”; a jutalom alatt rejtett', async () =>
   assert.equal(await page.textContent('#progress .ptext'), '1/30');
   assert.equal(await page.$$('#progress .dot').then((d) => d.length), 0);
   for (let i = 0; i < 30; i++) await page.keyboard.press('Space');
+  await page.waitForSelector('#stage[data-mode=choose]');
+  assert.equal(await page.isVisible('#progress'), false, 'a jutalomválasztón rejtett');
+  await page.waitForTimeout(700);
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('Space');
   await page.waitForSelector('#stage[data-mode=reward]');
-  assert.equal(await page.isVisible('#progress'), false);
+  assert.equal(await page.isVisible('#progress'), false, 'a jutalom alatt rejtett');
+  await ctx.close();
+});
+
+/* ---------- Jutalomválasztó (spec 12.5b, ellenőrzés 38.) ---------- */
+/** Egy 1 tételes kör vége: a választó két kártyájának helye, a beúszás után. */
+async function chooserAt(opts) {
+  const { page, ctx, errors } = await open(opts, { settings: { flashMs: 0, gapMs: 0, count: 1 } });
+  await page.click('#startBtn');
+  await page.waitForSelector('#stage[data-mode=practice]');
+  await page.keyboard.press('Space');
+  await page.waitForSelector('#stage[data-mode=choose]');
+  await page.waitForTimeout(500);
+  const boxes = await page.$$eval('#chooser .choice', (cs) => cs.map((c) => {
+    const r = c.getBoundingClientRect();
+    return { game: c.dataset.game, x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom };
+  }));
+  return { page, ctx, errors, boxes, W: opts.viewport.width, H: opts.viewport.height };
+}
+const SIZES = [
+  ['asztali 1280×800', DESKTOP, 'row', 260],
+  ['álló telefon 390×844', PHONE, 'column', 220],
+  ['fekvő telefon 844×390', PHONE_LAND, 'row', 200],
+  ['álló tablet 820×1180', TABLET, 'row', 260],
+  ['legkisebb 320×256', { viewport: { width: 320, height: 256 }, hasTouch: true, isMobile: true }, 'row', 200],
+  ['keskeny álló 320×568', { viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }, 'column', 220],
+];
+for (const [name, opts, dir, max] of SIZES) {
+  test(`jutalomválasztó ${name}: két négyzet a képen belül, nem fedik egymást, ${dir === 'row' ? 'Lufi balra' : 'Lufi fent'} (38.)`, async () => {
+    const { ctx, errors, boxes, W, H } = await chooserAt(opts);
+    assert.deepEqual(boxes.map((b) => b.game), ['lufi', 'panda']);
+    const [a, b] = boxes;
+    for (const k of boxes) {
+      assert.ok(Math.abs(k.w - k.h) < 1, `négyzet: ${k.w}×${k.h}`);
+      assert.ok(k.w <= max + 0.5, `legfeljebb ${max} px: ${k.w}`);
+      assert.ok(k.w >= 44, `érinthető: ${k.w}`);
+      assert.ok(k.x >= 0 && k.y >= 0 && k.r <= W && k.b <= H, `a képen belül: ${JSON.stringify(k)}`);
+    }
+    if (dir === 'row') { assert.ok(a.r < b.x, 'egymás mellett, Lufi balra'); assert.ok(Math.abs(a.y - b.y) < 1); }
+    else { assert.ok(a.b < b.y, 'egymás alatt, Lufi fent'); assert.ok(Math.abs(a.x - b.x) < 1); }
+    // középen mindkét irányban
+    const cx = (Math.min(a.x, b.x) + Math.max(a.r, b.r)) / 2, cy = (Math.min(a.y, b.y) + Math.max(a.b, b.b)) / 2;
+    assert.ok(Math.abs(cx - W / 2) < 2 && Math.abs(cy - H / 2) < 2, `középen: ${cx},${cy}`);
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+
+test('jutalomválasztó asztali: 260 px, 48 px rés; álló telefon: 24 px; fekvő: 32 px rés (U-C1)', async () => {
+  for (const [opts, w, gap] of [[DESKTOP, 260, 48], [PHONE, 218.4, 24], [PHONE_LAND, 200, 32]]) {
+    const { ctx, boxes: [a, b] } = await chooserAt(opts);
+    assert.ok(Math.abs(a.w - w) < 1, `kártya ${a.w} ≈ ${w}`);
+    const g = a.r < b.x ? b.x - a.r : b.y - a.b;
+    assert.ok(Math.abs(g - gap) < 1, `rés ${g} ≈ ${gap}`);
+    await ctx.close();
+  }
+});
+
+test('jutalomválasztó érintéssel: koppintás a Pandára indít; a ✕ végig látszik', async () => {
+  const { page, ctx, errors } = await chooserAt(PHONE);
+  assert.equal(await page.$eval('#cClose', (e) => getComputedStyle(e.parentElement).opacity), '1', 'a ✕ látszik');
+  await page.waitForTimeout(300);
+  await page.tap('#chooser .choice[data-game=panda]');
+  await page.waitForFunction(() => document.getElementById('stage').dataset.reward === 'panda');
+  await page.tap('#cClose');
+  await page.waitForSelector('#admin:not([hidden])');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('jutalomválasztó csökkentett mozgással: nincs beúszás és lebegés', async () => {
+  const { page, ctx } = await chooserAt({ ...DESKTOP, reducedMotion: 'reduce' });
+  const anim = await page.$$eval('#chooser .choice, #chooser .cb-bob, #chooser .hopper', (es) => es.map((e) => getComputedStyle(e).animationName));
+  assert.ok(anim.every((n) => n === 'none'), anim.join());
   await ctx.close();
 });
 
