@@ -1,0 +1,223 @@
+name: Kiadás egy gombnyomással
+
+# Actions → Kiadás egy gombnyomással → Run workflow (ág: main), lépés: patch / minor / major.
+#
+# 1. Verzió a dev-en: az éles (main) verzióból kiszámolja az újat, release/vX.Y.Z ágra commitolja.
+# 2. Tesztek: elindítja a Tesztek workflow-t (test, layout, e2e) erre a commitra, és megvárja.
+#    Ha zöld, a dev-et erre a commitra lépteti (fast-forward; a ruleset ezt engedi, mert a commiton
+#    a kötelező ellenőrzések már zöldek).
+# 3. Kiadási PR (dev → main): megnyitja (vagy a meglévőt használja), elindítja rajta a Kiadás
+#    ellenőrzését (check), és megvárja.
+# 4. Ha MINDEN kötelező ellenőrzés zöld (test, layout, e2e, check), merge committal összevonja,
+#    majd elindítja a Kiadás (GitHub Pages) workflow-t a main-en (kiadás + füstteszt + vX.Y.Z tag),
+#    és megvárja az eredményét.
+#
+# Miért nem pull_request esemény? A GITHUB_TOKEN-nel nyitott PR és pusholt commit nem indít
+# workflow-t (GitHub szabály), ezért a tesztek workflow_dispatch-csel indulnak ugyanarra a commitra.
+# A kötelező ellenőrzéseket a GitHub a commit SHA-ján értékeli, így ezek a PR-on is zölden látszanak.
+#
+# Védőkorlát: ha a main-en olyan változás van, ami a dev-ből hiányzik (hotfix/infra), a kiadás megáll,
+# mert akkor a PR összevont eredménye eltérne a tesztelt dev-től. Előbb a Dev szinkron PR-t kell összevonni.
+#
+# Újrafuttatható: ha egy korábbi futás a dev-et már léptette, a léptetés kimarad és onnan folytatja.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Léptetés: patch = javítás (1.0.1 → 1.0.2), minor = új funkció (→ 1.1.0), major = nem visszafelé kompatibilis (→ 2.0.0)'
+        type: choice
+        required: true
+        default: minor
+        options: [patch, minor, major]
+
+permissions:
+  contents: write        # release/vX.Y.Z ág, a dev léptetése, összevonás
+  pull-requests: write   # kiadási PR
+  actions: write         # a Tesztek, a Kiadás ellenőrzése és a Kiadás (GitHub Pages) indítása
+  checks: read           # a kötelező ellenőrzések állapota
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Segédfüggvények
+        run: |
+          cat > "$RUNNER_TEMP/lib.sh" <<'EOF'
+          ver() { sed -n "s/.*VERSION = '\([0-9.]*\)'.*/\1/p"; }
+
+          # wait_checks SHA név...  – megvárja, amíg a commiton a megnevezett ellenőrzések (legutóbbi
+          # futásuk) mind sikeresen lefutnak; bármelyik hibája vagy 30 perc után hibával tér vissza.
+          wait_checks() {
+            local sha=$1; shift
+            local deadline=$((SECONDS + 1800)) json n st pending
+            echo "Várakozás: $* @ ${sha:0:7}"
+            while :; do
+              json=$(gh api "repos/$REPO/commits/$sha/check-runs?per_page=100")
+              pending=""
+              for n in "$@"; do
+                st=$(jq -r --arg n "$n" '[.check_runs[] | select(.name == $n)] | sort_by(.started_at) | (last // {})
+                       | "\(.status // "hiányzik") \(.conclusion // "")"' <<< "$json")
+                case "$st" in
+                  "completed success") ;;
+                  completed*) echo "::error::A(z) '$n' ellenőrzés nem sikerült ($st)."; return 1 ;;
+                  *) pending="$pending $n" ;;
+                esac
+              done
+              [ -z "$pending" ] && { echo "Mind zöld: $*"; return 0; }
+              if [ $SECONDS -gt $deadline ]; then echo "::error::Időtúllépés, még fut / hiányzik:$pending"; return 1; fi
+              echo "  még fut / hiányzik:$pending"
+              sleep 20
+            done
+          }
+          EOF
+
+      - name: 1. Új verzió
+        id: v
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -e
+          . "$RUNNER_TEMP/lib.sh"
+          prod=$(git show origin/main:js/version.js | ver)
+          dev=$(ver < js/version.js)
+          IFS=. read -r a b c <<< "$prod"
+          case "$BUMP" in
+            major) new="$((a+1)).0.0" ;;
+            minor) new="$a.$((b+1)).0" ;;
+            patch) new="$a.$b.$((c+1))" ;;
+          esac
+          echo "éles: $prod  dev: $dev  új: $new"
+
+          if ! git diff --quiet origin/dev...origin/main; then
+            echo "::error::A main-en olyan változás van, ami a dev-ből hiányzik. Előbb vond össze a Dev szinkron (main → dev) PR-t, utána futtasd újra."
+            git log --no-merges --format='  %h %s' origin/dev..origin/main
+            exit 1
+          fi
+          if git diff --quiet origin/main origin/dev; then
+            echo "::error::A dev tartalma azonos a main-nel – nincs mit kiadni."
+            exit 1
+          fi
+          if [ "$dev" != "$new" ] && [ "$(printf '%s\n%s\n' "$dev" "$new" | sort -V | tail -1)" != "$new" ]; then
+            echo "::error::A dev verziója ($dev) már nagyobb, mint az új ($new). Válassz nagyobb lépést."
+            exit 1
+          fi
+          echo "prod=$prod" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          echo "bump_needed=$([ "$dev" = "$new" ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+          echo "## Kiadás: v$prod → v$new" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 2. Verzió a dev-en + tesztek
+        id: dev
+        env:
+          NEW: ${{ steps.v.outputs.new }}
+          BUMP_NEEDED: ${{ steps.v.outputs.bump_needed }}
+        run: |
+          set -e
+          . "$RUNNER_TEMP/lib.sh"
+          if [ "$BUMP_NEEDED" = "true" ]; then
+            branch="release/v$NEW"
+            sed -i "s/VERSION = '[^']*'/VERSION = '$NEW'/" js/version.js
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -qam "Verzió: v$NEW"
+            # egy korábbi, félbemaradt futás ágát felülírja
+            git push -qf origin "HEAD:refs/heads/$branch"
+            ref=$branch
+          else
+            echo "A dev már v$NEW – a léptetés kimarad, a dev jelenlegi commitját teszteli."
+            ref=dev
+          fi
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+          gh workflow run test.yml -R "$REPO" --ref "$ref"
+          wait_checks "$sha" test layout e2e
+
+          if [ "$BUMP_NEEDED" = "true" ]; then
+            # fast-forward: ha közben valaki a dev-re pusholt, itt elutasítja → futtasd újra
+            git push -q origin "$sha:refs/heads/dev"
+            git push -q origin --delete "$ref" || true
+            echo "- dev → v$NEW (\`${sha:0:7}\`), tesztek zöldek" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- dev már v$NEW (\`${sha:0:7}\`), tesztek zöldek" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: 3. Kiadási PR (dev → main) + ellenőrzés
+        id: pr
+        env:
+          NEW: ${{ steps.v.outputs.new }}
+          SHA: ${{ steps.dev.outputs.sha }}
+        run: |
+          set -e
+          . "$RUNNER_TEMP/lib.sh"
+          {
+            echo "Automatikus kiadás a *Kiadás egy gombnyomással* workflow-ból ($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID)."
+            echo
+            echo "## Mi változott"
+            echo
+            git log --no-merges --format='- %s (%h)' origin/main.."$SHA"
+          } > body.md
+          title="Kiadás v$NEW"
+          pr=$(gh pr list -R "$REPO" --base main --head dev --state open --json number --jq '.[0].number // empty')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" -R "$REPO" --title "$title" --body-file body.md
+          else
+            url=$(gh pr create -R "$REPO" --base main --head dev --title "$title" --body-file body.md)
+            pr=${url##*/}
+          fi
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "- Kiadási PR: #$pr" >> "$GITHUB_STEP_SUMMARY"
+
+          gh workflow run release-check.yml -R "$REPO" --ref dev
+          wait_checks "$SHA" test layout e2e check
+
+      - name: 4. Összevonás (merge commit)
+        id: merge
+        env:
+          NEW: ${{ steps.v.outputs.new }}
+          SHA: ${{ steps.dev.outputs.sha }}
+          PR: ${{ steps.pr.outputs.pr }}
+        run: |
+          set -e
+          # a sha miatt a GitHub elutasítja, ha a PR-ra közben új commit jött
+          main_sha=$(gh api -X PUT "repos/$REPO/pulls/$PR/merge" \
+            -f merge_method=merge -f sha="$SHA" -f commit_title="Kiadás v$NEW (#$PR)" --jq .sha)
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+          echo "- Összevonva: #$PR → main (\`${main_sha:0:7}\`)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 5. Kiadás (GitHub Pages) a main-en
+        env:
+          NEW: ${{ steps.v.outputs.new }}
+          MAIN_SHA: ${{ steps.merge.outputs.main_sha }}
+        run: |
+          set -e
+          gh workflow run deploy.yml -R "$REPO" --ref main
+          id=""
+          for i in $(seq 1 30); do
+            id=$(gh run list -R "$REPO" -w deploy.yml -b main -e workflow_dispatch -c "$MAIN_SHA" \
+                   --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$id" ] && break
+            sleep 5
+          done
+          [ -n "$id" ] || { echo "::error::Nem találom az elindított Kiadás futást."; exit 1; }
+          echo "Kiadás futás: $GITHUB_SERVER_URL/$REPO/actions/runs/$id"
+          if gh run watch "$id" -R "$REPO" --exit-status -i 30 > /dev/null; then
+            echo "- ✅ **v$NEW élesben**: https://mangyal.github.io/olvasoka/ (kiadás, füstteszt, tag rendben)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- ❌ A Kiadás futás hibás: $GITHUB_SERVER_URL/$REPO/actions/runs/$id" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

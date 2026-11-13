@@ -152,15 +152,19 @@ a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is 
    múlva a dev oldalon látszik.
 2. **Kipróbálás** a dev oldalon, tableten/telefonon is. A dev telepítve „Olvasóka DEV” néven, sötét
    ikonnal jelenik meg, a beállításai az élestől függetlenek.
-3. **Kiadás:** Actions → *Kiadás előkészítése* → *Run workflow* (ág: `main`), lépés: `patch` (javítás),
-   `minor` (új funkció) vagy `major`. A futás összefoglalójában két link van, kitöltött címmel:
-   - **Verzió-PR** (`release/vX.Y.Z` → `dev`): megnyitod, ha zöld, összevonod.
-   - **Kiadási PR** (`dev` → `main`): miután a dev oldal az új verziót mutatja, megnyitod, kipipálod a
-     listát, és **merge committal** vonod össze (nem squash). A workflow kiteszi az élest és `vX.Y.Z`
-     taget készít.
+3. **Kiadás (egy gombnyomás):** Actions → *Kiadás egy gombnyomással* → *Run workflow* (ág: `main`),
+   lépés: `patch` (javítás), `minor` (új funkció) vagy `major`. A workflow:
+   - a `dev`-en lépteti a verziót (`release/vX.Y.Z` ágon commitolja, lefuttatja rajta a *Tesztek*-et,
+     és ha zöld, a `dev`-et erre a commitra lépteti),
+   - megnyitja a **Kiadási PR**-t (`dev` → `main`, cím: „Kiadás vX.Y.Z”), lefuttatja rajta a *Kiadás
+     ellenőrzését*,
+   - ha **minden** kötelező ellenőrzés zöld (`test`, `layout`, `e2e`, `check`), **merge committal**
+     összevonja, majd kiteszi az élest (füstteszt + `vX.Y.Z` tag), és megvárja az eredményt.
 
-   A PR-okat azért nyitod meg te, mert a `dev`-re és a `main`-re csak olyan változás kerülhet, amelyen
-   lefutottak a kötelező ellenőrzések, és ezek a bot által nyitott PR-on nem futnak.
+   Megáll, ha a `main`-en olyan változás van, ami a `dev`-ből hiányzik (előbb a *Dev szinkron* PR), ha
+   nincs mit kiadni, vagy ha bármelyik teszt piros. Hiba után nyugodtan újrafuttatható.
+   A tesztek `workflow_dispatch`-csel indulnak, mert a GITHUB_TOKEN-nel nyitott PR nem indít workflow-t;
+   az ellenőrzések a commithoz kötődnek, így a PR-on is zölden látszanak.
 4. **Visszavonás:** a `main`-en a kiadás merge commitjának *Revert*-je; kb. 1 perc múlva a régi változat fut.
 5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel).
 
