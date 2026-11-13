@@ -1,0 +1,51 @@
+/* ================= Első lépések (bemutató; docs/bemutato-specifikacio.md) =================
+   Két külön fix réteg a kiemeléshez (3.1): a sötétítés lyukkal (clip-path, JS számolja) és a gyűrű.
+   A buborék és a kihagyás utáni üzenet helyét is JS számolja (js/ui/tour.js). */
+.tour-scrim{position:fixed;inset:0;z-index:60;background:rgba(30,42,50,.42)}
+.tour-ring{position:fixed;z-index:61;pointer-events:none;box-shadow:0 0 0 4px var(--field),0 0 0 7px var(--accent)}
+@media (prefers-reduced-motion:no-preference){
+  .tour-ring{animation:tour-pulse 2.4s ease-in-out infinite}
+  .tour-in{animation:tour-fade 200ms ease-out}
+}
+@keyframes tour-pulse{50%{box-shadow:0 0 0 4px var(--field),0 0 0 10px rgba(46,107,102,.5)}}
+@keyframes tour-fade{from{opacity:0}}
+
+.tour-bubble{position:fixed;z-index:62;left:0;top:0;width:320px;background:var(--field);color:var(--ink);border-radius:12px;box-shadow:0 10px 30px rgba(30,42,50,.28);padding:16px 16px 12px 18px;display:flex;flex-direction:column;gap:8px;font:400 15px/1.45 var(--f-ui)}
+.tour-eyebrow{margin:0;font-size:12px;line-height:1;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.tour-title{margin:0;font-size:18px;line-height:1.25;font-weight:700}
+/* a cím csak a felolvasónak kap fókuszt lépésváltáskor (6.); nem vezérlő, ezért nincs fókuszkeret */
+.tour-title:focus{outline:none}
+.tour-text{margin:0}
+.tour-text b{font-weight:700}
+.tour-text kbd{font-size:13px;color:var(--ink);background:#fff}
+.tour-foot{display:flex;align-items:center;gap:8px;margin-top:4px}
+.tour-dots{display:inline-flex;gap:4px;align-items:center;flex:none}
+.tour-dots i{display:block;width:6px;height:6px;border-radius:3px;background:var(--line)}
+.tour-dots i.past,.tour-dots i.cur{background:var(--accent)}
+.tour-dots i.cur{width:16px}
+.tour-actions{margin-left:auto;display:flex;align-items:center;gap:4px}
+.tour-skip{min-height:44px;padding:0 10px;color:var(--ink-2);font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.tour-next{min-height:44px;padding:0 18px;border-radius:8px;font-size:15px}
+
+/* nyíl: 14 px-es elforgatott négyzet, a --arrow a buborék éle mentén a célelem közepe */
+.tour-arrow{position:absolute;width:14px;height:14px;background:var(--field);transform:rotate(45deg)}
+.tour-bubble[data-side=right] .tour-arrow{left:-7px;top:calc(var(--arrow) - 7px)}
+.tour-bubble[data-side=left] .tour-arrow{right:-7px;top:calc(var(--arrow) - 7px)}
+.tour-bubble[data-side=below] .tour-arrow{top:-7px;left:calc(var(--arrow) - 7px)}
+.tour-bubble[data-side=above] .tour-arrow{bottom:-7px;left:calc(var(--arrow) - 7px)}
+.tour-bubble[data-side=none] .tour-arrow{display:none}
+
+/* kihagyás utáni üzenet (4.4): sötét buborék a Súgó gomb alatt */
+.tour-toast{position:fixed;z-index:62;left:0;top:0;width:340px;display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border-radius:10px;padding:14px 14px 14px 16px;box-shadow:0 10px 30px rgba(30,42,50,.25);font:400 14px/1.4 var(--f-ui)}
+.tour-toast .tour-arrow{width:12px;height:12px;background:var(--ink);top:-6px;left:calc(var(--arrow) - 6px)}
+.tour-toast-text{flex:1;min-width:0}
+.tour-ok{flex:none;min-height:44px;padding:0 14px;border:0;border-radius:8px;background:#fff;color:var(--ink);font:600 14px/1 var(--f-ui);cursor:pointer}
+
+/* telefonon teljes szélesség, 16 px margóval (3.2, 4.4) */
+@media (max-width:599.98px){
+  .tour-bubble,.tour-toast{width:calc(100vw - 32px)}
+}
+/* a „túl kicsi képernyő” lapnál (320 × 256 alatt) a bemutató nem látszik (6.) */
+@media (max-width:319px),(max-height:255px){
+  .tour-scrim,.tour-ring,.tour-bubble,.tour-toast{display:none!important}
+}

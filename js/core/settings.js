@@ -1,5 +1,7 @@
 // Beállítások és a helyben tárolt állapot sémája. Tiszta modul.
 
+import { normalizeTour } from './tour.js';
+
 /** A „Szünet a tételek között” választható értékei (ms). */
 export const GAPS = [0, 500, 1000, 2000, 3000];
 export const FLASH_MAX = 25000;
@@ -58,18 +60,20 @@ export const levelToDegree = (level, levels = [0, 0.25, 0.5, 0.75, 1]) =>
 export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ? m : 'read');
 
 /**
- * Helyi állapot: { v: 4, mode, settings, find, lastLists: string[], hideHelp: boolean,
+ * Helyi állapot: { v: 4, mode, settings, find, lastLists: string[], hideHelp: boolean, tour,
  *                  cache: { text, fetchedAt, kind: 'sheet'|'txt' } | null }.
  * mode: a kiválasztott játék ('read' | 'find').
  * find: a Keresd meg! beállításai (clampFind); a mező csak hozzáadás, ezért a v marad 4.
- * hideHelp: a súgó ne jelenjen meg magától induláskor.
+ * hideHelp: a régi „Ne jelenjen meg újra” jelölő; már csak olvassuk (aki bepipálta, annak a bemutató sem indul magától).
+ * tour: az Első lépések bemutató állapota (js/core/tour.js): null | { v, how: 'done'|'skipped', at };
+ * a mező csak hozzáadás, ezért a v marad 4.
  * lastLists: a legutóbb kijelölt listák neve. A cache a legutóbb letöltött lista szövege
  * (táblázat CSV vagy lists.txt, `kind` szerint; a kind nélküli régi cache lists.txt).
  * A v2 egyetlen lastList neve átkerül a lastLists tömbbe; a v3 mode nélkül 'read'.
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), lastLists: [], hideHelp: false, cache: null };
+  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), lastLists: [], hideHelp: false, tour: null, cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -80,6 +84,7 @@ export function normalizeState(o) {
     find: clampFind(o.find),
     lastLists,
     hideHelp: o.hideHelp === true,
+    tour: normalizeTour(o.tour),
     cache: o.cache && typeof o.cache === 'object' && typeof o.cache.text === 'string' && Number.isFinite(o.cache.fetchedAt)
       ? { text: o.cache.text, fetchedAt: o.cache.fetchedAt, kind: o.cache.kind === 'sheet' ? 'sheet' : 'txt' } : null,
   };

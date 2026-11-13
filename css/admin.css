@@ -75,10 +75,8 @@ dialog p{margin:0 0 12px}
 .dlg-help h3{margin:16px 0 6px;font-size:15px;font-weight:600}
 .help-steps{margin:0;padding-left:1.4em;display:grid;gap:6px}
 .help-steps kbd{font:inherit;font-size:13px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--field)}
-.help-actions{justify-content:space-between;align-items:center}
+.help-actions{align-items:center}
 .help-install{font-size:13px;margin:14px 0 0}
-.help-hide{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--ink-2)}
-.help-hide input{accent-color:var(--accent);width:18px;height:18px;margin:0}
 .only-touch{display:none}
 @media (max-width:600px),(hover:none) and (pointer:coarse){.only-keys{display:none!important}.only-touch{display:inline}}
 .only-narrow{display:none}

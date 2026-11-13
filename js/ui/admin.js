@@ -6,7 +6,7 @@ import { itemsOf } from '../core/selection.js';
 import { distinctCount, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
 import { createPool, buildGrid } from '../core/grid.js';
 
-const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
+export const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 // érintős elsődleges mutató: az oldalsávban koppintás = hozzáad/elvesz (Ctrl nélkül)
 const COARSE = matchMedia('(hover:none) and (pointer:coarse)');
 // a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)

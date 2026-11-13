@@ -12,9 +12,12 @@ import { clickSelect, reconcile, sourceFor, applySource } from './core/selection
 import { initFont, fontLooksRight } from './font.js';
 import { ENV } from './core/env.js';
 import { VERSION } from './version.js';
-import { createAdmin } from './ui/admin.js';
+import { createAdmin, MOD } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
 import { createProgressView } from './ui/haladas.js';
+import { createTour } from './ui/tour.js';
+import { TOUR_VERSION, normalizeTour, shouldAutoStart, fitsViewport } from './core/tour.js';
+import { DEFAULTS as PROGRESS_DEFAULTS } from './core/haladas-config.js';
 
 const $ = (id) => document.getElementById(id);
 const el = new Proxy({}, { get: (c, k) => (c[k] ??= $(k)) });
@@ -28,6 +31,8 @@ const app = {
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
   mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
   settings: saved.settings, find: saved.find, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
+  // Első lépések (docs/bemutato-specifikacio.md, 5.); ha a helyi tárolás nem írható, a munkamenetből
+  tour: saved.tour || readSessionTour(),
   pairs: { state: 'loading', cc: null },  // a Keresd meg! konfigurációja (parok.json); 'failed': a fül inaktív
   kind: saved.cache?.kind || null,  // amiből a látható listák jöttek
   fallback: '',                     // miért nem a táblázatból jöttek (F-L13)
@@ -46,7 +51,18 @@ if (cache) {
 function persist() {
   // amíg a parok.json nem jött meg (vagy hibás), a tárolt mód nem íródik felül: legközelebb újra próbálja
   const mode = app.pairs.state === 'ok' ? app.mode : saved.mode;
-  store.write({ v: 4, mode: normalizeMode(mode), settings: app.settings, find: app.find, lastLists: app.lastLists, hideHelp: app.hideHelp, cache });
+  return store.write({ v: 4, mode: normalizeMode(mode), settings: app.settings, find: app.find, lastLists: app.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
+}
+
+/* Első lépések: ha a localStorage nem írható (pl. privát ablak), a sessionStorage-ba kerül, hogy a
+   munkameneten belül ne jöjjön újra (5.). Élesben 'olvasoka_tour', devben 'olvasoka-dev_tour'. */
+function readSessionTour() {
+  try { return normalizeTour(JSON.parse(sessionStorage.getItem(`${ENV.storageKey}_tour`) || 'null')); } catch { return null; }
+}
+function saveTour(how) {
+  app.tour = { v: TOUR_VERSION, how, at: Date.now() };
+  if (persist()) return;
+  try { sessionStorage.setItem(`${ENV.storageKey}_tour`, JSON.stringify(app.tour)); } catch { /* memóriában marad */ }
 }
 const listKeys = () => app.lists.map((l) => nameKey(l.name));
 
@@ -161,6 +177,7 @@ const admin = createAdmin(el, app, {
   start(ev) {
     // modális ablak (súgó, betűteszt, alsó lap) alatt nem indul; a nem modális súgó-popover bezárul
     if (practice.active || !admin.canStart() || document.querySelector('dialog:modal')) return;
+    tour.gameStarted();               // a bemutató közben indított játék = Kész (4.2)
     admin.closeHow();
     el.admin.hidden = true;
     if (app.mode === 'find') {
@@ -202,6 +219,7 @@ async function refresh() {
   }
   pickSelected();
   admin.render();
+  if (app.lists.length) listsReady();
 }
 
 /* ---------- Keresd meg! konfiguráció (parok.json) ---------- */
@@ -221,7 +239,11 @@ async function loadPairs() {
 // Hiányzó vagy hibás fájlnál a beépített alapértékekkel fut, és a konzolra figyelmeztet (7.8).
 async function loadProgressConfig() {
   try {
-    progress.setConfig(resolveProgress(await fetchProgressConfig(), { skipDayRules: ENV.skipDayRules }));
+    const cfg = await fetchProgressConfig();
+    progress.setConfig(resolveProgress(cfg, { skipDayRules: ENV.skipDayRules }));
+    // a bemutató a beállított napszámot mondja, a teszteléshez való napszabály-kapcsolótól függetlenül
+    tourDays = resolveProgress(cfg).allapot.min_nap;
+    tour.refresh();
   } catch (e) {
     console.warn('Haladás: a haladas.json nem használható, az alapértékekkel fut.', e.message);
   }
@@ -231,6 +253,7 @@ async function loadProgressConfig() {
 document.addEventListener('keydown', (e) => {
   if (practice.active) { practice.key(e); return; }
   if (!el.haladas.hidden) { progressView.key(e); return; }
+  if (tour.key(e)) return;
   if (admin.key(e)) return;
   if ((e.ctrlKey || e.metaKey) && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
     e.preventDefault();
@@ -239,10 +262,30 @@ document.addEventListener('keydown', (e) => {
 }, true);
 
 document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
-// súgó: induláskor magától, amíg a „Ne jelenjen meg újra” nincs bepipálva; a fejlécből bármikor
-function openHelp() { el.helpHide.checked = app.hideHelp; el.dlgHelp.showModal(); }
-el.helpBtn.addEventListener('click', openHelp);
-el.helpHide.addEventListener('change', () => { app.hideHelp = el.helpHide.checked; persist(); });
+// súgó: a fejlécből bármikor; induláskor helyette az Első lépések bemutató (docs/bemutato-specifikacio.md)
+el.helpBtn.addEventListener('click', () => el.dlgHelp.showModal());
+
+/* ---------- Első lépések (bemutató) ---------- */
+let tourDays = PROGRESS_DEFAULTS.allapot.min_nap;
+const tour = createTour(el, { mod: MOD, minDays: () => tourDays, onEnd: saveTour });
+// „Bemutató újra” a Súgóban: az 1. lépéstől; a végén a tárolt állapot felülíródik (4.5)
+el.tourAgain.addEventListener('click', () => { el.dlgHelp.close(); tour.start(); });
+
+// Magától (4.1): a listák betöltődtek (első renderelés listákkal) vagy 3 mp eltelt, és az ablak elég nagy.
+let listsReady;
+const listsLoaded = new Promise((r) => { listsReady = r; setTimeout(r, 3000); });
+function autoStartTour() {
+  if (!shouldAutoStart({ tour: app.tour, hideHelp: app.hideHelp, hash: location.hash })) return;
+  if (app.lists.length) listsReady();
+  listsLoaded.then(() => new Promise((ok) => {
+    const check = () => { if (fitsViewport(innerWidth, innerHeight)) { removeEventListener('resize', check); ok(); } };
+    addEventListener('resize', check);
+    check();
+  })).then(() => {
+    // közben elindított játék vagy Súgóból indított bemutató: nem indul újra
+    if (!practice.active && !tour.active && !app.tour) tour.start();
+  });
+}
 // a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
 el.editLink.href = SHEET_EDIT_URL;
 el.listsEdit.href = SHEET_EDIT_URL;
@@ -260,7 +303,7 @@ if (ENV.env === 'dev') {
 pickSelected();
 admin.render();
 route();                          // ha a cím #haladas…, rögtön a Haladás nézet
-if (!app.hideHelp && el.haladas.hidden) openHelp();
+autoStartTour();
 initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();

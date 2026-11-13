@@ -1079,9 +1079,9 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   a panel bal szélén (✕, Esc, kívülre kattintás, a gomb újbóli megnyomása zárja; a fókusz a ✕-re, majd
   vissza a gombra); érintőn, 900 px alatt és mobil fekvőben alsó lap „Értem” gombbal. A gyakorlás
   billentyűi itt vannak, az admin alsó sorából kikerültek.
-- **U-A7a Súgó:** modális ablak a program céljáról és használatáról (5 lépés). Induláskor magától
-  megjelenik, amíg a „Ne jelenjen meg újra” jelölőnégyzet nincs bepipálva (`hideHelp` a helyi
-  állapotban); a fejléc „Súgó” gombja bármikor megnyitja. Billentyűs eszközön a billentyűket,
+- **U-A7a Súgó:** modális ablak a program céljáról és használatáról (5 lépés). A fejléc „Súgó”
+  gombja bármikor megnyitja; induláskor helyette az Első lépések bemutató indul
+  ([bemutato-specifikacio.md](bemutato-specifikacio.md)), amit a Súgó „Bemutató újra” gombja újraindít. Billentyűs eszközön a billentyűket,
   érintőképernyőn és 600 px alatt a jelölőnégyzeteket és a gombokat írja le. Telefonon szinte
   teljes képernyős, a gomb teljes szélességű. Egy mondatban említi a szótag-takarást is
   (kattintás/koppintás a szótagra, illetve `↓`).
