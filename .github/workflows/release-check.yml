@@ -3,10 +3,15 @@ name: Kiadás ellenőrzése
 # PR a main-be (= éles kiadás). Ellenőrzi:
 #   1. honnan jön: dev (normál kiadás), hotfix/* (sürgős javítás), infra/* (workflow, kiadási eszközök)
 #   2. a js/version.js verziója nagyobb-e, mint a main-en (infra/* ágnál nem kötelező)
+#
+# Kézzel / a „Kiadás egy gombnyomással” workflow-ból is indítható (workflow_dispatch, ág: dev): ekkor
+# a futtatott ág a forrás, az összehasonlítás alapja a main. A `check` ellenőrzés a commit SHA-jához
+# kötődik, így a dev → main PR-on is zölden látszik.
 
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   check:
@@ -14,7 +19,7 @@ jobs:
     steps:
       - name: Forrás-ág
         env:
-          HEAD: ${{ github.head_ref }}
+          HEAD: ${{ github.head_ref || github.ref_name }}
         run: |
           case "$HEAD" in
             dev|hotfix/*|infra/*) echo "forrás: $HEAD – rendben" ;;
@@ -27,8 +32,8 @@ jobs:
 
       - name: Verzió léptetve
         env:
-          HEAD: ${{ github.head_ref }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.head_ref || github.ref_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/main' }}
         run: |
           ver() { sed -n "s/.*VERSION = '\([0-9.]*\)'.*/\1/p"; }
           new=$(ver < js/version.js)
