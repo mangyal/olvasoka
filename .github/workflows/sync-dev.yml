@@ -21,7 +21,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check:
+  # nem „check”: az a main kötelező ellenőrzésének (Kiadás ellenőrzése) neve, ne keveredjen vele
+  sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

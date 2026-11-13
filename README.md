@@ -154,17 +154,17 @@ a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is 
    ikonnal jelenik meg, a beállításai az élestől függetlenek.
 3. **Kiadás (egy gombnyomás):** Actions → *Kiadás egy gombnyomással* → *Run workflow* (ág: `main`),
    lépés: `patch` (javítás), `minor` (új funkció) vagy `major`. A workflow:
-   - a `dev`-en lépteti a verziót (`release/vX.Y.Z` ágon commitolja, lefuttatja rajta a *Tesztek*-et,
-     és ha zöld, a `dev`-et erre a commitra lépteti),
-   - megnyitja a **Kiadási PR**-t (`dev` → `main`, cím: „Kiadás vX.Y.Z”), lefuttatja rajta a *Kiadás
-     ellenőrzését*,
-   - ha **minden** kötelező ellenőrzés zöld (`test`, `layout`, `e2e`, `check`), **merge committal**
-     összevonja, majd kiteszi az élest (füstteszt + `vX.Y.Z` tag), és megvárja az eredményt.
+   - **Verzió-PR** (`release/vX.Y.Z` → `dev`): lépteti a verziót, megvárja a *Tesztek*-et, összevonja,
+   - **Kiadási PR** (`dev` → `main`, „Kiadás vX.Y.Z”): ha **minden** kötelező ellenőrzés zöld (`test`,
+     `layout`, `e2e`, `check`), **merge committal** összevonja,
+   - megvárja a *Kiadás (GitHub Pages)* futást (kiadás, füstteszt, `vX.Y.Z` tag).
 
    Megáll, ha a `main`-en olyan változás van, ami a `dev`-ből hiányzik (előbb a *Dev szinkron* PR), ha
-   nincs mit kiadni, vagy ha bármelyik teszt piros. Hiba után nyugodtan újrafuttatható.
-   A tesztek `workflow_dispatch`-csel indulnak, mert a GITHUB_TOKEN-nel nyitott PR nem indít workflow-t;
-   az ellenőrzések a commithoz kötődnek, így a PR-on is zölden látszanak.
+   nincs mit kiadni, vagy ha bármelyik ellenőrzés piros. Hiba után újrafuttatható.
+
+   Kell hozzá a `RELEASE_TOKEN` secret: fine-grained personal access token csak erre a repóra
+   (*Contents*, *Pull requests*, *Workflows*: Read and write). A GITHUB_TOKEN-nel nyitott PR és
+   összevonás nem indít workflow-t, így a kötelező ellenőrzések sem futnának le.
 4. **Visszavonás:** a `main`-en a kiadás merge commitjának *Revert*-je; kb. 1 perc múlva a régi változat fut.
 5. **Sürgős javítás:** `hotfix/…` ág a `main`-ből, PR a `main`-be (verzióléptetéssel).
 
