@@ -8,7 +8,9 @@
 //   - időzítős kör: az időjelző látszik és fogy
 //   - kézi kör (0): nincs időjelző, és a tétel magától nem vált
 //   - léptetés: közép → elejére vissza → utolsó előtti; a haladásjelző és a tétel közben változik
-//   - Esc: gyakorlásból és jutalomból is a szülői nézetbe
+//   - Esc: gyakorlásból, a jutalomválasztóból és a jutalomból is a szülői nézetbe
+//   - jutalomválasztó: nincs kiemelés, 600 ms bemenetzár, ← → / egér kiemel, Space/Enter/↑ indít,
+//     kattintás indít, ?jutalom= esetén kimarad (F-R14, ellenőrzés 36.)
 //   - panda-ugrálás (?jutalom=panda): nyilakkal a célig, ↑ nem ejt le, rossz irány leejt, koppintás
 //
 // Az elrendezést (képernyőméretek, panelek, pöttysor/sáv váltása) az e2e/layout.mjs teszteli; ez a
@@ -116,6 +118,8 @@ async function startRound({ flash, count, list = 'Szótagok' }) {
   await page.waitForFunction(() => document.getElementById('itemText').textContent);
 }
 const item = () => text('#itemText');
+/** A kör vége: a jutalomválasztó (F-R14). */
+const toChooser = (p = page, timeout) => p.waitForFunction(() => document.getElementById('stage').dataset.mode === 'choose', null, timeout ? { timeout } : {});
 /** A haladásjelző állása: { n, of, dot } – a felirat („3. tétel a 10-ből”) és az aktuális pötty sorszáma (1-től). */
 const progress = () => page.evaluate(() => {
   const p = document.getElementById('progress');
@@ -248,14 +252,148 @@ test('Esc gyakorlásból a szülői nézetbe visz, a kijelölés megmarad', asyn
   assert.equal(await page.locator('#startBtn').isEnabled(), true);
 });
 
+test('Esc a jutalomválasztóból játék nélkül a szülői nézetbe visz', async () => {
+  await startRound({ flash: 0, count: 2 });
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  await toChooser();
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#stage').isHidden(), true);
+  assert.equal(await page.locator('#chooser').isHidden(), true);
+  assert.equal(await page.evaluate(() => document.getElementById('stage').dataset.reward), undefined, 'nem indult játék');
+});
+
 test('Esc a jutalomból is a szülői nézetbe visz', async () => {
   await startRound({ flash: 0, count: 2 });
   await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  await toChooser();
+  await armed();
+  await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Space');
   await page.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
   await page.keyboard.press('Escape');
   await page.locator('#admin').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#stage').isHidden(), true);
+});
+
+/* ---------- Jutalomválasztó (spec F-R14, 12.5b, ellenőrzés 36.) ---------- */
+const chooser = () => page.evaluate(() => {
+  const cs = [...document.querySelectorAll('#chooser .choice')];
+  return {
+    mode: document.getElementById('stage').dataset.mode,
+    reward: document.getElementById('stage').dataset.reward ?? null,
+    labels: cs.map((c) => c.getAttribute('aria-label')),
+    hi: cs.filter((c) => c.classList.contains('is-hi')).map((c) => c.dataset.game),
+    focus: document.activeElement?.closest?.('.choice')?.dataset.game ?? null,
+  };
+});
+const ARM_MS = 600;
+/** Az első 600 ms a bemenetzár; utána a választó kész. */
+const armed = () => page.waitForTimeout(ARM_MS + 100);
+
+test('jutalomválasztó: két kártya, kiemelés nélkül; 600 ms-ig semmi; ← → kiemel (fókusz), Space indít (36.)', async () => {
+  await startRound({ flash: 0, count: 2 });
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  // a kör végi lendület: → és Space rögtön a választó megjelenése után
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Space');
+  let c = await chooser();
+  assert.equal(c.mode, 'choose', 'a kör végén a választó jön, nem a játék');
+  assert.deepEqual(c.labels, ['Lufipukkasztás', 'Panda-ugrálás'], 'rögzített sorrend: Lufi, Panda');
+  assert.deepEqual(c.hi, [], 'a bemenetzár alatt nincs kiemelés');
+  assert.equal(await page.getAttribute('#chooser', 'role'), 'group');
+  assert.equal(await page.getAttribute('#chooser', 'aria-label'), 'Válassz játékot');
+  assert.equal((await page.textContent('#chooser')).trim(), '', 'nincs szöveg a gyerek nézetben (U-E4)');
+  assert.equal(await page.isVisible('#progress'), false, 'nincs haladásjelző');
+  assert.equal(await page.isVisible('.navbar'), false, 'nincs vezérlősáv');
+
+  await armed();
+  for (const k of ['Space', 'Enter', 'ArrowUp']) {
+    await page.keyboard.press(k);
+    assert.equal((await chooser()).mode, 'choose', `${k}: kiemelés nélkül nem indít`);
+  }
+  await page.keyboard.press('ArrowRight');
+  c = await chooser();
+  assert.deepEqual(c.hi, ['panda']); assert.equal(c.focus, 'panda', 'a kiemelés a fókusz');
+  await page.keyboard.press('ArrowLeft');
+  c = await chooser();
+  assert.deepEqual(c.hi, ['lufi']); assert.equal(c.focus, 'lufi');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Space');
+  assert.deepEqual((await chooser()).hi, [], 'választás után nincs „kiemelés”, csak a választott keret');
+  assert.equal(await page.$eval('#chooser .choice[data-game=panda]', (e) => e.classList.contains('is-picked')), true);
+  await page.waitForFunction(() => document.getElementById('stage').dataset.reward === 'panda');
+  assert.equal(await page.isHidden('#chooser'), true);
+  assert.equal(await page.$eval('#stage', (e) => e.classList.contains('sky')), true, 'az ég marad');
+  // az ég már kész: a panda nem vár újabb 1,8 mp-et (a padok rögtön beúsznak)
+  await page.waitForFunction(() => document.getElementById('rewardCount').textContent.startsWith('0/'), null, { timeout: 1500 });
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+});
+
+test('jutalomválasztó: Enter és ↑ is a kiemeltet indítja', async () => {
+  for (const [arrow, start, game] of [['ArrowLeft', 'Enter', 'lufi'], ['ArrowRight', 'ArrowUp', 'panda']]) {
+    await startRound({ flash: 0, count: 1 });
+    await page.keyboard.press('Space');
+    await toChooser();
+    await armed();
+    await page.keyboard.press(arrow);
+    await page.keyboard.press(start);
+    await page.waitForFunction((g) => document.getElementById('stage').dataset.reward === g, game);
+    await page.keyboard.press('Escape');
+    await page.locator('#admin').waitFor({ state: 'visible' });
+  }
+});
+
+test('jutalomválasztó: kattintás a Lufira a lufikat indítja; az ég már kész', async () => {
+  await startRound({ flash: 0, count: 1 });
+  await page.keyboard.press('Space');
+  await toChooser();
+  await page.locator('#chooser .choice[data-game=lufi]').click();   // a bemenetzár alatt: nem számít
+  assert.equal((await chooser()).mode, 'choose');
+  await armed();
+  await page.locator('#chooser .choice[data-game=lufi]').click();
+  await page.waitForFunction(() => document.getElementById('stage').dataset.reward === 'lufi');
+  // a lufik nem várnak újabb 1,8 mp-et
+  await page.waitForFunction(() => document.querySelectorAll('#balloons .balloon').length > 0, null, { timeout: 1200 });
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+});
+
+test('jutalomválasztó: egér fölé állva kiemel; az utolsó bemenet (egér vagy nyíl) nyer', async () => {
+  await startRound({ flash: 0, count: 1 });
+  await page.keyboard.press('Space');
+  await toChooser();
+  await armed();
+  const center = async (g) => {
+    const b = await page.locator(`#chooser .choice[data-game=${g}]`).boundingBox();
+    return [b.x + b.width / 2, b.y + b.height / 2];
+  };
+  await page.mouse.move(5, 400);
+  await page.mouse.move(...await center('panda'), { steps: 4 });
+  let c = await chooser();
+  assert.deepEqual(c.hi, ['panda'], 'egérrel kiemel'); assert.equal(c.focus, 'panda');
+  await page.keyboard.press('ArrowLeft');
+  c = await chooser();
+  assert.deepEqual(c.hi, ['lufi'], 'a nyíl felülírja, egyszerre csak egy kiemelt');
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => document.getElementById('stage').dataset.reward === 'lufi');
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+});
+
+test('?jutalom=lufi: a választó kimarad, a lufik jönnek', async () => {
+  await page.goto(base + '?jutalom=lufi');
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 1 });
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => document.getElementById('stage').dataset.reward === 'lufi');
+  assert.equal(await page.isHidden('#chooser'), true);
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
 });
 
 /* ---------- Panda-ugrálás (spec 5a., ellenőrzés 35–37.) ---------- */
@@ -431,7 +569,7 @@ test('Keresd meg!: kör a forrás tételeiből; jelölés, ←, →, jutalom; ni
   await page.keyboard.press('ArrowRight');
   assert.equal(await findTask(), 3);
   await page.keyboard.press('ArrowRight');
-  await page.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await toChooser();
   await page.keyboard.press('Escape');
   await page.locator('#admin').waitFor({ state: 'visible' });
   assert.equal(await page.getAttribute('#tabFind', 'aria-selected'), 'true');
@@ -620,7 +758,7 @@ test('Haladás napló: villantásos körben a gombnyomás ideje a flashDwell-be 
   await page.waitForTimeout(500);
   await page.keyboard.press('ArrowRight');                // a 1 mp-es villantás lejárta előtt
   const second = await item();
-  await page.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward', null, { timeout: 5000 });   // a második lejár
+  await toChooser(page, 5000);                             // a második lejár
   await page.keyboard.press('Escape');
   await page.locator('#admin').waitFor({ state: 'visible' });
   const root = await progressRoot();
@@ -681,7 +819,7 @@ test('Haladás: tiltott localStorage mellett a gyakorlás hibátlanul működik'
   await p.locator('#startBtn').click();
   await p.locator('#stage').waitFor({ state: 'visible' });
   for (let k = 0; k < 12; k++) { await p.waitForTimeout(450); await p.keyboard.press('ArrowRight'); }
-  await p.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await toChooser(p);
   await p.keyboard.press('Escape');
   await p.locator('#admin').waitFor({ state: 'visible' });
   await p.locator('#progressBtn').click();                // a Haladás tájékoztat (4.1)
@@ -732,7 +870,7 @@ async function readRound(p, { count, pauseOn = [] }) {
     if (pauseOn.includes(k)) { await p.keyboard.press('KeyP'); await p.waitForTimeout(150); await p.keyboard.press('KeyP'); }
     await p.keyboard.press('ArrowRight');
   }
-  await p.waitForFunction(() => document.getElementById('stage').dataset.mode === 'reward');
+  await toChooser(p);
   await p.keyboard.press('Escape');
   await p.locator('#admin').waitFor({ state: 'visible' });
   return seen;

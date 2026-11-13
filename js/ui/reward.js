@@ -6,7 +6,7 @@ import { shuffledIdx } from '../core/sequence.js';
 import { launch, stepBalloon, isOut, nozzle } from '../core/drift.js';
 import { confetti, CONFETTI_MS } from './confetti.js';
 
-const COLORS = ['#F2B5A7', '#F5D58F', '#B5D5BB', '#A7C8E0', '#CBB8DE', '#EFC2D3'];
+export const COLORS = ['#F2B5A7', '#F5D58F', '#B5D5BB', '#A7C8E0', '#CBB8DE', '#EFC2D3'];
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BLOWER = 128;                                   // px
 const ENTRY_MS = 2500;                                // ennyi idő alatt jön be az összes lufi
@@ -25,6 +25,15 @@ const balloonHTML = (bw, bh, color, period) =>
     `</div>` +
   `</div>`;
 
+// A választó kártyájának lufija (12.5b): ugyanaz a rajz, méret nélkül, a dobozt kitölti.
+export const balloonArt = (color) =>
+  `<svg viewBox="0 0 100 190" aria-hidden="true">` +
+    `<path d="M50 129c-6 16 6 30-1 58" fill="none" stroke="var(--ink)" stroke-opacity=".25" stroke-width="1.5"/>` +
+    `<path d="M44 131L50 120L56 131Z" fill="${color}"/>` +
+    `<ellipse cx="50" cy="61" rx="50" ry="61" fill="${color}"/>` +
+    `<ellipse cx="30" cy="34" rx="9" ry="15" fill="#ffffff" fill-opacity=".25" transform="rotate(-28 30 34)"/>` +
+  `</svg>`;
+
 export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }) {
   let timers = [], balloons = [], active = false, raf = 0, cf = null, wf = 0, blower = null, wind = null, windCv = null;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
@@ -32,12 +41,13 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
     if (countEl) countEl.textContent = balloons.length ? `${balloons.filter((b) => b.popped).length}/${balloons.length}` : '';
   };
 
-  function start() {
+  /** @param {{ skipSky?: boolean }} [o]  skipSky: a választó után a háttér már ég, nincs mire várni */
+  function start({ skipSky = false } = {}) {
     active = true;
     void stage.offsetWidth;
     stage.classList.add('sky');                       // U-R1: háttér papír → ég, 1,8 s
-    placeBlower();
-    later(reduced() ? 0 : 1800, reduced() ? spawnStatic : spawnFlying);
+    placeBlower(skipSky);
+    later(reduced() || skipSky ? 0 : 1800, reduced() ? spawnStatic : spawnFlying);
   }
 
   function stop() {
@@ -54,13 +64,16 @@ export function createReward({ stage, balloonsEl, particlesEl, countEl, onDone }
 
   // F-R8: hőlégfúvó véletlenül bal vagy jobb oldalt, az alsó harmadban, kicsit felfelé fordítva.
   // Az SVG balra fúj; bal oldalon tükrözve jobbra.
-  function placeBlower() {
+  function placeBlower(skipSky) {
     const left = Math.random() < 0.5;
     blower = document.createElement('img');
     blower.src = 'img/hoslegfuvo.svg'; blower.alt = ''; blower.className = 'blower ' + (left ? 'left' : 'right');
     blower.width = blower.height = BLOWER; blower.draggable = false;
     blower.style.setProperty('--tilt', `${TILT}deg`);
+    // az ég már kész: a fúvó késleltetés nélkül, de ugyanúgy beúszik (nem ugrik be)
+    if (skipSky) { blower.style.transitionDelay = '0s'; blower.style.opacity = '0'; }
     stage.insertBefore(blower, balloonsEl);
+    if (skipSky) { void blower.offsetWidth; blower.style.opacity = ''; }
     wind = { dir: left ? 1 : -1 };
   }
   const env = () => {

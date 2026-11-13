@@ -1,14 +1,12 @@
-// Melyik jutalomjáték jön (spec 5., 5a.). Tiszta modul.
+// A jutalomjátékok (spec 5., 5a., F-R14). Tiszta modul.
+// A gyerek a kör végén maga választ (core/choose.js); véletlen sorsolás nincs.
 
 export const REWARDS = ['lufi', 'panda'];
 
 /**
- * A következő jutalom: véletlenszerű, de kétszer egymás után nem ugyanaz (két játéknál: váltakozik).
- * `force`: a cím `?jutalom=lufi|panda` paramétere (kipróbáláshoz és a tesztekhez); érvénytelen érték nem számít.
+ * A cím `?jutalom=lufi|panda` paramétere (kipróbáláshoz és a tesztekhez): rögzíti a játékot, és a
+ * választó kimarad. Érvénytelen vagy hiányzó érték: null, azaz a gyerek választ.
  */
-export function pickReward(last, rng = Math.random, force = null, games = REWARDS) {
-  if (games.includes(force)) return force;
-  const pool = games.filter((g) => g !== last);
-  const from = pool.length ? pool : games;
-  return from[Math.floor(rng() * from.length)];
+export function forcedReward(value, games = REWARDS) {
+  return games.includes(value) ? value : null;
 }

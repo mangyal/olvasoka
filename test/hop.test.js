@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { geometry, makeCourse, placeCourse, needDir, jump, stepJump, landing, cameraFor, fellOut, LEVELS, SIDE_MIN, UP_MAX } from '../js/core/hop.js';
-import { pickReward } from '../js/core/rewards.js';
 
 const seeded = (s = 1) => () => ((s = (s * 16807) % 2147483647) / 2147483647);
 const SCREENS = [[1366, 768], [1920, 1080], [1024, 600], [390, 844], [844, 390], [320, 256]];
@@ -83,12 +82,4 @@ test('hop: a kamera nem mutat a kiinduló pad alá, és a célon túl sem görge
   assert.ok(mid < 0 && mid > goalY - g.top);
   // ha az egész pálya kifér, nincs görgetés
   assert.equal(cameraFor(g.bottom - 2 * g.S, g.bottom - 2 * g.S, geometry({ W: 1366, H: 2000 })), 0);
-});
-
-test('jutalom: kétszer egymás után nem ugyanaz; ?jutalom= felülírja', () => {
-  const rng = seeded(5);
-  let last = null;
-  for (let i = 0; i < 20; i++) { const r = pickReward(last, rng); assert.notEqual(r, last); last = r; }
-  assert.equal(pickReward('panda', rng, 'panda'), 'panda');
-  assert.ok(['lufi', 'panda'].includes(pickReward(null, rng, 'xyz')));
 });

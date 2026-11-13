@@ -11,7 +11,7 @@ const KEYS = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: 0, Space: 0 };
 const DARK = '#2F3A40';
 
 // Szemből látott panda; a talp a (50, 108) pontban. A kar, a szem és a mosoly CSS-ből vált (U-J2).
-const PANDA_SVG =
+export const PANDA_SVG =
   `<svg viewBox="0 0 100 110" aria-hidden="true">` +
     `<circle cx="22" cy="19" r="12.5" fill="${DARK}"/><circle cx="78" cy="19" r="12.5" fill="${DARK}"/>` +
     `<circle cx="22" cy="19" r="6" fill="#4C5A62"/><circle cx="78" cy="19" r="6" fill="#4C5A62"/>` +
@@ -37,7 +37,7 @@ const PANDA_SVG =
   `</svg>`;
 
 // Bambuszpad (U-J3): a viewBox aránya egyezik a pad arányával (1,6 P × 0,3 P).
-const padSVG = (goal) => {
+export const padSVG = (goal) => {
   const [body, joint, hi] = goal ? ['#F5D58F', '#D9B65E', '#FFFFFF'] : ['#B5D5BB', '#8DBE97', '#FFFFFF'];
   return `<svg viewBox="0 0 160 30" aria-hidden="true">` +
     `<rect x="0" y="2" width="160" height="26" rx="13" fill="${body}"/>` +
@@ -70,11 +70,12 @@ export function createPandaReward({ stage, layerEl, particlesEl, countEl, onDone
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
   const showCount = () => { if (countEl) countEl.textContent = state === 'off' ? '' : `${best}/${pads.length - 1}`; };
 
-  function start() {
+  /** @param {{ skipSky?: boolean }} [o]  skipSky: a választó után a háttér már ég, nincs mire várni */
+  function start({ skipSky = false } = {}) {
     active = true;
     void stage.offsetWidth;
     stage.classList.add('sky');                       // mint a lufiknál: papír → ég, 1,8 s
-    later(reduced() ? 0 : 1800, build);
+    later(reduced() || skipSky ? 0 : 1800, build);
   }
 
   function stop() {
