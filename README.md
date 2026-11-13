@@ -1,7 +1,7 @@
 # Olvasóka
 
 Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak. A szülő kiválaszt egy listát, a program
-egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör végén jutalomjáték jön: lufipukkasztás vagy panda-ugrálás.
+egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör végén a gyerek jutalomjátékot választ: lufipukkasztás vagy panda-ugrálás.
 Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
 
 **Élő oldal:** https://mangyal.github.io/olvasoka/
@@ -57,6 +57,7 @@ szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd á
 | `←` / `→` | előző / következő tétel |
 | `↓` | szótag-takarás léptetése (kötőjeles tételnél) |
 | `P` | szünet / folytatás |
+| `←` / `→`, `Space` | a kör végén: jutalom kiemelése, majd indítása (`Enter` és `↑` is indít) |
 | `Esc` | vissza a szülői felületre |
 | `Ctrl`+`Enter` | kör indítása a szülői felületen |
 
@@ -104,7 +105,8 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   selection.js        listák kijelölése
   drift.js            a jutalom lufijainak mozgása
   hop.js              a panda-ugrálás pályája és mozgása
-  rewards.js          melyik jutalomjáték jön (váltakozva; ?jutalom=lufi|panda)
+  choose.js           a jutalomválasztó lépés-logikája (a gyerek választ)
+  rewards.js          a jutalomjátékok; ?jutalom=lufi|panda rögzít, a választó kimarad
   cover.js            szótag-takarás
   settings.js         beállítások és a helyi tárolás sémája
   progress.js         a gyakorlás haladásjelzője (pöttysor / sáv)
@@ -119,7 +121,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   haladas-texts.js    Haladás: a felület szövegei egy helyen
   haladas-config.js   Haladás: a haladas.json ellenőrzése és alapértékei
 js/data/            localStorage, a Haladás naplója (progress-log.js) és a listák letöltése
-js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalmak (lufi, panda, konfetti)
+js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalomválasztó, jutalmak (lufi, panda, konfetti)
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
 test/               node --test

@@ -8,7 +8,8 @@ import { progressModel, dotState } from '../core/progress.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
 import { createPandaReward } from './panda.js';
-import { pickReward } from '../core/rewards.js';
+import { forcedReward } from '../core/rewards.js';
+import { createChooser } from './chooser.js';
 import { startFind as newFind, step as findStep, canPrev as findCanPrev } from '../core/find.js';
 import { createFindView } from './find.js';
 
@@ -24,7 +25,7 @@ const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem 
  *   progress: a Haladás naplója (data/progress-log.js); a Felolvasás kör átmeneteit kapja
  */
 export function createPractice(el, { onExit, progress = null }) {
-  let mode = 'off';                 // 'off' | 'practice' | 'find' | 'reward'
+  let mode = 'off';                 // 'off' | 'practice' | 'find' | 'choose' | 'reward'
   let fst = null;                   // a Keresd meg! kör állapota (core/find.js)
   let wake = null;                  // N9: a képernyő ne sötétüljön el gyakorlás közben
   let waking = false;               // a kérés folyamatban: ne induljon párhuzamosan még egy
@@ -50,13 +51,14 @@ export function createPractice(el, { onExit, progress = null }) {
   coverG.setAttribute('class', 'covers');
   el.itemText.after(coverG);
   const measure = document.createElement('canvas').getContext('2d');
-  // 5., 5a.: a jutalomjátékok; körönként váltakoznak, a `?jutalom=lufi|panda` cím rögzíti
+  // 5., 5a.: a jutalomjátékok; a kör végén a gyerek választ (F-R14), a `?jutalom=lufi|panda` cím rögzíti
   const rewards = {
     lufi: createReward({ stage: el.stage, balloonsEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit }),
     panda: createPandaReward({ stage: el.stage, layerEl: el.balloons, particlesEl: el.particles, countEl: el.rewardCount, onDone: exit }),
   };
-  const forced = new URLSearchParams(location.search).get('jutalom');
-  let rewardName = null, reward = null;
+  const forced = forcedReward(new URLSearchParams(location.search).get('jutalom'));
+  let reward = null;
+  const chooser = createChooser({ root: el.chooser, onPick: (name) => { if (mode === 'choose') playReward(name, true); } });
   const findView = createFindView({ grid: el.findGrid }, { onMark: (i) => findDispatch('MARK', i) });
 
   /* ---------- kör ---------- */
@@ -134,18 +136,30 @@ export function createPractice(el, { onExit, progress = null }) {
     clearTimeout(timer);
     if (mode === 'find') { findView.clear(); el.findGrid.hidden = true; fst = null; }
     if (mode === 'practice') progress?.endRound();
+    if (forced) { mode = 'reward'; el.stage.dataset.mode = 'reward'; render(); playReward(forced, false); return; }
+    // F-R14, 12.5b: a háttér papír → ég, közben megjelenik a két kártya; a gyerek választ
+    mode = 'choose';
+    el.stage.dataset.mode = 'choose';
+    render();
+    void el.stage.offsetWidth;
+    el.stage.classList.add('sky');
+    chooser.show();
+  }
+
+  /** @param {boolean} skipSky  a választóból jön: az ég már kész, a játék a saját belépőjével indul */
+  function playReward(name, skipSky) {
+    chooser.hide();
     mode = 'reward';
     el.stage.dataset.mode = 'reward';
-    render();
-    rewardName = pickReward(rewardName, Math.random, forced);
-    reward = rewards[rewardName];
-    el.stage.dataset.reward = rewardName;
-    reward.start();
+    reward = rewards[name];
+    el.stage.dataset.reward = name;
+    reward.start({ skipSky });
   }
 
   function exit() {
     clearTimeout(timer); clearTimeout(uiTimer);
     if (reward) { reward.stop(); reward = null; }
+    chooser.hide();
     if (mode === 'practice') progress?.endRound(st.index);   // kilépés a kör közben
     delete el.stage.dataset.reward;
     mode = 'off'; st = null; fst = null;
@@ -362,6 +376,11 @@ export function createPractice(el, { onExit, progress = null }) {
       if (!FIND_KEYS[e.code]) return;   // Tab, Enter: natív fókusz és jelölés a kártyákon
       e.preventDefault();
       if (!e.repeat) findDispatch(FIND_KEYS[e.code]);
+      return;
+    }
+    if (mode === 'choose' && e.code !== 'Escape') {
+      // 12.5b: ← → kiemel, Space / Enter / ↑ indít; a többi gyerek-billentyű elnyelődik, a Tab natív
+      if (chooser.key(e) || KID_KEYS[e.code]) e.preventDefault();
       return;
     }
     if (mode === 'reward' && e.code !== 'Escape') {
