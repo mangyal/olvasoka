@@ -385,6 +385,39 @@ test('jutalomválasztó: egér fölé állva kiemel; az utolsó bemenet (egér v
   await page.locator('#admin').waitFor({ state: 'visible' });
 });
 
+/** A fúvó és a lufik: van-e fúvó, és a lufik rétege alatta van-e (a DOM-sorrend dönt, z-index nincs). */
+const blowerState = (p = page) => p.evaluate(() => {
+  const b = document.querySelector('#stage .blower'), l = document.getElementById('balloons');
+  return { present: !!b, aboveBalloons: !!b && !!(l.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) };
+});
+
+test('lufik mozgással: a fúvó látszik, a lufik mögötte szállnak el (F-R8)', async () => {
+  await page.goto(base + '?jutalom=lufi');
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 1 });
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => document.querySelectorAll('#balloons .balloon.free').length > 0, null, { timeout: 5000 });
+  const st = await blowerState();
+  assert.equal(st.present, true, 'van fúvó');
+  assert.equal(st.aboveBalloons, true, 'a fúvó a lufik fölött (a lufik mögötte)');
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+});
+
+test('lufik csökkentett mozgással: helyben lebegnek, nincs fúvó és szélcsík (F-R11)', async () => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(base + '?jutalom=lufi');
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 1 });
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => document.querySelectorAll('#balloons .balloon').length > 0, null, { timeout: 3000 });
+  assert.equal((await blowerState()).present, false, 'nincs fúvó');
+  assert.equal(await page.locator('#stage canvas.wind').count(), 0, 'nincs szélcsík');
+  assert.equal(await page.locator('#balloons .balloon.free').count(), 0, 'nem szállnak');
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+});
+
 test('?jutalom=lufi: a választó kimarad, a lufik jönnek', async () => {
   await page.goto(base + '?jutalom=lufi');
   await page.locator('#listNav .nav-item').first().waitFor();
