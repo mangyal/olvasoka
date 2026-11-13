@@ -169,8 +169,9 @@ export function createTour(el, { mod = 'Ctrl', minDays = () => 3, onEnd = () => 
 
   /* ---------- figyelők ---------- */
   const ro = 'ResizeObserver' in window ? new ResizeObserver(schedule) : null;
-  // dialogok nyitása/zárása, a Haladás nézet és a szülői felület rejtése
-  const mo = new MutationObserver(schedule);
+  // dialogok nyitása/zárása, a Haladás nézet és a szülői felület rejtése. Ha emiatt el kell rejtőzni,
+  // azonnal (még a kirajzolás előtt), hogy egy képkockára se látsszon a buborék a lap vagy a nézet fölött.
+  const mo = new MutationObserver(() => { if (step && visible && blocked()) sync(); else schedule(); });
   const onTouch = () => { if (step) { render(); schedule(); } };
 
   function listen(on) {
