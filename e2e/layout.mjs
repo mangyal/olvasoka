@@ -1053,3 +1053,86 @@ test('fejléc: a Haladás gomb minden méretben látszik, legalább 44 px; telef
     await ctx.close();
   }
 });
+
+/* ================= Első lépések (bemutató; docs/bemutato-specifikacio.md, 3., 7.) ================= */
+// Minden lépésben: a buborék teljesen látszik, nem takarja a célelemet, és a célelem a lyukon át kattintható.
+
+const TOUR_TARGET = { 2: '#modeTabs', 3: '#progressBtn', 4: '#startBtn' };
+/** A bemutató aktuális lépésének mérése: buborék, célelem, a célelem közepén lévő elem. */
+const tourGeometry = (page, sel) => page.evaluate((s) => {
+  const b = document.querySelector('.tour-bubble').getBoundingClientRect();
+  const t = document.querySelector(s);
+  const r = t.getBoundingClientRect();
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  return {
+    bubble: b.toJSON(), target: r.toJSON(), view: { w: document.documentElement.clientWidth, h: innerHeight },
+    hitInside: Boolean(hit && t.contains(hit)), side: document.querySelector('.tour-bubble').dataset.side,
+  };
+}, sel);
+const tourStep = (page) => page.$eval('.tour-eyebrow', (e) => e.textContent);
+const firstListTarget = (page) => page.evaluate(() => ['listNav', 'listChecks', 'listsBtn']
+  .find((id) => { const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.height > 0; }));
+
+for (const [name, opts, list] of [
+  ['1280×800', DESKTOP, 'listNav'],
+  ['820×1180 (álló tablet)', TABLET, 'listChecks'],
+  ['390×844 (telefon)', PHONE, 'listsBtn'],
+  ['844×390 (fekvő telefon)', PHONE_LAND, 'listsBtn'],
+]) {
+  test(`bemutató ${name}: minden lépésben a buborék teljesen látszik, nem takarja a célelemet, a célelem kattintható`, async () => {
+    const { page, ctx, errors } = await open(opts, { hideHelp: false });
+    await page.waitForSelector('.tour-bubble:not([hidden])');
+    assert.equal(await firstListTarget(page), list, 'az 1. lépés célelme az elrendezés szerint');
+    for (let n = 1; n <= 4; n++) {
+      assert.equal(await tourStep(page), `Első lépések · ${n}/4`);
+      await page.waitForTimeout(260);            // az áttűnés és a görgetés után
+      const g = await tourGeometry(page, n === 1 ? `#${list}` : TOUR_TARGET[n]);
+      const b = g.bubble, t = g.target;
+      assert.ok(b.left >= 0 && b.top >= 0 && b.right <= g.view.w + 0.5 && b.bottom <= g.view.h + 0.5,
+        `${n}. lépés: a buborék az ablakon belül (${JSON.stringify(b)})`);
+      const overlap = !(b.right <= t.left || b.left >= t.right || b.bottom <= t.top || b.top >= t.bottom);
+      assert.equal(overlap, false, `${n}. lépés: a buborék nem takarja a célelemet (${g.side})`);
+      assert.ok(g.hitInside, `${n}. lépés: a célelem közepe kattintható`);
+      if (opts.viewport.width < 600) {
+        assert.equal(Math.round(b.left), 16, 'telefonon 16 px margó');
+        assert.equal(Math.round(b.width), opts.viewport.width - 32, 'telefonon teljes szélesség');
+      }
+      if (n < 4) await page.click('#tourNext');
+    }
+    for (const id of ['#tourSkip', '#tourNext']) {
+      const h = await page.$eval(id, (e) => e.getBoundingClientRect().height);
+      assert.ok(h >= 44, `${id} legalább 44 px magas`);
+    }
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+
+test('bemutató: átméretezéskor a célelem és a szöveg az új elrendezéshez igazodik', async () => {
+  const { page, ctx } = await open(DESKTOP, { hideHelp: false });
+  await page.waitForSelector('.tour-bubble:not([hidden])');
+  assert.match(await page.textContent('#tourText'), /^Kattints egy listára\./);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => /^Koppints ide/.test(document.getElementById('tourText').textContent));
+  const g = await tourGeometry(page, '#listsBtn');
+  assert.ok(g.hitInside, 'a lyuk az új célelemen');
+  assert.equal(g.side, 'below');
+  await ctx.close();
+});
+
+test('bemutató: a túl kicsi képernyő (320 × 256 alatt) alatt nem látszik', async () => {
+  const { page, ctx } = await open(DESKTOP, { hideHelp: false });
+  await page.waitForSelector('.tour-bubble:not([hidden])');
+  await page.setViewportSize({ width: 1270, height: 240 });
+  assert.ok(await shown(page, '#tooSmall'));
+  for (const sel of ['.tour-bubble', '.tour-scrim', '.tour-ring']) assert.equal(await shown(page, sel), false, sel);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  assert.ok(await shown(page, '.tour-bubble'), 'nagyobb ablakban visszajön');
+  await ctx.close();
+});
+
+test('bemutató: 320 × 400 alatti, de a minimumnál nagyobb ablakban is magától indul (döntés 2026-11-13)', async () => {
+  const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 568, height: 320 } }, { hideHelp: false });
+  await page.waitForSelector('.tour-bubble:not([hidden])');
+  await ctx.close();
+});

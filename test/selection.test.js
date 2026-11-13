@@ -40,7 +40,7 @@ test('kijelölés: tételek uniója ismétlődés nélkül', () => {
 test('tárolt állapot: v2 → v3', () => {
   assert.deepEqual(normalizeState({ v: 2, lastList: '45. oldal' }).lastLists, ['45. oldal']);
   assert.deepEqual(normalizeState({ v: 3, lastLists: ['A', 3, 'B'] }).lastLists, ['A', 'B']);
-  assert.deepEqual(normalizeState(null), { v: 4, mode: 'read', settings: normalizeState(null).settings, find: { cards: 4, tasks: 10, level: 1 }, lastLists: [], hideHelp: false, cache: null });
+  assert.deepEqual(normalizeState(null), { v: 4, mode: 'read', settings: normalizeState(null).settings, find: { cards: 4, tasks: 10, level: 1 }, lastLists: [], hideHelp: false, tour: null, cache: null });
   assert.equal(normalizeState({ hideHelp: true }).hideHelp, true);
   assert.equal(normalizeState({ hideHelp: 'igen' }).hideHelp, false);
 });
