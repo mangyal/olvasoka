@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  GAPS, snapGap, clampSettings, normalizeState, normalizeMode, estimate,
+  GAPS, snapGap, clampSettings, normalizeState, normalizeMode, estimate, DEFAULT_SETTINGS,
   DEFAULT_FIND, clampFind, LEVELS, LEVEL_LABELS, levelToDegree, findEstimate,
 } from '../js/core/settings.js';
 
@@ -53,7 +53,7 @@ test('állapot: v4 séma, a v3 adatai megmaradnak', () => {
     cache: { text: '# A\na', fetchedAt: 5, kind: 'sheet' } };
   const s = normalizeState(v3);
   assert.equal(s.v, 4);
-  assert.deepEqual(s.settings, { flashMs: 5000, gapMs: 2000, count: 12, source: 'all' });
+  assert.deepEqual(s.settings, { flashMs: 5000, gapMs: 2000, count: 12, source: 'all', mixed: false });
   assert.deepEqual(s.lastLists, ['A']);
   assert.equal(s.hideHelp, true);
   assert.deepEqual(s.cache, { text: '# A\na', fetchedAt: 5, kind: 'sheet' });
@@ -64,4 +64,15 @@ test('becslés: „N tétel · kb. X mp”, percekkel 60 mp fölött, kézi lép
   assert.deepEqual(estimate({ count: 10, flashMs: 10000, gapMs: 0 }), { count: '10 tétel', time: 'kb. 1 perc 40 mp' });
   assert.deepEqual(estimate({ count: 6, flashMs: 9000, gapMs: 1000 }), { count: '6 tétel', time: 'kb. 1 perc' });
   assert.deepEqual(estimate({ count: 10, flashMs: 0, gapMs: 1000 }), { count: '10 tétel', time: 'kézi léptetés' });
+});
+
+test('Kevert sorrend (2.14, F-1, F-2): alapból ki; csak a true kapcsol be; a v marad 4', () => {
+  assert.equal(DEFAULT_SETTINGS.mixed, false);
+  assert.equal(clampSettings({}).mixed, false);
+  assert.equal(clampSettings({ mixed: true }).mixed, true);
+  for (const x of ['true', 1, 'igen', null, {}, [true]]) assert.equal(clampSettings({ mixed: x }).mixed, false, JSON.stringify(x));
+  const s = normalizeState({ v: 4, settings: { flashMs: 5000, mixed: true } });
+  assert.equal(s.v, 4);
+  assert.equal(s.settings.mixed, true, 'a szülő utolsó választása megmarad');
+  assert.equal(normalizeState({ v: 4, settings: { flashMs: 5000 } }).settings.mixed, false, 'régi tárolt állapot: kikapcsolva');
 });

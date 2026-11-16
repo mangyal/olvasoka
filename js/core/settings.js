@@ -5,7 +5,8 @@ import { normalizeTour } from './tour.js';
 /** A „Szünet a tételek között” választható értékei (ms). */
 export const GAPS = [0, 500, 1000, 2000, 3000];
 export const FLASH_MAX = 25000;
-export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count: 10, source: 'list' });
+// mixed: a Felolvasás „Kevert sorrend” kapcsolója (2.14, F-1, F-2); alapból csoportosított sorrend.
+export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count: 10, source: 'list', mixed: false });
 
 /** A játékok: Felolvasás és Keresd meg!. */
 export const MODES = ['read', 'find'];
@@ -31,14 +32,14 @@ export function snapGap(ms) {
   return best;
 }
 
-/** Bármilyen bemenetből érvényes beállítás. flashMs = 0: kézi léptetés. */
+/** Bármilyen bemenetből érvényes beállítás. flashMs = 0: kézi léptetés. mixed: csak a true kapcsol be. */
 export function clampSettings(s) {
   s = s && typeof s === 'object' ? s : {};
   let f = Math.round(num(s.flashMs, DEFAULT_SETTINGS.flashMs) / 500) * 500;
   f = Math.min(FLASH_MAX, Math.max(0, f));
   let c = Math.round(num(s.count, DEFAULT_SETTINGS.count));
   c = Math.min(50, Math.max(1, c));
-  return { flashMs: f, gapMs: snapGap(s.gapMs), count: c, source: s.source === 'all' ? 'all' : 'list' };
+  return { flashMs: f, gapMs: snapGap(s.gapMs), count: c, source: s.source === 'all' ? 'all' : 'list', mixed: s.mixed === true };
 }
 
 /** Bármilyen bemenetből érvényes Keresd meg! beállítás; hiányzó vagy érvénytelen mezőnél az alapérték. */
@@ -64,6 +65,7 @@ export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ?
  *                  cache: { text, fetchedAt, kind: 'sheet'|'txt' } | null }.
  * mode: a kiválasztott játék ('read' | 'find').
  * find: a Keresd meg! beállításai (clampFind); a mező csak hozzáadás, ezért a v marad 4.
+ * settings.mixed (2.14): szintén csak hozzáadás; hiányzó vagy érvénytelen érték: false.
  * hideHelp: a régi „Ne jelenjen meg újra” jelölő; már csak olvassuk (aki bepipálta, annak a bemutató sem indul magától).
  * tour: az Első lépések bemutató állapota (js/core/tour.js): null | { v, how: 'done'|'skipped', at };
  * a mező csak hozzáadás, ezért a v marad 4.
