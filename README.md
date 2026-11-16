@@ -39,8 +39,8 @@ ke-fe
 - Egy tétel legfeljebb 20 karakter. A vessző elválaszt: az `a, á, e` sor három tétel.
 - A listanevek egyediek (kis-/nagybetűtől függetlenül).
 
-- Ha egy tétel egy listán belül többször szerepel (pl. egy oldal végi ismétlő sor), a program csak
-  egyszer veszi be.
+- Ha egy tétel többször szerepel (pl. egy oldal végi ismétlő sor), a program a Felolvasásban annyiszor
+  nagyobb eséllyel hozza, ahányszor le van írva. A felületen és a Keresd meg! kártyáin egyszer látszik.
 
 **Ha valami nem stimmel** (túl hosszú tétel, sor a lista neve előtt, üres vagy ismétlődő listanév),
 a commit után a GitHub *Actions* fülén piros ✕ jelenik meg, és a GitHub e-mailben elküldi, melyik
@@ -72,6 +72,11 @@ Billentyűk: `Space`/`→` következő feladat, `←` előző, kattintás jelöl
 oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy lenyíló sorból nyíló lapon
 választhatók.
 
+A Felolvasás köre csoportonként jön, ebben a sorrendben: magánhangzók, mássalhangzók, VC szótagok (`ók`),
+CV szótagok (`fa`), egyéb szótagok, végül a szavak szótagszám szerint. A **Kevert sorrend** jelölőnégyzettel
+a betűk, szótagok és szavak összekeverve jönnek. Ugyanaz a tétel sosem jön kétszer egymás után.
+A Keresd meg! egy feladata mindig csak egy csoport tételeiből áll.
+
 A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább. A tételek közti szünet 0, 0,5, 1, 2 vagy 3 mp.
 Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
 szótagra, vagy nyomd a `↓`-t (egész → csak az 1. szótag → … → csak az utolsó → egész). Az első takarás
@@ -98,7 +103,8 @@ haladas.json        Haladás: a szűrés és a csoportok küszöbei (docs/halada
 css/                tokens · szülői felület · gyakorló és jutalom nézet · Haladás · bemutató
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
 js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
-  sequence.js         sorozat-generátor („húzózsák”)
+  groups.js           tételcsoportok (magánhangzó, mássalhangzó, VC, CV, egyéb szótag, szó szótagszám szerint)
+  sequence.js         a Felolvasás köre: súlyozott húzás, csoportonkénti sorrend, szomszédsági szabály
   round.js            a gyakorlókör állapotgépe (időzítés, szünet, navigáció)
   items.js            tételek tisztítása
   lists.js            a lists.txt és a táblázat értelmezése
