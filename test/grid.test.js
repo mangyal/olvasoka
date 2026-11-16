@@ -6,8 +6,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   normalize, tokenize, typeOf, syllableCount, validateConfig, compileConfig, distance, innerRatio, curveFor,
-  createPool, buildGrid, gridFrom, seeded, meanToAnchor, closePairs, calibrateCurve,
+  createPool, buildGrid, gridFrom, seeded, meanToAnchor, closePairs, calibrateCurve, anchorChoices,
 } from '../js/core/grid.js';
+import { groupOf } from '../js/core/groups.js';
+import { itemKey } from '../js/core/items.js';
 import { parseListsText } from '../js/core/lists.js';
 
 const fx = (f) => new URL(`./fixtures/${f}`, import.meta.url);
@@ -92,62 +94,73 @@ test('konfiguráció: hibás görbe, csoport, hiányzó kulcs és elavult kulcs 
 /* ---------- szabálytesztek ---------- */
 
 const POOL = createPool(LIST, CC);
-const keys = new Set(POOL.entries.map((e) => e.key));
+const entryOf = (pool, t) => pool.entries.find((e) => e.key === itemKey(t));
 
-test('rács: minden tétel a forrásból, N különböző, az eredeti alakkal', () => {
+test('készlet: különböző tételek itemKey szerint (Ma ≠ ma ≠ m-a), súly = sorok száma, csoport (K-1, K-4)', () => {
+  const pool = createPool(['ma', 'Ma', 'm-a', 'ma', 'me', 'ma'], CC);
+  assert.deepEqual(pool.entries.map((e) => [e.text, e.weight, e.group]),
+    [['ma', 3, 'CV'], ['Ma', 1, 'CV'], ['m-a', 1, 'CV'], ['me', 1, 'CV']]);
+  assert.equal(pool.groupSize.get('CV'), 4);
+});
+
+test('rács: minden tétel a forrásból, különböző, az eredeti alakkal; a horgony a rácsban', () => {
   const rng = seeded(7);
   for (const lv of CC.levels) for (const n of [4, 6, 8]) for (let k = 0; k < 50; k++) {
     const g = buildGrid(POOL, n, lv, rng);
-    assert.equal(g.items.length, n);
-    assert.equal(new Set(g.items.map(normalize)).size, n, 'különböző tételek');
+    const size = POOL.groupSize.get(entryOf(POOL, g.anchor).group);
+    assert.equal(g.items.length, Math.min(n, size));
+    assert.equal(new Set(g.items.map(itemKey)).size, g.items.length, 'különböző tételek');
     for (const t of g.items) assert.ok(LIST.includes(t), `forrásból: ${t}`);
-    assert.ok(g.items.map(normalize).includes(g.anchor), 'a horgony a rácsban');
+    assert.ok(g.items.map(itemKey).includes(g.anchor), 'a horgony a rácsban');
   }
 });
 
-test('rács: azonos típusú készlet elég → nincs idegen típus; szónál a szótagszám is egyezik', () => {
+test('rács: minden tétel a horgony csoportjából, minden fokozaton és kártyaszámon (K-2)', () => {
   const rng = seeded(11);
-  const count = (f) => POOL.entries.filter(f).length;
-  for (let k = 0; k < 300; k++) {
-    const g = buildGrid(POOL, 4, k % 5 / 4, rng);
-    const a = POOL.entries.find((e) => e.key === g.anchor);
-    const same = a.type === 'szó' ? (e) => e.type === 'szó' && e.syl === a.syl : (e) => e.type === a.type;
-    if (count(same) < 4) continue;
-    for (const t of g.items) {
-      const e = POOL.entries.find((x) => x.key === normalize(t));
-      assert.ok(same(e), `${g.anchor} mellett ${t}`);
-    }
+  for (const lv of CC.levels) for (const n of [4, 6, 8]) for (let k = 0; k < 100; k++) {
+    const g = buildGrid(POOL, n, lv, rng);
+    const want = entryOf(POOL, g.anchor).group;
+    for (const t of g.items) assert.equal(groupOf(t).key, want, `${g.anchor} mellett ${t}`);
   }
 });
 
-test('rács: kis készlet (3 szótag, 6 betű), N = 4, szótag horgony → 3 szótag + 1 betű', () => {
+test('rács: kis csoport → csak a csoport tételei, legalább 2 kártya; 1 tételes csoport tétele soha (K-3, K-4)', () => {
+  // CV: ma, me, mi (3) · V: a, e, i, o, u (5) · C: m (1, soha)
   const pool = createPool(['ma', 'me', 'mi', 'a', 'e', 'i', 'o', 'u', 'm'], CC);
   const rng = seeded(3);
-  let seen = 0;
-  for (let k = 0; k < 200; k++) {
+  let cv = 0;
+  for (let k = 0; k < 400; k++) {
     const g = buildGrid(pool, 4, k % 5 / 4, rng);
-    if (typeOf(g.anchor) !== 'szótag') continue;
-    seen++;
-    const types = g.items.map(typeOf);
-    assert.equal(types.filter((t) => t === 'szótag').length, 3);
-    assert.equal(types.filter((t) => t === 'betű').length, 1);
+    assert.ok(!g.items.includes('m'), 'az 1 tételes csoport tétele nem jelenik meg');
+    if (groupOf(g.anchor).key === 'CV') {
+      cv++;
+      assert.deepEqual(new Set(g.items), new Set(['ma', 'me', 'mi']));
+    } else assert.equal(g.items.length, 4);
   }
-  assert.ok(seen > 20);
+  assert.ok(cv > 50);
 });
 
-test('rács: N-nél kevesebb egyedi tétel → mind (F-K3); ismétlődés egyszer számít', () => {
-  const pool = createPool(['ma', 'Ma', 'm-a', 'me', 'mi'], CC);
-  const g = buildGrid(pool, 6, 0, seeded(1));
-  assert.equal(g.items.length, 3);
-  assert.deepEqual(new Set(g.items.map(normalize)), new Set(['ma', 'me', 'mi']));
+test('rács: csak 1 tételes csoportok → nincs feladat', () => {
+  const pool = createPool(['a', 'm', 'ma', 'ok'], CC);
+  assert.deepEqual(buildGrid(pool, 4, 0, seeded(1)), { anchor: '', items: [] });
+});
+
+test('rács: a horgony a sorok számával súlyozott (K-4)', () => {
+  // a: 3 sor, e, i, o: 1-1 sor → az a horgony esélye 3/6
+  const pool = createPool(['a', 'a', 'a', 'e', 'i', 'o'], CC);
+  const rng = seeded(21), K = 6000;
+  let a = 0;
+  for (let k = 0; k < K; k++) if (buildGrid(pool, 4, 0, rng).anchor === 'a') a++;
+  assert.ok(Math.abs(a / K - 0.5) < 0.03, `a horgony aránya: ${a / K}`);
 });
 
 test('rács: a sorrend fokozattól függetlenül véletlen (a horgony bárhol lehet)', () => {
+  const pool = createPool(LIST.filter((t) => groupOf(t).key === 'CV'), CC);
   for (const lv of [0, 1]) {
     const rng = seeded(5), pos = new Array(6).fill(0);
     for (let k = 0; k < 1200; k++) {
-      const g = buildGrid(POOL, 6, lv, rng);
-      pos[g.items.map(normalize).indexOf(g.anchor)]++;
+      const g = buildGrid(pool, 6, lv, rng);
+      pos[g.items.map(itemKey).indexOf(g.anchor)]++;
     }
     for (const c of pos) assert.ok(c > 120 && c < 280, `horgony helye: ${pos}`);
   }
@@ -167,25 +180,32 @@ test('rács: seedelt rng-vel determinisztikus', () => {
 
 /* ---------- statisztikai tesztek (rögzített seed, fixture-lista, N = 8) ---------- */
 
-function stats(cc, seed, K = 1500) {
-  const pool = createPool(LIST, cc), rng = seeded(seed), L = pool.entries.length;
+/** A horgony a választható tételekből (legalább 2 tételes csoport); `only`: csak ezek a csoportok. */
+function stats(cc, seed, K = 1500, only = null) {
+  const pool = createPool(LIST, cc), rng = seeded(seed);
+  const an = anchorChoices(pool).filter((i) => !only || only(pool.groupSize.get(pool.entries[i].group)));
   return cc.levels.map((lv) => {
     const s = innerRatio(lv, cc, 8);
     let md = 0, cp = 0;
     for (let k = 0; k < K; k++) {
-      const g = gridFrom(pool, Math.floor(rng() * L), 8, s, rng);
+      const g = gridFrom(pool, an[Math.floor(rng() * an.length)], 8, s, rng);
       md += meanToAnchor(pool, g); cp += closePairs(pool, g);
     }
     return { md: md / K, cp: cp / K };
   });
 }
 
-test('statisztika: mindkét mutató szigorúan monoton; a 0-s fokozaton ≤ 0.1 közeli pár', () => {
+test('statisztika: mindkét mutató szigorúan monoton', () => {
   const st = stats(CC, 2026);
   for (let i = 1; i < st.length; i++) {
     assert.ok(st[i].md < st[i - 1].md, `távolság csökken: ${st.map((x) => x.md.toFixed(2))}`);
     assert.ok(st[i].cp > st[i - 1].cp, `közeli párok nőnek: ${st.map((x) => x.cp.toFixed(2))}`);
   }
+});
+
+test('statisztika: a 0-s fokozaton ≤ 0.1 közeli pár, ahol a csoport elég nagy (legalább 3 × N tétel)', () => {
+  // Kis csoportban (pl. 9 magánhangzó, 8 kártya) a hasonló párok (a–á, o–ó) nem kerülhetők el (2.14, K-2).
+  const st = stats(CC, 2026, 1500, (size) => size >= 24);
   assert.ok(st[0].cp <= 0.1, `0-s fokozat: ${st[0].cp}`);
 });
 
@@ -198,4 +218,9 @@ test('kalibrálás: a görbe monoton, és ellenőrző horgonyokon a lépcsők ±
   const steps = st.slice(1).map((x, i) => st[i].md - x.md);
   const mean = steps.reduce((a, b) => a + b) / steps.length;
   for (const s of steps) assert.ok(Math.abs(s - mean) <= 0.05, `lépcsők: ${steps.map((x) => x.toFixed(3))}`);
+});
+
+test('kalibrálás: csak 1 tételes csoportok → az alapgörbe (nincs horgony)', () => {
+  const pool = createPool(['a', 'm', 'ma', 'ok'], CC);
+  assert.deepEqual(calibrateCurve(pool, 4), CC.levels);
 });
