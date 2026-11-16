@@ -24,10 +24,9 @@ test('táblázat: oszloponként egy lista, első sor a név, névsorban', () => 
   const r = parseSheetCsv(csv);
   assert.deepEqual(r.lists, [
     { name: '2. oldal', items: ['ma'] },
-    { name: '45. oldal', items: ['fa', 'ke-fe', 'lu-fi'] },
+    { name: '45. oldal', items: ['fa', 'ke-fe', 'lu-fi', 'fa'] },
     { name: 'Á-A-E', items: ['á', 'pá'] },
-  ], 'üres oszlop csendben kimarad; a cellán belüli vessző elválaszt; a név eleji # elhagyható');
-  assert.deepEqual(r.duplicates, [{ list: '45. oldal', item: 'fa', cell: 'A4' }]);
+  ], 'üres oszlop csendben kimarad; a cellán belüli vessző elválaszt; a név eleji # elhagyható; az ismétlődő tétel marad (2.14)');
   assert.deepEqual(r.problems, []);
 });
 
