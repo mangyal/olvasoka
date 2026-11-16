@@ -106,7 +106,7 @@ test('beállítások: ugyanúgy mentődnek és töltődnek vissza; becslés mind
   const s = await stored(page);
   assert.equal(s.v, 4);
   assert.equal(s.mode, 'read');
-  assert.deepEqual(s.settings, { flashMs: 0, gapMs: 1000, count: 11, source: 'all' });
+  assert.deepEqual(s.settings, { flashMs: 0, gapMs: 1000, count: 11, source: 'all', mixed: false });
   await page.reload();
   await page.waitForFunction(() => !document.getElementById('startBtn').disabled);
   assert.equal(await page.isChecked('#gap1000'), true);
@@ -271,6 +271,43 @@ test('álló tablet: chip-sor összesítővel, a súgó alsó lap, az Indítás 
   assert.ok(await page.isVisible('#howOk'));
   await page.tap('#howOk');
   assert.equal(await page.$eval('#howPop', (d) => d.open), false);
+  await ctx.close();
+});
+
+/** A Kevert sorrend és az információs doboza: a panelen belül, semmi nem lóg ki, nem fedik egymást. */
+async function mixedFits(page, label) {
+  const [box, chk, panel] = await Promise.all(['#mixedInfo', '#mixedIn', '#panelRead'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  assert.ok(box.left >= panel.left - 1 && box.right <= panel.right + 1, `${label}: a doboz a panelen belül`);
+  assert.ok(chk.bottom <= box.top + 1, `${label}: a jelölőnégyzet a doboz fölött`);
+  assert.equal(await page.$eval('#mixedInfo p', (p) => p.scrollWidth <= p.clientWidth + 1), true, `${label}: a szöveg nem lóg ki`);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${label}: nincs vízszintes görgetés`);
+}
+
+test('Kevert sorrend (2.14, F-1–F-3): jelölőnégyzet + a Nehézség információs doboza; minden méretben elfér', async () => {
+  for (const [opts, label] of [[DESKTOP, '1280×800'], [TABLET, 'álló tablet'], [PHONE, 'álló telefon'], [PHONE_LAND, 'fekvő telefon']]) {
+    const { page, ctx, errors } = await open(opts);
+    // ugyanaz a komponens, mint a Nehézség alatt: ikon + szöveg, azonos stílussal
+    const look = (q) => page.$eval(q, (e) => { const c = getComputedStyle(e); return [e.className, c.backgroundColor, c.borderRadius, c.paddingLeft, e.querySelector('svg.icon') ? 1 : 0]; });
+    assert.deepEqual(await look('#mixedInfo'), await look('#levelInfo'), `${label}: azonos komponens`);
+    await page.$eval('#mixedIn', (e) => e.scrollIntoView({ block: 'center' }));
+    assert.ok(await page.isVisible('#mixedInfo'), `${label}: a magyarázat mindig látszik`);
+    await mixedFits(page, label);
+    if (opts.hasTouch) {
+      const h = await page.$eval('.ctl-mixed .check', (e) => e.getBoundingClientRect().height);
+      assert.ok(h >= 44, `${label}: érintési cél ${h} px`);
+    }
+    await page.click('#tabFind');
+    assert.equal(await page.isVisible('#mixedIn'), false, `${label}: a Keresd meg!-ben nincs`);
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
+
+test('Kevert sorrend: a kattintás a feliratra is kapcsol, és mentődik', async () => {
+  const { page, ctx } = await open(DESKTOP);
+  await page.click('.ctl-mixed .check span');
+  assert.equal(await page.isChecked('#mixedIn'), true);
+  assert.equal((await stored(page)).settings.mixed, true);
   await ctx.close();
 });
 

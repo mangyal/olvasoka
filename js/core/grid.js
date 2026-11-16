@@ -2,16 +2,20 @@
 // nincs DOM, nincs hálózat; a véletlenforrás (`rng`) paraméter, így seedelve determinisztikus.
 //
 // Fogalmak: tétel (lista egy cellája), betű (a többjegyű egynek számít), típus (betű | szótag | szó),
-// horgony (a rács első, egyenletes véletlennel húzott tétele), távolság (súlyozott Levenshtein a
+// csoport (groups.js; a rács minden tétele a horgony csoportjából jön, 2.14 K-2), horgony (a rács első,
+// a sorok számával súlyozott véletlennel húzott tétele, K-4), távolság (súlyozott Levenshtein a
 // betűsorozatokon), fokozat (0–1), belső arány (a fokozat a kiegyenlítő görbén át), közös kezdet és
 // kezdet súlya (docs/keresd-meg-azonos-kezdet.md).
+
+import { itemKey } from './items.js';
+import { groupOf } from './groups.js';
 
 const VOWELS = new Set([...'aáeéiíoóöőuúüű']);
 const DIGRAPHS = ['cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
 
 /* ---------- tétel, betű, típus ---------- */
 
-/** Normalizált kulcs: NFC, kisbetű, kötőjel nélkül. Az ismétlődést ez szűri. */
+/** Normalizált alak a betűkre bontáshoz: NFC, kisbetű, kötőjel nélkül. A tételek azonosságát nem ez, hanem az itemKey dönti el. */
 export const normalize = (s) => String(s).normalize('NFC').toLocaleLowerCase('hu').replace(/-/g, '').trim();
 
 const MULTI = ['dzs', ...DIGRAPHS];
@@ -215,20 +219,25 @@ export function innerRatio(level, cc, n) {
 /* ---------- készlet és rács ---------- */
 
 /**
- * A kör tételeiből a heurisztika készlete: normalizálva egyedi tételek, az eredeti alakkal
- * (a kártyán az látszik, pl. „ka-pu”), típussal, szótagszámmal és a páronkénti távolságokkal.
- * A távolságtábla egyszer készül, a rácsok gyorsan épülnek belőle.
- * @param {string[]} items
+ * A kör soraiból a heurisztika készlete: a különböző tételek (itemKey: a kis- és nagybetű, a kötőjel
+ * számít, K-1), az eredeti alakkal, típussal, szótagszámmal, csoporttal, súllyal (ahány sora van, K-4)
+ * és a páronkénti távolságokkal. A távolságtábla egyszer készül, a rácsok gyorsan épülnek belőle.
+ * `groupSize`: csoport → különböző tételek száma; csak legalább 2 tételes csoport tétele játszható.
+ * @param {string[]} items  a kör sorai, ismétlésekkel
  */
 export function createPool(items, cc) {
-  const seen = new Set(), entries = [];
+  const byKey = new Map(), entries = [];
   for (const raw of items) {
-    const key = normalize(raw);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
+    const key = itemKey(raw);
+    if (byKey.has(key)) { byKey.get(key).weight++; continue; }
     const tokens = tokenize(raw);
-    entries.push({ text: raw, key, tokens, type: typeOf(raw), syl: tokens.filter(isVowel).length });
+    if (!tokens.length) continue;
+    const e = { text: raw, key, tokens, type: typeOf(raw), syl: tokens.filter(isVowel).length, group: groupOf(raw).key, weight: 1 };
+    byKey.set(key, e);
+    entries.push(e);
   }
+  const groupSize = new Map();
+  for (const e of entries) groupSize.set(e.group, (groupSize.get(e.group) || 0) + 1);
   const n = entries.length;
   const d = Array.from({ length: n }, () => new Float64Array(n));
   const pre = Array.from({ length: n }, () => new Uint8Array(n));
@@ -236,26 +245,20 @@ export function createPool(items, cc) {
     d[i][j] = d[j][i] = distanceTokens(entries[i].tokens, entries[j].tokens, cc);
     pre[i][j] = pre[j][i] = Math.min(255, prefixTokens(entries[i].tokens, entries[j].tokens));
   }
-  return { entries, d, pre, cc };
+  return { entries, d, pre, cc, groupSize };
 }
 
-// a feltöltés sorrendje (szabály 2.)
-const FILL = { 'betű': ['szótag', 'szó'], 'szótag': ['betű', 'szó'], 'szó': ['szótag', 'betű'] };
+/** A horgonynak választható tételek indexei: csak legalább 2 tételes csoportból (K-4). */
+export const anchorChoices = (pool) =>
+  pool.entries.map((e, i) => i).filter((i) => pool.groupSize.get(pool.entries[i].group) >= 2);
 
 /**
- * A horgonyhoz a készletek, sorrendben: előbb az azonos típusúak (szónál az azonos szótagszámúak),
- * aztán a feltöltés. Szónál az eltérő szótagszámú szavak a többi típus előtt jönnek.
+ * A horgonyhoz a készlet: csak a horgony csoportjának többi tétele (2.14, K-2). Más csoportból való
+ * feltöltés nincs; ha a csoport kicsi, a rács kevesebb kártyából áll (K-3).
  */
 function tiers(pool, a) {
-  const A = pool.entries[a];
-  const idx = (f) => pool.entries.map((e, i) => i).filter((i) => i !== a && f(pool.entries[i]));
-  const out = [];
-  if (A.type === 'szó') {
-    out.push(idx((e) => e.type === 'szó' && e.syl === A.syl));
-    out.push(idx((e) => e.type === 'szó' && e.syl !== A.syl));
-  } else out.push(idx((e) => e.type === A.type));
-  for (const t of FILL[A.type]) out.push(idx((e) => e.type === t));
-  return out;
+  const g = pool.entries[a].group;
+  return [pool.entries.map((e, i) => i).filter((i) => i !== a && pool.entries[i].group === g)];
 }
 
 /** Egy súlyozott húzás; ha minden súly 0, egyenletes. */
@@ -323,16 +326,18 @@ export function gridFrom(pool, a, n, s, rng) {
  * @param {number} level fokozat 0–1
  * @param {() => number} rng
  * @param {{ avoid?: string }} [o]  avoid: a horgony ne legyen ez a kulcs (az előző feladat horgonya)
- * @returns {{ anchor: string, items: string[] }}  items: véletlen sorrendben, az eredeti alakkal
+ * @returns {{ anchor: string, items: string[] }}  items: véletlen sorrendben, az eredeti alakkal;
+ *   üres, ha nincs legalább 2 tételes csoport
  */
 export function buildGrid(pool, n, level, rng, o = {}) {
-  const L = pool.entries.length;
-  if (!L) return { anchor: '', items: [] };
-  let choices = pool.entries.map((e, i) => i);
-  if (o.avoid && L > 1) choices = choices.filter((i) => pool.entries[i].key !== o.avoid);
-  const a = choices[Math.floor(rng() * choices.length)];
+  let choices = anchorChoices(pool);
+  if (!choices.length) return { anchor: '', items: [] };
+  if (o.avoid && choices.length > 1) choices = choices.filter((i) => pool.entries[i].key !== o.avoid);
+  // K-4: a horgony esélye arányos a sorai számával
+  const a = choices[pickWeighted(choices, choices.map((i) => pool.entries[i].weight), rng)];
   const s = innerRatio(level, pool.cc, n);
-  const grid = shuffle(gridFrom(pool, a, Math.min(n, L), s, rng), rng);
+  const size = pool.groupSize.get(pool.entries[a].group);
+  const grid = shuffle(gridFrom(pool, a, Math.min(n, size), s, rng), rng);
   return { anchor: pool.entries[a].key, items: grid.map((i) => pool.entries[i].text) };
 }
 
@@ -379,7 +384,7 @@ export function readingDepth(pool, grid) {
 
 /**
  * A mutató átlaga adott belső arány mellett, rögzített horgonymintán.
- * @param {number[]} anchors  készletindexek (típusarányos minta = egyenletes a teljes listából)
+ * @param {number[]} anchors  készletindexek (egyenletes minta a horgonynak választható tételekből)
  */
 export function measure(pool, n, s, anchors, perAnchor, seed) {
   const rng = seeded(seed);
@@ -397,13 +402,14 @@ export function measure(pool, n, s, anchors, perAnchor, seed) {
  * @returns {number[]}  a töréspontok, 0-tól 1-ig, monoton
  */
 export function calibrateCurve(pool, n, { anchors = Infinity, perAnchor = 20, points = 21, seed = 1 } = {}) {
-  const L = pool.entries.length;
   const levels = pool.cc.levels;
+  // a horgony csak legalább 2 tételes csoportból jöhet (K-4): a mintát is ezek adják
+  const eligible = anchorChoices(pool), L = eligible.length;
   if (L < 2) return levels.slice();
-  // alapból minden tétel egyszer horgony: ez pontosan típusarányos; kisebb mintánál véletlen horgonyok
+  // alapból minden választható tétel egyszer horgony; kisebb mintánál véletlen horgonyok
   const rng = seeded(seed ^ 0x9e3779b9);
-  const sample = anchors >= L ? pool.entries.map((e, i) => i)
-    : Array.from({ length: anchors }, () => Math.floor(rng() * L));
+  const sample = anchors >= L ? eligible
+    : Array.from({ length: anchors }, () => eligible[Math.floor(rng() * L)]);
   const xs = Array.from({ length: points }, (_, i) => i / (points - 1));
   // ugyanaz a seed minden ponton: a pontok közti különbség az arányból jön, nem a mintavételből
   let ys = xs.map((x) => measure(pool, n, x, sample, perAnchor, seed));

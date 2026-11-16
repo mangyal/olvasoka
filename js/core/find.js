@@ -4,7 +4,9 @@
 // megjelenítési sorrendben; a marked az aktuális feladatban megjelölt kártya sorszáma vagy null.
 // A program nem tudja, melyik a jó válasz, és nem értékel: csak megjelöli, amire a gyerek rábökött.
 
-import { createPool, buildGrid, normalize } from './grid.js';
+import { createPool, buildGrid, anchorChoices } from './grid.js';
+import { itemKey } from './items.js';
+import { groupOf } from './groups.js';
 
 /** Telefonon (a rövidebb oldal 500 CSS px alatt) legfeljebb ennyi kártya (F-K10). */
 export const PHONE_MAX_CARDS = 6;
@@ -16,9 +18,9 @@ export function effectiveCards(cards, width, height) {
 }
 
 /**
- * A kör összes feladata (F-K1). Két egymást követő feladatnak nem lehet azonos a horgonya (F-K16),
- * ha a forrásban legalább két különböző tétel van.
- * @param {string[]} items  a kör tételei (3.3a)
+ * A kör összes feladata (F-K1). Egy feladat csak egy csoport tételeiből áll (2.14, K-2). Két egymást
+ * követő feladatnak nem lehet azonos a horgonya (F-K16), ha van legalább két választható horgony.
+ * @param {string[]} items  a kör sorai, ismétlésekkel (3.3a; a horgony súlyozásához)
  * @param {{ cards:number, tasks:number, level:number }} o  level: a heurisztika fokozata (0–1)
  * @param {object} cc  compileConfig eredménye
  * @param {() => number} [rng]
@@ -26,7 +28,7 @@ export function effectiveCards(cards, width, height) {
  */
 export function buildTaskGrids(items, { cards, tasks, level }, cc, rng = Math.random) {
   const pool = createPool(items, cc);
-  if (!pool.entries.length) return [];
+  if (!anchorChoices(pool).length) return [];
   const out = [];
   let prev = '';
   for (let k = 0; k < tasks; k++) {
@@ -40,8 +42,25 @@ export function buildTaskGrids(items, { cards, tasks, level }, cc, rng = Math.ra
 /** Mint a buildTaskGrids, de csak a kártyák tételei: a kör állapota ezt tárolja. */
 export const buildTasks = (...a) => buildTaskGrids(...a).map((g) => g.items);
 
-/** Hány különböző tétel van a forrásban (F-S8: az Indításhoz legalább kettő kell). */
-export const distinctCount = (items) => new Set(items.map(normalize).filter(Boolean)).size;
+/** Hány különböző tétel van a forrásban (itemKey: a kis- és nagybetű számít). */
+export const distinctCount = (items) => new Set(items.map(itemKey).filter(Boolean)).size;
+
+/**
+ * Indítható-e a Keresd meg! (2.14, K-5): van-e legalább egy csoport legalább 2 különböző tétellel.
+ * A készlet nem kell hozzá (nincs távolságtábla), csak a csoportok.
+ */
+export function canFind(items) {
+  const seen = new Set(), size = new Map();
+  for (const raw of items) {
+    const k = itemKey(raw);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    const g = groupOf(raw).key;
+    size.set(g, (size.get(g) || 0) + 1);
+    if (size.get(g) >= 2) return true;
+  }
+  return false;
+}
 
 export function startFind(tasks) {
   return { tasks, index: 0, marked: null, done: false };

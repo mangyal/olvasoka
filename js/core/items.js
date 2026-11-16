@@ -11,6 +11,20 @@ export const nameKey = (s) => String(s).normalize('NFC').trim().toLocaleLowerCas
  */
 export const itemKey = (s) => String(s).normalize('NFC').trim();
 
+/**
+ * A különböző tételek (tételkulcs szerint) első előfordulásuk sorrendjében, az első alakjukkal (S-3).
+ * A szülői felület ezt mutatja; a kör összeállítása a sorokkal (ismétlésekkel) dolgozik.
+ * @param {string[]} rows
+ */
+export function distinctItems(rows) {
+  const seen = new Set(), out = [];
+  for (const r of rows) {
+    const k = itemKey(r);
+    if (!seen.has(k)) { seen.add(k); out.push(r); }
+  }
+  return out;
+}
+
 /** Magyar névelő számmal kezdődő szó elé: az 1., az 5., az 50., az 1000.… */
 export const art = (n) => {
   const d = String(n);

@@ -154,6 +154,21 @@ test('lista: Ctrl+kattintással N lista, a tételek uniója', async () => {
   assert.deepEqual(await chips(), LISTS['Szótagok']);
 });
 
+test('lista: az ismétlődő tétel a felületen egyszer látszik, a számok a különböző tételeké (2.14, S-3)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Ismétlő,Másik\r\na,a\r\ne,ma\r\na,\r\ne,\r\no,' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await navBtn('Ismétlő').click();
+  assert.equal(await text('#listCount'), '3 tétel');
+  assert.deepEqual(await chips(), ['a', 'e', 'o']);
+  assert.equal(await navBtn('Ismétlő').locator('.nav-count').textContent(), '3');
+  // két lista: listánként a különböző tételek; a fejléc a kijelölés különböző tételeit számolja
+  await navBtn('Másik').click({ modifiers: ['ControlOrMeta'] });
+  assert.equal(await text('#listCount'), '4 különböző tétel');
+  assert.deepEqual(await chips(), ['a', 'e', 'o', 'a', 'ma']);
+  assert.equal(await page.locator('#pickSum').textContent(), '2 lista · 4 tétel');
+});
+
 test('lista: „Összes lista” minden listát kijelöl; egy listára kattintva vissza „Kijelölt listák”', async () => {
   await navBtn('Betűk').click();
   await page.locator('#srcAll').check();
@@ -551,14 +566,24 @@ test('Keresd meg!: minta a kör tételeiből, „Másik minta” frissíti', asy
   for (const t of s) assert.ok(LISTS['Szótagok'].includes(t), t);
 });
 
-test('Keresd meg!: egyetlen különböző tétel → Indítás inaktív (F-S8)', async () => {
-  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Egy\r\nma\r\nMa' }));
+test('Keresd meg!: nincs legalább 2 tételes csoport → Indítás inaktív (K-5); Ma ≠ ma', async () => {
+  // minden csoport 1 tételes (ismétléssel is): magánhangzó, mássalhangzó, CV, 2 szótagú szó
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Egy\r\nma\r\nma\r\na\r\nk\r\nka-pu' }));
   await page.reload();
   await page.locator('#listNav .nav-item').first().waitFor();
   await page.locator('#tabFind').click();
   await page.waitForFunction(() => document.getElementById('startMsg').textContent);
   assert.equal(await text('#startMsg'), 'A Keresd meg!-hez legalább két különböző tétel kell.');
   assert.equal(await page.locator('#startBtn').isDisabled(), true);
+});
+
+test('Keresd meg!: a Ma és a ma két különböző tétel, egy csoportban → indítható (K-1)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Egy\r\nma\r\nMa' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await page.locator('#tabFind').click();
+  await page.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  assert.equal(await text('#startMsg'), '');
 });
 
 test('Keresd meg!: kör a forrás tételeiből; jelölés, ←, →, jutalom; nincs szöveg és szám (24–26., 31.)', async () => {
@@ -754,6 +779,54 @@ const progressRoot = () => page.evaluate(async (k) => {
   return decode(JSON.parse(localStorage.getItem(k) || 'null'));
 }, PROGRESS_KEY);
 
+/* ---------- Felolvasás: csoportosítás és Kevert sorrend (2.14) ---------- */
+test('Kevert sorrend: alapból ki, a magyarázat látszik; újratöltés után megmarad; a Keresd meg!-ben nincs', async () => {
+  const box = page.locator('#mixedIn');
+  assert.equal(await box.isChecked(), false);
+  assert.equal(await page.locator('#mixedInfo').isVisible(), true);
+  assert.equal(await text('#mixedInfo p'), 'Bekapcsolva a betűk, szótagok és szavak összekeverve jönnek.');
+  assert.equal(await box.getAttribute('aria-describedby'), 'mixedInfo');
+  await box.check();
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  assert.equal(await page.locator('#mixedIn').isChecked(), true, 'a szülő utolsó választása megmarad');
+  await page.locator('#tabFind').click();
+  assert.equal(await page.locator('#mixedIn').isVisible(), false, 'a Keresd meg! beállításai között nincs');
+});
+
+/** A legutóbbi kör tételsora a naplóból. */
+const lastRound = async () => (await progressRoot()).rounds.at(-1);
+const groupKey = (x) => (/^[aáeéiíoóöőuúüű]$/.test(x) ? 'V' : x.length === 1 ? 'C' : x.includes('-') ? 'W' : 'CV');
+
+test('Felolvasás: kikapcsolt kapcsolónál a kör csoportonként jön (magánhangzó, mássalhangzó, CV, szó); bekapcsolva keverten', async () => {
+  const rows = ['a', 'e', 'o', 'm', 'k', 's', 'ma', 'ke', 'so', 'ka-pu', 'lu-fi'];
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: ['Vegyes', ...rows].join('\r\n') }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count: 11, list: 'Vegyes' });
+  await page.keyboard.press('Escape');
+  await page.locator('#admin').waitFor({ state: 'visible' });
+  let r = await lastRound();
+  assert.equal(r.order, 'grouped');
+  const keys = r.items.map(groupKey);
+  assert.deepEqual(keys, ['V', 'V', 'V', 'C', 'C', 'C', 'CV', 'CV', 'CV', 'W', 'W'], r.items.join(' '));
+
+  // bekapcsolva: 5 körből legalább egyben visszavált egy korábbi csoportra
+  await page.locator('#mixedIn').check();
+  let mixed = 0;
+  for (let k = 0; k < 5; k++) {
+    await page.locator('#startBtn').click();
+    await page.locator('#stage').waitFor({ state: 'visible' });
+    await page.keyboard.press('Escape');
+    await page.locator('#admin').waitFor({ state: 'visible' });
+    r = await lastRound();
+    assert.equal(r.order, 'mixed');
+    const ks = r.items.map(groupKey);
+    if (ks.some((x, i) => i > 0 && x !== ks[i - 1] && ks.slice(0, i - 1).includes(x))) mixed++;
+  }
+  assert.ok(mixed >= 1, 'a kevert kör nem csoportosított');
+});
+
 test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éles kulcs érintetlen', async () => {
   await startRound({ flash: 0, count: 3 });
   const first = await item();
@@ -772,11 +845,12 @@ test('Haladás napló: kézi kör, javított mellényomás; dev kulcson, az éle
   await page.locator('#admin').waitFor({ state: 'visible' });
 
   const root = await progressRoot();
-  assert.equal(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).v, PROGRESS_KEY), 3, 'tárolt verzió');
+  assert.equal(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).v, PROGRESS_KEY), 4, 'tárolt verzió');
   assert.match(root.deviceId, /^r-[0-9a-z]{10}$/);
   assert.ok((await page.evaluate((k) => localStorage.getItem(k).length, PROGRESS_KEY)) < 3000, 'tömör tárolt alak');
   const [r] = root.rounds;
   assert.equal(r.mode, 'read'); assert.equal(r.completed, true); assert.equal(r.corrections, 1);
+  assert.equal(r.order, 'grouped', 'alapból csoportosított sorrend (H-2)');
   assert.deepEqual(r.listNames, ['Szótagok']); assert.match(r.listHash, /^[0-9a-f]{8}$/);
   const d = root.daily.find((x) => x.item === first);
   assert.equal(d.help[0], '0', 'a javított mellényomás nem segítség');

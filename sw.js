@@ -53,6 +53,7 @@ const ASSETS = [
   'js/core/find.js',
   'js/core/hop.js',
   'js/core/grid.js',
+  'js/core/groups.js',
   'js/core/haladas-config.js',
   'js/core/haladas-texts.js',
   'js/core/items.js',

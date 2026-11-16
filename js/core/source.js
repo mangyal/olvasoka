@@ -19,7 +19,7 @@ export function parseByKind(kind, text) {
  * `fallback` a táblázat hibájával. Ha semmi nem jött le, Error-t dob (a hívó a legutóbb letöltött
  * példányt mutatja, F-L9).
  * @param {(url:string) => Promise<{ text:string, type?:string }>} get  hibánál felhasználónak szóló üzenettel dob
- * @returns {Promise<{ lists, problems, duplicates, text:string, kind:'sheet'|'txt', fallback:string }>}
+ * @returns {Promise<{ lists, problems, text:string, kind:'sheet'|'txt', fallback:string }>}
  */
 export async function loadLists(get) {
   let fallback;

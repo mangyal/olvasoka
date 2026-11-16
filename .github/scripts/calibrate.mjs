@@ -28,7 +28,7 @@ if (!existsSync(file)) {
 }
 
 const mod = (p) => import(pathToFileURL(join(root, p)).href);
-const { validateConfig, compileConfig, createPool, calibrateCurve } = await mod('js/core/grid.js');
+const { validateConfig, compileConfig, createPool, calibrateCurve, anchorChoices } = await mod('js/core/grid.js');
 const { parseSheetCsv, parseListsText } = await mod('js/core/lists.js');
 const { SHEETS } = await mod('js/core/config.js');
 
@@ -63,7 +63,9 @@ const { lists, from } = await loadItems();
 const items = [...new Set(lists.flatMap((l) => l.items))];
 const cc = compileConfig(cfg);
 const pool = createPool(items, cc);
-if (pool.entries.length < 2) fail(`a kalibráláshoz legalább két különböző tétel kell (${from}: ${pool.entries.length})`);
+// csak legalább 2 tételes csoport tétele lehet horgony (2.14, K-4); régi fa (csoportok előtt): minden tétel
+const anchors = anchorChoices ? anchorChoices(pool).length : pool.entries.length;
+if (anchors < 2) fail(`a kalibráláshoz legalább két horgonynak választható tétel kell (${from}: ${anchors})`);
 
 const curve = {};
 for (const n of [4, 6, 8]) {

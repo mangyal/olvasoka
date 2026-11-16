@@ -1,9 +1,16 @@
 # Olvasóka: Haladás (tétel-elsajátítás) specifikáció
 
-Verzió: 1.8 · 2026. november 12.
+Verzió: 1.9 · 2026. november 16.
 Jóváhagyott design: https://claude.ai/artifact/N4rE1aqK15kpWbLvWXtcAr (vászon: „Olvasóka – egyszerűsített Haladás nézet”). Ha a design és ez a dokumentum ellentmond egymásnak, a design a mérvadó (lásd 8. fejezet).
 
 ## 0. Változások
+
+### 1.9 (az 1.8-hoz képest): a kör sorrendjének módja
+A Felolvasás csoportosított sorrendje és a súlyozás ismétléssel (fő spec 2.14, [csoportositas-sulyozas.md](csoportositas-sulyozas.md) 5. fejezet).
+- **Minden előfordulás mér (H-1):** ha egy tétel egy körben többször jön, minden megjelenése megjelenés, és minden mért ideje bekerül (5.2). A napszabály és a csoportok számítása változatlan.
+- **Sorrend módja (H-2):** a kör rekordja új `order` mezőt kap: `grouped` | `mixed` (a Kevert sorrend állása a kör indulásakor). Hiányzó érték (minden korábbi kör): `mixed`. Csak adatgyűjtés, a besorolás nem használja.
+- **Hányadik előfordulás (H-3):** nincs új mező; a kör tételsora pozíció szerint tárolva van (4.2a), ebből a nyers napló megőrzési idején belül kiszámolható.
+- **4. tárolt verzió (H-4, 4.2a):** a kör sor új utolsó eleme `o`. A tételsorok és a lista hash-e a különböző tételkulcsokból számol, ismétléses listán is (S-4).
 
 ### 1.8 (az 1.7-hez képest): közös adatkapu
 A dev környezetben (napszabály-kapcsolóval) talált ellentmondások javítása: egyetlen, segítséggel olvasott tétel „Még bizonytalan” lett („Már olvasta segítség nélkül is…”), miközben két önálló olvasás után még Kevés adat volt; a Kevés adat kártya „legalább 0 különböző napon” szöveget írt.
@@ -150,15 +157,16 @@ Alapelvek, amelyek minden döntést felülírnak:
 - A tétel **szövegét** tároljuk, sosem a lista indexét.
 - A kör a lista nevét **és tartalmi hash-ét** is tárolja (rövid, pl. 8 hexa karakter a rendezett tételkulcsokból).
 
-### 4.2a Tárolt formátum (3. verzió)
+### 4.2a Tárolt formátum (4. verzió)
 A 4.2 rekordjai a program memóriájában ilyen olvasható alakban vannak; a localStorage-be tömör alak kerül (`js/data/progress-codec.js`):
 - a körök és a napi összesítők mezőnevek nélküli tömbök; a napi összesítő azonosítója (eszköz|gyerek|tétel|nap) és mediánja betöltéskor áll elő;
 - a kör a tételeit egyszer tárolja (pozíció szerint); az események körönként egy szövegben vannak (`eltelt idő,pozíció,kód`), tétel és saját azonosító nélkül;
 - az olvasási idők 100 ms-os egységben; a villantásos olvasási idő `[idő, villantás]` pár, mindkettő 100 ms-os egységben (3,2 mp 10 mp-es villantásnál: `[32, 100]`);
 - a napi sor: `[tétel, nap, megjelenés, kézi, idők, takarás, megállítás, visszalépés, segítséggel, gyors, segítség, villantásos idők, eszköz?]`; az eszköz csak akkor, ha eltér a saját eszköztől (a 2. verzióban ez volt a 12. elem, a villantásos idők nélkül);
-- a kör sor utolsó eleme `fd` (0/1): a kör villantásos idői már a napi összesítőkben vannak;
+- a kör sor eleme `fd` (0/1): a kör villantásos idői már a napi összesítőkben vannak;
+- a kör sor utolsó eleme `o` (4. verzió): a sorrend módja, `0` = `mixed`, `1` = `grouped` (1.9);
 - az azonosítók rövidek (10 karakter, véletlen).
-Az 1. verziójú (olvasható) és a 2. verziójú adat betöltéskor átalakul (villantásos idő nélkül, `fd` = 0), a következő mentés már 3. verziót ír. Ismeretlen, újabb verziót a program nem ír felül: így egy gyorsítótárban maradt régebbi programváltozat a 3. verziót nem írja vissza 2.-ként (az új mezők nem vesznek el), csak memóriában dolgozik.
+Az 1. verziójú (olvasható) és a 2. verziójú adat betöltéskor átalakul (villantásos idő nélkül, `fd` = 0), a 3. verziójú `o` nélkül (`mixed`); a következő mentés már 4. verziót ír. Ismeretlen, újabb verziót a program nem ír felül: így egy gyorsítótárban maradt régebbi programváltozat a 4. verziót nem írja vissza 3.-ként (az új mezők nem vesznek el), csak memóriában dolgozik.
 
 ### 4.3 Tömörítés és méret
 - A nyers események a legutóbbi 30 körből (`nyers_megorzes_kor`) és legfeljebb 30 napig (`nyers_megorzes_nap`) maradnak meg; ami bármelyik korláton túl van, törlődik. Így a nyers napló mérete a használat gyakoriságától függetlenül korlátos (kb. 150 kB). Törlés előtt bekerülnek a napi összesítőkbe: minden kör a lezárásakor (vagy ha a lap közben bezárult, a következő induláskor) egyszer hozzáadódik. Az összesítő az eseményekből újraszámolható, amíg azok megvannak (`js/core/exposures.js`).

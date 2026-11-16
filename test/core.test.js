@@ -1,45 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildSequence, mulberry32 } from '../js/core/sequence.js';
 import { parseListsText } from '../js/core/lists.js';
 import { clampSettings, normalizeState } from '../js/core/settings.js';
 
-const sorted = (a) => [...a].sort((x, y) => x - y).join();
-
-test('9.1 húzózsák: 4 tétel, 10-es kör, 500 seed', () => {
-  for (let s = 1; s <= 500; s++) {
-    const q = buildSequence(4, 10, mulberry32(s));
-    assert.equal(q.length, 10);
-    assert.equal(sorted(q.slice(0, 4)), '0,1,2,3', `seed ${s}`);
-    assert.equal(sorted(q.slice(4, 8)), '0,1,2,3', `seed ${s}`);
-    assert.notEqual(q[8], q[9]);
-    assert.notEqual(q[3], q[4], `seed ${s}: 4. és 5.`);
-    assert.notEqual(q[7], q[8], `seed ${s}: 8. és 9.`);
-  }
-});
-
-test('soha nincs két azonos index egymás után (L > 1)', () => {
-  for (let s = 1; s <= 300; s++) for (const L of [2, 3, 7]) {
-    const q = buildSequence(L, 50, mulberry32(s));
-    for (let i = 1; i < q.length; i++) assert.notEqual(q[i], q[i - 1], `L=${L} seed=${s} i=${i}`);
-  }
-});
-
-test('határesetek', () => {
-  assert.deepEqual(buildSequence(1, 4, mulberry32(1)), [0, 0, 0, 0]);
-  assert.equal(new Set(buildSequence(5, 3, mulberry32(7))).size, 3);
-  assert.deepEqual(buildSequence(0, 5), []);
-  assert.deepEqual(buildSequence(6, 20, mulberry32(42)), buildSequence(6, 20, mulberry32(42)));
-});
-
 test('9.12 tételek tisztítása', () => {
   const r = parseListsText('# L\nő, a ,\n\nx, #kimarad, a, A, ' + 'x'.repeat(21));
-  assert.deepEqual(r.lists[0].items, ['ő', 'a', 'x', 'A'], 'NFC; kis-/nagybetű megmarad; a #-es és az ismétlődő kimarad');
+  assert.deepEqual(r.lists[0].items, ['ő', 'a', 'x', 'a', 'A'], 'NFC; kis-/nagybetű megmarad; a #-es kimarad, az ismétlődő marad (2.14)');
   assert.equal([...r.lists[0].items[0]].length, 1, 'NFC: egy karakter');
   assert.ok(r.problems.some((p) => /„#kimarad” #-tel kezdődik/.test(p)), '#-es tétel: figyelmeztetés');
   assert.ok(r.problems.some((p) => /túl hosszú \(21\/20/.test(p)), 'túl hosszú: figyelmeztetés');
-  assert.deepEqual(r.duplicates, [{ list: 'L', item: 'a', line: 4 }]);
+  assert.equal(r.problems.length, 2, 'az ismétlődés nem figyelmeztetés');
+  assert.equal('duplicates' in r, false);
+});
+
+test('2.14 S-1: a kétszer beírt tétel 2 sor, a helyén, figyelmeztetés nélkül', () => {
+  const r = parseListsText('# L\nk\nm\nk\nk, s');
+  assert.deepEqual(r.lists[0].items, ['k', 'm', 'k', 'k', 's']);
+  assert.deepEqual(r.problems, []);
 });
 
 test('lists.txt: értelmezés', () => {
@@ -50,8 +28,7 @@ test('lists.txt: értelmezés', () => {
     '#', 'z',
     '## Üres',
   ].join('\r\n'));
-  assert.deepEqual(r.lists, [{ name: 'Első', items: ['a', 'b', 'c', 'd'] }, { name: 'Üres', items: [] }]);
-  assert.deepEqual(r.duplicates, [{ list: 'Első', item: 'a', line: 5 }]);
+  assert.deepEqual(r.lists, [{ name: 'Első', items: ['a', 'a', 'b', 'c', 'd'] }, { name: 'Üres', items: [] }]);
   assert.equal(r.problems.length, 4);
   assert.match(r.problems[0], /^Az 1\. sor az első lista neve előtt áll/);
   assert.match(r.problems[1], /9\. sor.*túl hosszú/);
@@ -77,7 +54,7 @@ const SAMPLES = {
   '40. oldal': ['á', 'te-ve', 'mi-si'],
 };
 
-test('a repó lists.txt-je betölthető, a várt tételek megvannak', (t) => {
+test('a repó lists.txt-je betölthető, a várt tételek megvannak', () => {
   const r = parseListsText(readFileSync(new URL('../lists.txt', import.meta.url), 'utf8'));
   assert.deepEqual(r.problems, [], 'Javítsd a lists.txt-t:\n' + r.problems.join('\n'));
   for (const [name, items] of Object.entries(SAMPLES)) {
@@ -85,13 +62,11 @@ test('a repó lists.txt-je betölthető, a várt tételek megvannak', (t) => {
     assert.ok(list, `Hiányzik a „${name}” lista`);
     for (const item of items) assert.ok(list.items.includes(item), `„${name}”: hiányzik a „${item}”`);
   }
-  // Az ismétlődés nem hiba (pl. egy oldal végi ismétlő sor); az app kihagyja. Csak tájékoztatás.
-  for (const d of r.duplicates) t.diagnostic(`ismétlődik, kimarad: ${d.line}. sor „${d.item}” (${d.list})`);
 });
 
 test('beállítások és tárolt állapot', () => {
-  assert.deepEqual(clampSettings(null), { flashMs: 10000, gapMs: 0, count: 10, source: 'list' });
-  assert.deepEqual(clampSettings({ flashMs: 99999, gapMs: -3, count: 0, source: 'all' }), { flashMs: 25000, gapMs: 0, count: 1, source: 'all' });
+  assert.deepEqual(clampSettings(null), { flashMs: 10000, gapMs: 0, count: 10, source: 'list', mixed: false });
+  assert.deepEqual(clampSettings({ flashMs: 99999, gapMs: -3, count: 0, source: 'all' }), { flashMs: 25000, gapMs: 0, count: 1, source: 'all', mixed: false });
   assert.equal(clampSettings({ flashMs: 0 }).flashMs, 0, '0 = kézi léptetés');
   assert.equal(clampSettings({ flashMs: 1234 }).flashMs, 1000);
   assert.deepEqual(normalizeState('szemét').cache, null);

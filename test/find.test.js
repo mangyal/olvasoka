@@ -2,19 +2,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildTasks, buildTaskGrids, startFind, step, canPrev, effectiveCards, gridShape, distinctCount } from '../js/core/find.js';
-import { compileConfig, seeded, normalize } from '../js/core/grid.js';
+import { buildTasks, buildTaskGrids, startFind, step, canPrev, effectiveCards, gridShape, distinctCount, canFind } from '../js/core/find.js';
+import { compileConfig, seeded } from '../js/core/grid.js';
+import { groupOf } from '../js/core/groups.js';
+import { itemKey } from '../js/core/items.js';
+import { parseListsText } from '../js/core/lists.js';
 
 const CC = compileConfig(JSON.parse(readFileSync(new URL('./fixtures/parok.json', import.meta.url), 'utf8')));
 const ITEMS = ['ma', 'me', 'mi', 'mo', 'na', 'ne', 'la', 'le', 'hal', 'hol', 'sál', 'hát', 'ma-ma', 'ka-pu'];
 const run = (s, evs) => evs.reduce((acc, e) => (Array.isArray(e) ? step(acc, ...e) : step(acc, e)), s);
 
-test('feladatok: pontosan K, mindegyikben N különböző tétel a forrásból; seedelve determinisztikus (23.)', () => {
+test('feladatok: pontosan K, mindegyik egy csoport különböző tételeiből, a forrásból; seedelve determinisztikus (23.)', () => {
   const t = buildTasks(ITEMS, { cards: 4, tasks: 10, level: 0 }, CC, seeded(1));
   assert.equal(t.length, 10);
   for (const g of t) {
-    assert.equal(g.length, 4);
-    assert.equal(new Set(g.map(normalize)).size, 4);
+    assert.ok(g.length >= 2 && g.length <= 4);
+    assert.equal(new Set(g.map(itemKey)).size, g.length);
+    assert.equal(new Set(g.map((x) => groupOf(x).key)).size, 1, `egy csoport: ${g}`);
     for (const x of g) assert.ok(ITEMS.includes(x));
   }
   assert.deepEqual(buildTasks(ITEMS, { cards: 4, tasks: 10, level: 0 }, CC, seeded(1)), t);
@@ -25,20 +29,55 @@ test('feladatok: kevesebb tétel, mint a kártyaszám → az összes elérhető 
   for (const g of t) assert.deepEqual(new Set(g), new Set(['ma', 'me', 'mi']));
 });
 
+test('feladatok: 3 magánhangzós csoport 4-es beállítással 3 kártya; 1 tételes csoport soha (K-3, K-4)', () => {
+  const t = buildTasks(['a', 'e', 'o', 'm', 'ka-pu'], { cards: 4, tasks: 30, level: 0 }, CC, seeded(3));
+  assert.equal(t.length, 30);
+  for (const g of t) assert.deepEqual(new Set(g), new Set(['a', 'e', 'o']));
+  // a rács a beállított kártyaszámé marad (2×2, a hiányos sor középen: F-K3, F-K12)
+  assert.deepEqual(gridShape(4, true), { cols: 2, rows: 2 });
+});
+
+test('feladatok: ismétléses listával sincs ismétlődő tétel a kártyákon (K-1); Ma ≠ ma', () => {
+  const rows = ['ma', 'ma', 'me', 'me', 'me', 'Ma', 'mi', 'ma'];
+  for (const g of buildTasks(rows, { cards: 6, tasks: 20, level: 1 }, CC, seeded(4))) {
+    assert.equal(new Set(g).size, g.length);
+    assert.deepEqual(new Set(g), new Set(['ma', 'me', 'Ma', 'mi']));
+  }
+});
+
+test('feladatok: egyetlen feladatban sincs két csoport tétele, egyik fokozaton sem (a repó lists.txt-je)', () => {
+  const { lists } = parseListsText(readFileSync(new URL('../lists.txt', import.meta.url), 'utf8'));
+  const rows = lists.flatMap((l) => l.items);
+  for (const level of [0, 0.25, 0.5, 0.75, 1]) for (const cards of [4, 6, 8]) {
+    for (const g of buildTasks(rows, { cards, tasks: 30, level }, CC, seeded(cards * 10 + level * 4))) {
+      assert.equal(new Set(g.map((x) => groupOf(x).key)).size, 1, `${level}/${cards}: ${g}`);
+    }
+  }
+});
+
 test('feladatok: két egymást követő feladat horgonya nem azonos (F-K16)', () => {
   for (const [items, seed] of [[ITEMS, 4], [['ma', 'me'], 8], [['ma', 'me', 'mi'], 9]]) {
     const g = buildTaskGrids(items, { cards: 4, tasks: 30, level: 0.5 }, CC, seeded(seed));
     assert.equal(g.length, 30);
     for (let k = 1; k < g.length; k++) assert.notEqual(g[k].anchor, g[k - 1].anchor, `${k}. feladat`);
   }
-  // egyetlen tételnél nincs mit váltogatni: a kör akkor is elkészül (az Indítás ilyenkor inaktív, F-S8)
-  assert.equal(buildTasks(['ma'], { cards: 4, tasks: 3, level: 0 }, CC, seeded(1)).length, 3);
+  // nincs legalább 2 tételes csoport: nincs feladat (az Indítás ilyenkor inaktív, K-5)
+  assert.deepEqual(buildTasks(['ma'], { cards: 4, tasks: 3, level: 0 }, CC, seeded(1)), []);
+  assert.deepEqual(buildTasks(['ma', 'a', 'k', 'ka-pu'], { cards: 4, tasks: 3, level: 0 }, CC, seeded(1)), []);
 });
 
-test('különböző tételek száma (F-S8)', () => {
-  assert.equal(distinctCount(['ma', 'Ma', 'm-a']), 1);
+test('különböző tételek száma: a kis- és nagybetű, a kötőjel számít', () => {
+  assert.equal(distinctCount(['ma', 'Ma', 'm-a', 'ma']), 3);
   assert.equal(distinctCount(['ma', 'me']), 2);
   assert.equal(distinctCount([]), 0);
+});
+
+test('indíthatóság: van legalább egy csoport legalább 2 különböző tétellel (K-5)', () => {
+  assert.equal(canFind(['ma', 'me']), true);
+  assert.equal(canFind(['ma', 'Ma']), true, 'Ma ≠ ma, egy csoport');
+  assert.equal(canFind(['ma', 'ma', 'a', 'k', 'ok', 'ka-pu']), false, 'minden csoport 1 tételes');
+  assert.equal(canFind(['a', 'm', 'ka-pu', 'e']), true);
+  assert.equal(canFind([]), false);
 });
 
 test('jelölés: kattintás jelöl, ugyanarra újra lekerül, másikra átkerül, nem léptet (25.)', () => {
