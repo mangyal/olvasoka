@@ -182,13 +182,14 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
      * @param {{ seq: number[], items: string[], listNames: string[], flashMs: number, gapMs: number, count: number }} o
      *   seq: a kör sorozata (indexek az items-be); a napló a kör pozícióit (i) használja
      */
-    beginRound({ seq, items, listNames, flashMs, gapMs, count }) {
+    /** order: a sorrend módja a kör indulásakor (2.14, H-2): 'grouped' | 'mixed' */
+    beginRound({ seq, items, listNames, flashMs, gapMs, count, order = 'mixed' }) {
       const ids = new Map(Object.entries(root.lists).map(([id, l]) => [nameKey(l.names.at(-1)), id]));
       const round = {
         id: newId(), child: root.child, t0: now(), mode: 'read',
         listNames: [...listNames], listIds: listNames.map((n) => ids.get(nameKey(n)) || null),
         listHash: listHash(items), flashMs, gapMs, count, completed: false, abandonedAt: null, corrections: 0, folded: false, flashDwellDone: false,
-        items: seq.map((k) => itemKey(items[k])),
+        items: seq.map((k) => itemKey(items[k])), order: order === 'grouped' ? 'grouped' : 'mixed',
       };
       root.rounds.push(round);
       cur = { round, items: round.items, n: 0 };

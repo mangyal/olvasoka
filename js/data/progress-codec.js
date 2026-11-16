@@ -3,12 +3,13 @@
 // A program a memóriában olvasható objektumokkal dolgozik (lásd progress-log.js); ez a modul csak a
 // localStorage-be írt alakot tömöríti és bontja ki. A logika és a statisztika a formátumtól független.
 //
-// 3. verzió (tömör):
+// 4. verzió (tömör):
 // {
-//   v: 3, dev: deviceId, ch: child,
+//   v: 4, dev: deviceId, ch: child,
 //   r: [[id, t0, mode, listNames, listIds, listHash, flashMs, gapMs, count, completed, abandonedAt,
-//        corrections, folded, items, fd]],      // items: a kör tételei pozíció szerint (az események innen kapják)
+//        corrections, folded, items, fd, o]],   // items: a kör tételei pozíció szerint (az események innen kapják)
 //                                               // fd: 1, ha a kör villantásos idői már a napi összesítőkben vannak
+//                                               // o: a sorrend módja (spec 2.14, H-2): 0 = mixed, 1 = grouped
 //   e: { [körId]: "esemény;esemény;…" },        // esemény: "dt,i,kód" (dt: ms az előzőtől, 36-os számrendszer)
 //   d: [[item, day, exposures, manual, dwell, covers, pauses, prevs, supported, fast, help, flashDwell, device?]],
 //                                                // dwell: olvasási idők 100 ms-os egységben (2340 ms → 23)
@@ -17,12 +18,15 @@
 // }
 // Eseménykódok: s show, n next, N next (idő járt le), p prev, P prev (szünetből), z pause, Z resume, b blur,
 // c<db> cover, u uncover, h hidden, v visible, e end, x exit.
-// Az 1. és a 2. verzió betöltéskor átalakul (villantásos idő nélkül, fd: 0); a következő mentés már a 3.
-// verziót írja. A 2. verzió napi sorában a 12. elem (index 11) az eszköz volt, nem a villantásos idő.
+// Az 1., 2. és 3. verzió betöltéskor átalakul; a következő mentés már a 4. verziót írja. Az 1. és a 2. verzió
+// villantásos idő nélkül (fd: 0); a 2. verzió napi sorában a 12. elem (index 11) az eszköz volt, nem a
+// villantásos idő. A 4. verzió előtti körök sorrendje 'mixed' (akkor a program még keverten működött).
+// A verzióváltás oka: egy gyorsítótárban maradt régebbi programváltozat ne írja vissza a kör sorát az `o`
+// nélkül (a régi program az ismeretlen, újabb verziót nem bontja ki és nem írja felül).
 
 import { median } from '../core/exposures.js';
 
-export const VERSION = 3;
+export const VERSION = 4;
 /** Az olvasási idők tárolt felbontása (ms). A küszöbök 0,8–0,9-es arányaihoz bőven elég. */
 const DWELL = 100;
 
@@ -47,7 +51,7 @@ function eventOf(code) {
 const dailyId = (device, child, item, day) => `${device}|${child}|${item}|${day}`;
 const unit = (ms) => Math.round(ms / DWELL);
 
-/** Memóriabeli gyökér → tárolt (3. verzió). */
+/** Memóriabeli gyökér → tárolt (4. verzió). */
 export function encode(root) {
   const byRound = new Map();
   for (const e of root.events) {
@@ -66,7 +70,7 @@ export function encode(root) {
   return {
     v: VERSION, dev: root.deviceId, ch: root.child,
     r: root.rounds.map((r) => [r.id, r.t0, r.mode === 'find' ? 'f' : 'r', r.listNames, r.listIds, r.listHash,
-      r.flashMs, r.gapMs, r.count, r.completed ? 1 : 0, r.abandonedAt, r.corrections, r.folded ? 1 : 0, r.items || [], r.flashDwellDone ? 1 : 0]),
+      r.flashMs, r.gapMs, r.count, r.completed ? 1 : 0, r.abandonedAt, r.corrections, r.folded ? 1 : 0, r.items || [], r.flashDwellDone ? 1 : 0, r.order === 'grouped' ? 1 : 0]),
     e,
     d: root.daily.map((x) => {
       const row = [x.item, x.day, x.exposures, x.manualExposures, x.dwellMs.map(unit), x.covers, x.pauses, x.prevs,
@@ -79,15 +83,15 @@ export function encode(root) {
   };
 }
 
-/** Tárolt (1., 2. vagy 3. verzió) → memóriabeli gyökér. Ismeretlen verziónál null. */
+/** Tárolt (1–4. verzió) → memóriabeli gyökér. Ismeretlen verziónál null. */
 export function decode(s) {
   if (s?.v === 1) return fromV1(s);
-  if (s?.v !== 2 && s?.v !== VERSION) return null;
+  if (s?.v !== 2 && s?.v !== 3 && s?.v !== VERSION) return null;
   const v2 = s.v === 2;
   const rounds = (s.r || []).map((r) => ({
     id: r[0], child: s.ch, t0: r[1], mode: r[2] === 'f' ? 'find' : 'read', listNames: r[3], listIds: r[4], listHash: r[5],
     flashMs: r[6], gapMs: r[7], count: r[8], completed: r[9] === 1, abandonedAt: r[10], corrections: r[11],
-    folded: r[12] === 1, items: r[13], flashDwellDone: !v2 && r[14] === 1,
+    folded: r[12] === 1, items: r[13], flashDwellDone: !v2 && r[14] === 1, order: r[15] === 1 ? 'grouped' : 'mixed',
   }));
   const byId = new Map(rounds.map((r) => [r.id, r]));
   const events = [];
@@ -124,7 +128,7 @@ function fromV1(s) {
   const rounds = (s.rounds || []).map((r) => ({ ...r }));
   const items = new Map(rounds.map((r) => [r.id, []]));
   for (const e of s.events || []) if (items.has(e.round)) items.get(e.round)[e.i] = e.item;
-  for (const r of rounds) { if (!r.items) r.items = Array.from(items.get(r.id), (x) => x ?? ''); r.flashDwellDone = false; }
+  for (const r of rounds) { if (!r.items) r.items = Array.from(items.get(r.id), (x) => x ?? ''); r.flashDwellDone = false; r.order = 'mixed'; }
   const daily = (s.daily || []).map((d) => ({ ...d, flashDwell: [] }));
   return { v: VERSION, deviceId: s.deviceId, child: s.child, events: s.events || [], daily, rounds, lists: s.lists || {} };
 }
