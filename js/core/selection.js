@@ -33,6 +33,19 @@ export function clickSelect(sel, key, { toggle = false, range = false, anchor = 
   return { sel: [key], anchor: key };
 }
 
+/**
+ * A betöltéskor kívánt kijelölés, mielőtt a reconcile a létező listákhoz igazítja:
+ * „Összes lista” módban mind; különben a mostani kijelölés; ha nincs (vagy egyik listája sem létezik már),
+ * a legutóbb mentett; ha az sincs (első betöltés, a szülő még nem választott), a táblázatban alapból
+ * kijelöltek (F-L1d). Ha az is üres, a reconcile az első listát adja, mint eddig.
+ * @param {{ source:string, selected:string[], last:string[], preset:string[], keys:string[] }} o  listakulcsok
+ */
+export function wantedSelection({ source, selected, last, preset, keys }) {
+  if (source === 'all') return keys;
+  const has = (sel) => sel.some((k) => keys.includes(k));
+  return [selected, last, preset].find(has) || [];
+}
+
 /** A már nem létező listák kimaradnak. Ha semmi nem marad, az első lista (ha van). */
 export function reconcile(sel, keys) {
   const set = new Set(sel);

@@ -15,6 +15,9 @@ minden oszlop egy lista, az első sorban a lista neve, alatta cellánként a té
 „Közzététel az interneten” CSV-ként van publikálva; a változás kb. 5 percen belül látszik az oldalon
 (**Frissítés** gomb vagy újratöltés).
 
+A második sorba igaz/hamis érték (pl. jelölőnégyzet) kerülhet: az igaz listák lesznek kijelölve annál, aki
+még nem választott listát (pl. linkként kapta a programot). Ha a második sorban más áll, az rendes tétel.
+
 Ha a táblázat nem érhető el, a program a repó [`lists.txt`](lists.txt) fájlját használja tartalékként, és a
 listák alatt halványan jelzi: „Tartaléklisták láthatók (a táblázat nem elérhető)”. A `lists.txt` nem frissül magától a táblázatból.
 

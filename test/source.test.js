@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCsv, colName } from '../js/core/csv.js';
-import { parseSheetCsv } from '../js/core/lists.js';
+import { parseSheetCsv, presetFlag } from '../js/core/lists.js';
 import { loadLists, parseByKind, SHEET_CSV_URL, TXT_URL } from '../js/core/source.js';
 import { normalizeState } from '../js/core/settings.js';
 
@@ -102,4 +102,34 @@ test('tárolt állapot: a cache fajtája; a régi forrás-kapcsoló értéke elv
   assert.equal(normalizeState({ cache: { text: 'A', fetchedAt: 1, kind: 'sheet' } }).cache.kind, 'sheet');
   assert.deepEqual(parseByKind('sheet', 'A\nx').lists, [{ name: 'A', items: ['x'] }]);
   assert.deepEqual(parseByKind('txt', '# A\nx').lists, [{ name: 'A', items: ['x'] }]);
+});
+
+test('táblázat: a második sor igaz/hamis jelölője az alapból kijelölt listákat adja, és nem tétel (F-L1d)', () => {
+  const r = parseSheetCsv([
+    'Bé,Cé,Á,Dé,É,,Gé',
+    'TRUE,FALSE,igaz,ma,HAMIS,TRUE,True',
+    'ba,ca,a,me,,,',
+  ].join('\n'));
+  assert.deepEqual(r.lists, [
+    { name: 'Á', items: ['a'] },
+    { name: 'Bé', items: ['ba'] },
+    { name: 'Cé', items: ['ca'] },
+    { name: 'Dé', items: ['ma', 'me'] },
+    { name: 'É', items: [] },
+    { name: 'Gé', items: [] },
+  ], 'a jelölő cellája kimarad; ha a második sorban más áll, az tétel; a csak jelölős, név nélküli oszlop csendben kimarad');
+  assert.deepEqual(r.preset, ['Bé', 'Á', 'Gé'], 'kis- és nagybetűtől független, IGAZ és TRUE is');
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(parseSheetCsv('A\nx').preset, [], 'jelölő nélkül egyik sem');
+  assert.deepEqual(parseSheetCsv('A,a\nTRUE,TRUE').preset, ['A'], 'az ismétlődő nevű, kimaradt lista nem kerül be');
+  assert.deepEqual(parseByKind('txt', '# A\nTRUE').preset, [], 'a lists.txt-ben nincs jelölő');
+  assert.deepEqual(parseByKind('txt', '# A\nTRUE').lists[0].items, ['TRUE']);
+  assert.deepEqual([' true ', 'Igaz', 'FALSE', 'hamis', '', 'igen', '1', undefined].map(presetFlag),
+    [true, true, false, false, null, null, null, null]);
+});
+
+test('táblázat: a jelölős lista a betöltés eredményében is megjön', async () => {
+  const r = await loadLists(async () => ({ text: 'A,B\nFALSE,TRUE\nx,y', type: 'text/csv' }));
+  assert.equal(r.kind, 'sheet');
+  assert.deepEqual(r.preset, ['B']);
 });

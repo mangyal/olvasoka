@@ -12,7 +12,9 @@
 // Egy sor egy tétel (a vessző is elválaszt). Az üres sorok nem számítanak.
 //
 // Táblázat: minden oszlop egy lista, az első sor a lista neve, alatta a tételek, cellánként
-// egy (a vessző itt is elválaszt). Az üres cellák nem számítanak.
+// egy (a vessző itt is elválaszt). Az üres cellák nem számítanak. Ha a második sorban igaz/hamis
+// érték áll (TRUE/FALSE, IGAZ/HAMIS, pl. jelölőnégyzet), az nem tétel, hanem azt mondja meg, hogy a
+// lista első betöltéskor ki legyen-e jelölve (F-L1d).
 //
 // A tételek tisztítása és a listanevek ellenőrzése mindkét forrásnál ugyanaz (F-L3–F-L5).
 // A listák névsorban (magyar ábécé, számok számként) kerülnek vissza, nem a forrás sorrendjében.
@@ -70,9 +72,9 @@ function createBuilder() {
         cur.items.push(item);
       }
     },
-    done() {
+    done(preset = []) {
       lists.sort((a, b) => byName(a.name, b.name));
-      return { lists, problems };
+      return { lists, problems, preset };
     },
   };
 }
@@ -82,6 +84,7 @@ function createBuilder() {
  * @returns {{
  *   lists: {name:string, items:string[]}[],  // items: a lista sorai, ismétlésekkel
  *   problems: string[],                      // a szülői felületen figyelmeztetésként jelenik meg
+ *   preset: string[],                        // az alapból kijelölt listák neve (a lists.txt-ben mindig üres)
  * }}
  */
 export function parseListsText(text) {
@@ -111,26 +114,42 @@ export function parseListsText(text) {
 }
 
 /**
+ * A második sor cellája mint jelölő (F-L1d): true / false, ha igaz/hamis érték (kis- és nagybetűtől
+ * függetlenül; a Google jelölőnégyzete TRUE/FALSE), különben null, és a cella rendes tétel.
+ */
+export function presetFlag(cell) {
+  const v = String(cell ?? '').trim().toLocaleUpperCase('hu');
+  if (v === 'TRUE' || v === 'IGAZ') return true;
+  if (v === 'FALSE' || v === 'HAMIS') return false;
+  return null;
+}
+
+/**
  * A Google táblázat CSV-je: oszloponként egy lista, az első sor a név.
+ * A második sorban állhat igaz/hamis jelölő: igaz esetén a lista alapból kijelölt (preset); a jelölő
+ * cellája nem tétel. Ha ott bármi más áll, az rendes tétel, és a lista nem alapból kijelölt.
  * A teljesen üres oszlop (név és tétel nélkül) csendben kimarad; név nélküli, de tételes oszlop
  * figyelmeztetéssel. A név elején álló # jel(ek) elhagyhatók, mint a lists.txt-ben.
  * @param {string} csv
- * @returns {{ lists:{name:string, items:string[]}[], problems:string[] }}
+ * @returns {{ lists:{name:string, items:string[]}[], problems:string[], preset:string[] }}
  */
 export function parseSheetCsv(csv) {
   const rows = parseCsv(csv).map((r) => r.map((c) => c.normalize('NFC').trim()));
   const b = createBuilder();
+  const preset = [];
   const width = rows.reduce((w, r) => Math.max(w, r.length), 0);
 
   for (let c = 0; c < width; c++) {
     const name = (rows[0]?.[c] || '').replace(/^#+/, '').trim();
+    const flag = presetFlag(rows[1]?.[c]);
     const cells = [];
-    for (let r = 1; r < rows.length; r++) if (rows[r][c]) cells.push(r);
+    for (let r = flag === null ? 1 : 2; r < rows.length; r++) if (rows[r][c]) cells.push(r);
     if (!name && !cells.length) continue;
     b.header(name, cellAt(c, 0), 'üres, ezért az oszlop kimaradt. Írd be ide a lista nevét.');
+    if (flag && b.open) preset.push(name);
     for (const r of cells) b.items(rows[r][c], cellAt(c, r));
   }
 
   if (!b.lists.length) b.problems.push('A táblázatban nincs lista. Az első sorba kerül a lista neve, alá a tételek, oszloponként.');
-  return b.done();
+  return b.done(preset);
 }
