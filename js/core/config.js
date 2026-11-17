@@ -22,3 +22,11 @@ export const PROGRESS = Object.freeze({
   prod: Object.freeze({ skipDayRules: false }),
   dev: Object.freeze({ skipDayRules: false }),
 });
+
+// Anonim használati statisztika (Umami, docs/analitika-specifikacio.md): webhely-azonosító környezetenként.
+// Kiadáskor a PROD_UMAMI_WEBSITE_ID és DEV_UMAMI_WEBSITE_ID változókból. A dev sosem kapja az élesét:
+// ha nincs saját változója, a dev nem küld statisztikát (helyben és a tesztekben sem).
+export const ANALYTICS = Object.freeze({
+  prod: Object.freeze({ websiteId: 'dfd4a0f2-55e0-4d83-9667-91c91302ca27' }),
+  dev: Object.freeze({ websiteId: '' }),
+});
