@@ -75,8 +75,14 @@ dialog p{margin:0 0 12px}
 .dlg-help h3{margin:16px 0 6px;font-size:15px;font-weight:600}
 .help-steps{margin:0;padding-left:1.4em;display:grid;gap:6px}
 .help-steps kbd{font:inherit;font-size:13px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--field)}
-.help-actions{align-items:center}
+.help-actions{align-items:center;border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
 .help-install{font-size:13px;margin:14px 0 0}
+/* Adatvédelem: a telepítési sor 13 px-es szürke szövege után nagyobb térköz; olvasható, nem lábjegyzet */
+.dlg-help #helpPrivacyH{margin-top:20px}
+.dlg-help .help-privacy{font-size:14px;color:var(--ink);margin:0}
+/* Betűteszt a gombsor bal szélén; érintőképernyőn legalább 44 px magas */
+.help-font{margin-right:auto}
+@media (hover:none) and (pointer:coarse){.help-font{min-height:44px}}
 .only-touch{display:none}
 @media (max-width:600px),(hover:none) and (pointer:coarse){.only-keys{display:none!important}.only-touch{display:inline}}
 .only-narrow{display:none}
@@ -85,6 +91,7 @@ dialog p{margin:0 0 12px}
   .dlg-help{padding:20px 18px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
   .help-actions{flex-direction:column-reverse;align-items:stretch;gap:12px}
   .help-actions .btn{width:100%}
+  .help-font{width:100%;min-height:44px;margin-right:0;text-align:center}
 }
 .font-sample{font:400 32px/1.5 var(--f-item);word-spacing:.15em;overflow-wrap:anywhere}
 
@@ -309,7 +316,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 
 /* ================= mobil fekvő (E10, 568 px-től): balra fejléc + listák + fülek + súgó, jobbra a beállítások, alattuk az Indítás =================
    Az .admin maga a két oszlopos rács (.work, .panel, .panel-scroll „átlátszó”), így:
-   - nincs külön fejlécsor: a cím, a verziócímke és az ikonos Súgó/Betűteszt a bal oszlop tetején,
+   - nincs külön fejlécsor: a cím, a verziócímke és az ikonos Haladás/Súgó a bal oszlop tetején,
    - a jobb oszlop (beállítások + Indítás) a teljes magasságot kapja; a bal oszlop alsó eleme a rács
      végéig ér, így a bal oszlop magassága nem tolja le az Indítást (#40). */
 @media (max-height:500px) and (orientation:landscape) and (min-width:568px){
@@ -349,8 +356,8 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 }
 
 /* ================= nagyon keskeny álló nézet (≤ 400 px): a fejléc gombjai csak ikonok =================
-   Széles rendszerbetűvel (pl. DejaVu Sans) a „Súgó” + „Betűteszt” felirat a cím és a verziócímke mellett
-   320 px-en nem fér el. */
+   Eredetileg a „Haladás” + „Súgó” + „Betűteszt” felirat miatt: széles rendszerbetűvel (pl. DejaVu Sans) a cím és a
+   verziócímke mellett 320 px-en nem fért el. A Betűteszt azóta a Súgó ablakban van; a feliratos visszaállítás külön döntés. */
 @media (max-width:400px){
   .top{gap:10px}
   .top h1{font-size:16px}

@@ -355,7 +355,7 @@ A jóváhagyott design (lásd a dokumentum elején) a mérvadó. Szövegek: tege
 | Telefon fekvő – áttekintés | fekvő elrendezés |
 
 ### 8.1 Nézetek és navigáció
-- A szülői felület fejlécében egy „Haladás” gomb ikonnal a Súgó és a Betűteszt mellett; telefonon csak ikon. Gyakorlás közben nem érhető el, a gyerek felületén nem jelenik meg. A Haladás a szülői felület helyére lép.
+- A szülői felület fejlécében egy „Haladás” gomb ikonnal a Súgó mellett; telefonon csak ikon. Gyakorlás közben nem érhető el, a gyerek felületén nem jelenik meg. A Haladás a szülői felület helyére lép.
 
 | Nézet | Hash | Vissza (link és Esc) |
 |---|---|---|

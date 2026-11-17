@@ -1,6 +1,6 @@
 # Olvasóka: anonim használati statisztika (Umami)
 
-Verzió: 1.0 · 2026. november 17.
+Verzió: 1.1 · 2026. november 17.
 
 ## 1. Cél
 
@@ -34,4 +34,11 @@ Bővítés: új esemény a `js/main.js`-ben a `stats.track(név, adatok)` hívá
 
 ## 5. Tájékoztatás
 
-A szülőnek egy rövid, könnyen megtalálható mondat jelzi (súgó vagy bemutatkozó oldal), hogy a program anonim látogatási statisztikát gyűjt, süti nélkül, és a gyerekről semmit. A szöveg külön döntés.
+A Súgó ablak (`#dlgHelp`) **Adatvédelem** része, a telepítési sor alatt. A szöveg szó szerint:
+
+> A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal és melyik listákból. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.
+
+- A „személyes adat” kifejezés szándékosan nem szerepel: az IP-cím és a böngésző típusa technikailag eljut az Umamihoz, akkor is, ha azt nem tárolja.
+- A szöveg akkor is megjelenik, ha az adott környezetben nincs statisztika (helyi futtatás, beállítatlan dev).
+- Nincs süti-banner és nincs hozzájárulás kérése. Landing oldal és GYIK még nincs, a Súgó az egyetlen hely.
+- Ismert korlát: a `round-start` a listák **nevét** küldi. A nevet a szülő adja a táblázatban; ha a gyerek nevét írja bele (pl. „Dani gyakorló”), az kimegy. A szöveg ennek ellenére marad (2026. november 17-i döntés).
