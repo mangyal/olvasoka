@@ -223,6 +223,8 @@ const admin = createAdmin(el, app, {
         : '✓ Rendben – az Arimo látszik, ami az Arial pontos megfelelője (ezen a gépen nincs Arial).')
       : app.font.state === 'loading' ? 'A betűtípus még töltődik…' : '✕ Nem az Arial látszik – a gyerek nem a tanult betűalakokat fogja látni (pl. ő, ű)!';
     el.fontResult.className = ok ? '' : 'err';
+    // a Súgó ablakból nyílik: előbb az zárul be, a két ablak nem nyílik egymásra
+    if (el.dlgHelp.open) el.dlgHelp.close();
     el.dlgFont.showModal();
   },
 });
@@ -289,6 +291,8 @@ document.addEventListener('keydown', (e) => {
 document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 // súgó: a fejlécből bármikor; induláskor helyette az Első lépések bemutató (docs/bemutato-specifikacio.md)
 el.helpBtn.addEventListener('click', () => el.dlgHelp.showModal());
+// a Betűteszt gombja a (már bezárt) Súgó ablakban van, ezért bezáráskor a fejléc Súgó gombja kapja a fókuszt
+el.dlgFont.addEventListener('close', () => el.helpBtn.focus({ preventScroll: true }));
 
 /* ---------- Első lépések (bemutató) ---------- */
 let tourDays = PROGRESS_DEFAULTS.allapot.min_nap;

@@ -673,7 +673,7 @@ Nincs pontszám, idő, felirat (a számlálón kívül), hang, büntetés, újra
   Ha nincs, az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
   legfeljebb 5 mp-ig. Sikertelen betöltésnél aktív, figyelmeztetéssel: „A betűk alakja eltérhet.”
   Ha az Arimo később mégis megjön, a figyelmeztetés eltűnik.
-- **F-F3 Betűteszt** (fejléc, jobb oldal): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,
+- **F-F3 Betűteszt** (a Súgó ablak gombsorában, balra; telefonon legalul): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,
   alatta az ellenőrzés eredménye (Arial / Arimo / nem a gyakorló betű). Feltétel: az `ő` és `ű`
   dupla hosszú ékezettel jelenik meg, nem `ô`/`û` alakban.
 
@@ -1041,7 +1041,7 @@ A részletes design specifikáció (elrendezés, komponensek, reszponzív viselk
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│ Olvasóka                                                    Súgó   Betűteszt   │
+│ Olvasóka  v1.4.5                                              Haladás   Súgó   │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │ ▌ figyelmeztetések (ha vannak)                                               ✕ │
 ├────────────────┬───────────────────────────────────┬──────────────────────────┤
@@ -1064,7 +1064,7 @@ egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kés
 szerkesztése a táblázatban” link együtt görgetnek, a fejléc és a Kész mindig látszik; alacsony fekvő nézetben a lap
 szinte a teljes magasságot kapja, a Kész az összesítő mellett, így 256 px-en is legalább két lista látszik); mobil fekvő
 (`max-height:500px` és fekvő, desktopon alacsony ablakban is) két oszlop, külön fejlécsor nélkül:
-balra a cím, a verziócímke és ikonos Súgó/Betűteszt gomb, alattuk listák, fülek, súgógomb (700 px alatti
+balra a cím, a verziócímke és ikonos Haladás/Súgó gomb, alattuk listák, fülek, súgógomb (700 px alatti
 szélességen a cím elmarad, a verziócímke marad); jobbra a görgethető beállítások, alattuk az Indítás.
 A jobb oszlop a teljes magasságot kapja, a bal oszlop tartalma nem tolhatja le az Indítást: 256 px
 magasságig görgetés nélkül látszik (#40). Keskeny fekvő nézetben (568 px-nél keskenyebb, ez valódi telefonon nem fordul elő, csak nagyításnál

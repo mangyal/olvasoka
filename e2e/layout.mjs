@@ -382,7 +382,7 @@ for (const [w, h] of [[740, 256], [568, 256]]) {
     const [top, set, pick] = await Promise.all(['.top', '#panelRead', '#picker'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
     assert.ok(top.right <= set.left, 'a fejléc a bal oszlopban, nem a teljes szélességben');
     assert.ok(top.bottom <= pick.top + 1, 'a fejléc a listaválasztó fölött');
-    for (const id of ['#helpBtn', '#fontBtn', '#appVersion']) assert.ok(await inViewport(page, id), `${id} elérhető`);
+    for (const id of ['#helpBtn', '#appVersion']) assert.ok(await inViewport(page, id), `${id} elérhető`);
     assert.equal(await page.getAttribute('#helpBtn', 'title'), 'Súgó');
     assert.equal((await page.textContent('#helpBtn')).trim(), 'Súgó', 'a felolvasó a feliratot kapja');
     await page.tap('#helpBtn');
@@ -394,7 +394,7 @@ for (const [w, h] of [[740, 256], [568, 256]]) {
 // ---------- keskeny fekvő (< 568 px; nagyítás, összehúzott ablak): egy görgethető oszlop, alul Indítás (#44) ----------
 /** A látható, nem rejtett vezérlők közül fedik-e egymást valamelyek (a görgető terület látható részén). */
 const overlaps = (page) => page.evaluate(() => {
-  const sel = '#helpBtn, #fontBtn, #appVersion, #listsBtn, #tabRead, #tabFind, #howBtn, .seg-opts label, #flashIn, #countDec, #countIn, #countInc, #startBtn, #estimate';
+  const sel = '#helpBtn, #appVersion, #listsBtn, #tabRead, #tabFind, #howBtn, .seg-opts label, #flashIn, #countDec, #countIn, #countInc, #startBtn, #estimate';
   const rs = [...document.querySelectorAll(sel)].map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.width > 1 && r.height > 1);
   const bar = document.getElementById('panelStart').getBoundingClientRect(), top = document.querySelector('.top').getBoundingClientRect();
   const out = [];
@@ -416,7 +416,7 @@ for (const [w, touch, font] of [[320, true], [320, false], [480, true], [567, tr
     const { page, ctx } = await open({ viewport: { width: w, height: 256 }, hasTouch: touch, isMobile: touch }, {}, { font });
     assert.ok(await inViewport(page, '#startBtn'), 'az Indítás görgetés nélkül látszik');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'nincs vízszintes görgetés');
-    for (const id of ['#helpBtn', '#fontBtn', '#appVersion', '#estimate']) assert.ok(await inViewport(page, id), `${id} látszik`);
+    for (const id of ['#helpBtn', '#appVersion', '#estimate']) assert.ok(await inViewport(page, id), `${id} látszik`);
     const [lists, tabs, set] = await Promise.all(['#listsBtn', '#modeTabs', '#panelRead'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
     assert.ok(Math.abs(lists.left - tabs.left) < 1 && Math.abs(tabs.left - set.left) < 1, 'egy oszlopban, egymás alatt');
     assert.ok(tabs.top >= lists.bottom && set.top >= tabs.bottom);
@@ -440,8 +440,160 @@ for (const [w, h] of [[320, 568], [360, 800]]) {
   test(`álló mobil ${w}×${h} széles betűvel: nincs vízszintes görgetés, a fejléc elfér`, async () => {
     const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true }, {}, { font: WIDE_FONT });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'nincs vízszintes görgetés');
-    for (const id of ['#helpBtn', '#fontBtn', '#appVersion', '#startBtn']) assert.ok(await inViewport(page, id), `${id} látszik`);
+    for (const id of ['#helpBtn', '#appVersion', '#startBtn']) assert.ok(await inViewport(page, id), `${id} látszik`);
     assert.deepEqual(await overlaps(page), []);
+    await ctx.close();
+  });
+}
+
+// ---------- Súgó: Adatvédelem rész, Betűteszt a gombsorban (docs/analitika-specifikacio.md 5.) ----------
+const PRIVACY = 'A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal és melyik listákból. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.';
+const rect = (page, q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON());
+/** Megnyitja a Súgót a fejléc gombjával (érintőn koppintással). */
+async function openHelp(page, touch) {
+  await (touch ? page.tap('#helpBtn') : page.click('#helpBtn'));
+  assert.equal(await page.$eval('#dlgHelp', (d) => d.open), true, 'a Súgó nyílik');
+}
+const openDialogs = (page) => page.$$eval('dialog[open]', (ds) => ds.map((d) => d.id));
+
+test('fejléc: nincs Betűteszt gomb; asztalon Haladás és Súgó, ikonos fejlécben két ikon; a verziócímke marad', async () => {
+  const { page, ctx } = await open(DESKTOP);
+  assert.equal(await page.locator('.top #fontBtn').count(), 0, 'a fejlécben nincs Betűteszt');
+  assert.deepEqual(await page.$$eval('.top-actions button', (b) => b.map((x) => x.id)), ['progressBtn', 'helpBtn']);
+  assert.ok(await inViewport(page, '#appVersion'), 'a verziócímke a fejlécben');
+  await ctx.close();
+  const narrow = await open({ viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }, {}, { font: WIDE_FONT });
+  const icons = await narrow.page.$$eval('.top-actions .top-btn', (b) => b.filter((x) => x.getBoundingClientRect().width > 0).map((x) => [x.id, getComputedStyle(x.querySelector('.icon')).display]));
+  assert.deepEqual(icons, [['progressBtn', 'block'], ['helpBtn', 'block']], 'két ikon: Haladás, Súgó');
+  assert.ok(await inViewport(narrow.page, '#appVersion'));
+  await narrow.ctx.close();
+});
+
+test('Súgó: Adatvédelem rész a telepítési sor alatt, a szöveg szó szerint, nem szürke', async () => {
+  const { page, ctx } = await open(DESKTOP);
+  await openHelp(page, false);
+  const info = await page.evaluate(() => {
+    const h = document.getElementById('helpPrivacyH'), p = h.nextElementSibling, inst = document.querySelector('#dlgHelp .help-install');
+    const cs = getComputedStyle(p);
+    return {
+      h: h.tagName + ':' + h.textContent.trim(), cls: p.className, text: p.textContent.replace(/\s+/g, ' ').trim(),
+      afterInstall: inst.nextElementSibling === h, beforeActions: p.nextElementSibling.classList.contains('help-actions'),
+      size: cs.fontSize, color: cs.color, ink: getComputedStyle(document.body).color, instColor: getComputedStyle(inst).color,
+      hGap: parseFloat(getComputedStyle(h).marginTop),
+    };
+  });
+  assert.equal(info.h, 'H3:Adatvédelem');
+  assert.equal(info.cls, 'help-privacy');
+  assert.equal(info.text, PRIVACY, 'a szöveg szó szerint');
+  assert.match(info.text, /névtelen használati statisztikát/);
+  assert.match(info.text, /nem hagyja el ezt a készüléket/);
+  assert.doesNotMatch(info.text, /személyes adat/);
+  assert.ok(info.afterInstall && info.beforeActions, 'a telepítési sor és a gombsor között');
+  assert.equal(info.size, '14px');
+  assert.equal(info.color, info.ink, 'a szövegszín, nem szürke');
+  assert.notEqual(info.color, info.instColor);
+  assert.equal(info.hGap, 20, '20 px felső térköz');
+  await ctx.close();
+});
+
+test('Súgó asztalon: a gombsor elválasztóval, a Betűteszt balra, a Bemutató újra és a Kezdjük jobbra; tabulátor sorrend', async () => {
+  const { page, ctx } = await open(DESKTOP);
+  await openHelp(page, false);
+  const bar = await page.$eval('#dlgHelp .help-actions', (e) => {
+    const cs = getComputedStyle(e);
+    return { border: cs.borderTopWidth + ' ' + cs.borderTopStyle, mt: cs.marginTop, pt: cs.paddingTop, ids: [...e.querySelectorAll('button')].map((b) => b.id || b.textContent.trim()) };
+  });
+  assert.equal(bar.border, '1px solid');
+  assert.equal(bar.mt, '20px');
+  assert.equal(bar.pt, '16px');
+  assert.deepEqual(bar.ids, ['fontBtn', 'tourAgain', 'Kezdjük'], 'DOM- és tabulátor sorrend');
+  const [box, font, again, ok] = await Promise.all(['#dlgHelp .help-actions', '#fontBtn', '#tourAgain', '#dlgHelp [data-close]'].map((q) => rect(page, q)));
+  assert.ok(Math.abs(font.left - box.left) < 1, 'a Betűteszt a bal szélen');
+  assert.ok(Math.abs(ok.right - box.right) < 1 && again.right <= ok.left, 'a Bemutató újra és a Kezdjük jobbra');
+  assert.ok(font.right < again.left - 40, 'köztük szabad hely');
+  const mid = (r) => r.top + r.height / 2;
+  assert.ok(Math.abs(mid(font) - mid(ok)) < 2, 'egy sorban');
+  assert.equal(await page.$eval('#fontBtn', (b) => b.classList.contains('btn-text')), true, 'szöveges gomb');
+  // megnyitáskor a Kezdjük kapja a fókuszt; visszafelé tabulálva a Bemutató újra, majd a Betűteszt
+  assert.equal(await page.evaluate(() => document.activeElement.textContent.trim()), 'Kezdjük');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'tourAgain');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'fontBtn');
+  await ctx.close();
+});
+
+for (const close of ['Bezárás', 'Esc']) {
+  test(`Súgó → Betűteszt: a Súgó bezárul, csak a Betűteszt van nyitva; bezárás (${close}) után a fókusz a Súgó gombon`, async () => {
+    const { page, ctx, errors } = await open(DESKTOP);
+    await openHelp(page, false);
+    await page.click('#fontBtn');
+    assert.deepEqual(await openDialogs(page), ['dlgFont'], 'egyszerre csak a Betűteszt van nyitva');
+    assert.ok((await page.textContent('#fontResult')).trim().length > 0, 'a Betűteszt ugyanúgy kiírja az eredményt');
+    if (close === 'Esc') await page.keyboard.press('Escape'); else await page.click('#dlgFont [data-close]');
+    assert.deepEqual(await openDialogs(page), [], 'egyik ablak sincs nyitva');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'helpBtn');
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+
+test('Súgó → Betűteszt billentyűzettel: Enter a Betűteszten, Esc után a fókusz a Súgó gombon', async () => {
+  const { page, ctx } = await open(DESKTOP);
+  await page.focus('#helpBtn');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Enter');
+  assert.deepEqual(await openDialogs(page), ['dlgFont']);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'helpBtn');
+  await ctx.close();
+});
+
+test('Súgó érintőképernyőn 600 px felett (fekvő iPad): a Betűteszt legalább 44 px magas, balra', async () => {
+  const { page, ctx } = await open(IPAD_LAND);
+  await openHelp(page, true);
+  const [box, font, ok] = await Promise.all(['#dlgHelp .help-actions', '#fontBtn', '#dlgHelp [data-close]'].map((q) => rect(page, q)));
+  assert.ok(font.height >= 44, `magasság: ${font.height}`);
+  assert.ok(Math.abs(font.left - box.left) < 1 && font.right < ok.left, 'a bal szélen, egy sorban a többivel');
+  await ctx.close();
+});
+
+test('Súgó 320×568 érintő, széles betűvel: a gombsor egymás alatt (Kezdjük, Bemutató újra, Betűteszt), teljes szélességben', async () => {
+  const { page, ctx } = await open({ viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }, {}, { font: WIDE_FONT });
+  await openHelp(page, true);
+  await page.$eval('#dlgHelp .help-actions', (e) => e.scrollIntoView({ block: 'end' }));
+  const [box, ok, again, font] = await Promise.all(['#dlgHelp .help-actions', '#dlgHelp [data-close]', '#tourAgain', '#fontBtn'].map((q) => rect(page, q)));
+  assert.ok(ok.bottom <= again.top && again.bottom <= font.top, 'fentről lefelé: Kezdjük, Bemutató újra, Betűteszt (nem fedik egymást)');
+  for (const [name, r] of [['Kezdjük', ok], ['Bemutató újra', again], ['Betűteszt', font]]) {
+    assert.ok(Math.abs(r.left - box.left) < 1 && Math.abs(r.right - box.right) < 1, `${name} teljes szélességben`);
+    assert.ok(r.height >= 44, `${name} legalább 44 px magas (${r.height})`);
+  }
+  assert.equal(await page.$eval('#fontBtn', (b) => getComputedStyle(b).textAlign), 'center', 'a Betűteszt felirata középen');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'az oldalon nincs vízszintes görgetés');
+  assert.ok(await page.$eval('#dlgHelp', (d) => d.scrollWidth <= d.clientWidth), 'a Súgóban nincs vízszintes görgetés');
+  await page.tap('#fontBtn');
+  assert.deepEqual(await openDialogs(page), ['dlgFont'], 'koppintásra a Betűteszt nyílik');
+  await ctx.close();
+});
+
+for (const touch of [true, false]) {
+  test(`Súgó 320×256 (WCAG 1.4.10 határ${touch ? ', érintő' : ', desktop 400% nagyítás'}): görgethető, az Adatvédelem és a gombsor elérhető`, async () => {
+    const { page, ctx } = await open({ viewport: { width: 320, height: 256 }, hasTouch: touch, isMobile: touch });
+    await openHelp(page, touch);
+    assert.ok(await page.$eval('#dlgHelp', (d) => d.scrollHeight > d.clientHeight && getComputedStyle(d).overflowY === 'auto'), 'a Súgó görgethető');
+    assert.ok(await page.$eval('#dlgHelp', (d) => d.scrollWidth <= d.clientWidth), 'nincs vízszintes görgetés');
+    for (const q of ['#helpPrivacyH', '#dlgHelp .help-privacy', '#fontBtn', '#tourAgain', '#dlgHelp [data-close]']) {
+      await page.$eval(q, (e) => e.scrollIntoView({ block: 'nearest' }));
+      const ok = await page.$eval(q, (e) => {
+        const r = e.getBoundingClientRect(), d = document.getElementById('dlgHelp').getBoundingClientRect();
+        return r.height > 0 && r.top >= Math.max(0, d.top) - 0.5 && r.bottom <= Math.min(innerHeight, d.bottom) + 0.5 && r.left >= 0 && r.right <= innerWidth + 0.5;
+      });
+      assert.ok(ok, `${q} görgetéssel elérhető`);
+    }
+    await (touch ? page.tap('#fontBtn') : page.click('#fontBtn'));
+    assert.deepEqual(await openDialogs(page), ['dlgFont'], 'a Betűteszt innen is nyílik');
     await ctx.close();
   });
 }
