@@ -169,6 +169,27 @@ test('lista: az ismétlődő tétel a felületen egyszer látszik, a számok a k
   assert.equal(await page.locator('#pickSum').textContent(), '2 lista · 4 tétel');
 });
 
+test('lista: a táblázat második sorának jelölője adja az induló kijelölést, amíg a szülő nem választ (F-L1d)', async () => {
+  const sheet = (flags) => 'Betűk,Szótagok,Szavak\r\n' + flags + '\r\na,ma,alma\r\ne,me,körte';
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: sheet('FALSE,TRUE,TRUE') }));
+  await page.reload();
+  await page.locator('#listNav .nav-item[aria-pressed="true"]').nth(1).waitFor();
+  assert.deepEqual(await pressed(), ['false', 'true', 'true']);
+  assert.deepEqual(await chips(), ['alma', 'körte', 'ma', 'me'], 'a jelölő nem tétel (névsorban: Szavak, Szótagok)');
+  // a szülő még nem választott: a táblázat változását követi
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: sheet('TRUE,FALSE,FALSE') }));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector('#listNav .nav-item')?.getAttribute('aria-pressed') === 'true'
+    && document.querySelectorAll('#listNav .nav-item[aria-pressed="true"]').length === 1);
+  assert.deepEqual(await pressed(), ['true', 'false', 'false']);
+  // a szülő választása után már az övé marad
+  await navBtn('Szavak').click();
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await page.waitForTimeout(300);
+  assert.deepEqual(await pressed(), ['false', 'true', 'false'], 'Betűk, Szavak, Szótagok');
+});
+
 test('lista: „Összes lista” minden listát kijelöl; egy listára kattintva vissza „Kijelölt listák”', async () => {
   await navBtn('Betűk').click();
   await page.locator('#srcAll').check();

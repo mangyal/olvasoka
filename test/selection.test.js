@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clickSelect, reconcile, itemsOf, sourceFor, applySource } from '../js/core/selection.js';
+import { clickSelect, reconcile, itemsOf, sourceFor, applySource, wantedSelection } from '../js/core/selection.js';
 import { distinctItems } from '../js/core/items.js';
 import { normalizeState } from '../js/core/settings.js';
 
@@ -60,4 +60,18 @@ test('forrás: szinkronban a kijelöléssel', () => {
   assert.deepEqual(applySource('all', ['b'], keys), keys);
   assert.deepEqual(applySource('list', keys, keys), ['a'], 'mind kijelölve → csak az első');
   assert.deepEqual(applySource('list', ['b', 'd'], keys), ['b', 'd'], 'részleges kijelölés marad');
+});
+
+test('betöltéskor: mostani → mentett → a táblázat jelölői → az első lista (F-L1d)', () => {
+  const pick = (o) => reconcile(wantedSelection({ source: 'list', selected: [], last: [], preset: [], keys, ...o }), keys);
+  assert.deepEqual(pick({ preset: ['d', 'b'] }), ['b', 'd'], 'első betöltés: az alapból kijelöltek, megjelenési sorrendben');
+  assert.deepEqual(pick({ preset: ['d'], last: ['c'] }), ['c'], 'a mentett kijelölés erősebb');
+  assert.deepEqual(pick({ preset: ['d'], last: ['c'], selected: ['e'] }), ['e'], 'a mostani kijelölés a legerősebb');
+  assert.deepEqual(pick({ preset: ['d'], last: ['x'] }), ['d'], 'ha a mentett lista már nem létezik, a jelölő jön');
+  assert.deepEqual(pick({ preset: ['d'], selected: ['x'], last: ['c'] }), ['c']);
+  assert.deepEqual(pick({ preset: ['x'] }), ['a'], 'nem létező jelölt lista: az első');
+  assert.deepEqual(pick({}), ['a'], 'jelölő nélkül: az első, mint eddig');
+  assert.deepEqual(pick({ preset: keys }), keys);
+  assert.equal(sourceFor(pick({ preset: keys }), keys), 'all', 'mind jelölve → Összes lista');
+  assert.deepEqual(pick({ source: 'all', preset: ['b'] }), keys, 'Összes lista módban mind');
 });
