@@ -19,7 +19,7 @@
 // A tételek tisztítása és a listanevek ellenőrzése mindkét forrásnál ugyanaz (F-L3–F-L5).
 // A listák névsorban (magyar ábécé, számok számként) kerülnek vissza, nem a forrás sorrendjében.
 
-import { MAXLEN, nameKey, art } from './items.js';
+import { cleanItem, maxLenOf, nameKey, art } from './items.js';
 import { parseCsv, colName } from './csv.js';
 
 // Magyar ábécérend, a számokat számként kezeli (2. < 10. oldal).
@@ -58,15 +58,15 @@ function createBuilder() {
     items(text, at) {
       if (!cur) return;
       for (const part of text.split(',')) {
-        const item = part.trim();
+        const item = cleanItem(part);           // M-6: a belső szóközök egyre vonva
         if (!item) continue;
         if (item.startsWith('#')) {             // F-L5: #-tel kezdődő tétel nem lehet
           problems.push(`${at}: a „${item}” #-tel kezdődik, ezért kimaradt.`);
           continue;
         }
-        const len = [...item].length;
-        if (len > MAXLEN) {
-          problems.push(`${at}: a „${item}” túl hosszú (${len}/${MAXLEN} karakter), kimaradt.`);
+        const len = [...item].length, max = maxLenOf(item);   // M-5: mondatra 40, másra 20
+        if (len > max) {
+          problems.push(`${at}: a „${item}” túl hosszú (${len}/${max} karakter), kimaradt.`);
           continue;
         }
         cur.items.push(item);

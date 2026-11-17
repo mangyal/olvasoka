@@ -106,7 +106,7 @@ Alapelvek, amelyek minden döntést felülírnak:
 | Alkalom | Egy megjelenés a napi `help` sorban (kézi és villantásos egyaránt, a lejárt villantás is). |
 | Olvasási nap | Nap, amelyen a tételnek legalább 1 megjelenése volt. Több eszköz ugyanazon napja egy napnak számít. |
 | Szótagszám | A tételkulcs magánhangzóinak száma (legalább 1), lásd 7.2. |
-| Szokásos tempó | A gyerek adott típusú (betű, szótag, szó) tételeinek szótagonkénti középértéke, lásd 7.3. |
+| Szokásos tempó | A gyerek adott típusú (betű, szótag, szó, mondat) tételeinek szótagonkénti középértéke, lásd 7.3. |
 | Friss idő, arány | A tétel utolsó 3 mért idejének szótagonkénti középértéke; az arány ez osztva a típus szokásos tempójával (7.4). 1,0 = a szokásos tempó, 2,0 = kétszer olyan lassú. |
 | Ok | Miért került a tétel a Még bizonytalan vagy a Még gyakorolni kell csoportba: `help` (segítség) vagy `slow` (lassabb), lásd 7.6. |
 | Nap | Helyi naptári nap (Europe/Budapest a gyakorlatban; a böngésző helyi ideje). |
@@ -236,7 +236,7 @@ Minden a meglévő napi összesítőkből számolható, visszamenőleg is. Tiszt
 - Szótagonkénti idő = mért idő / szótagszám.
 
 ### 7.3 Szokásos tempó (típusonként)
-- Típus: betű, szótag, szó (a meglévő `typeOf`, `js/core/grid.js`). Így pl. a `pi-ló-ta` és a `ka-bát` szó.
+- Típus: betű, szótag, szó, *(2.16)* mondat (a meglévő `typeOf`, `js/core/grid.js`). Így pl. a `pi-ló-ta` és a `ka-bát` szó. A mondat saját tempót kap, a szavakéba nem számít; a szótagszáma is a magánhangzók száma ([mondatok-specifikacio.md](mondatok-specifikacio.md), M-10, M-11). A tétel részleteiben: „…mint a többi mondatot.”
 - Az adott típus összes tételének szótagonkénti mért ideje az utolsó `tempo_ablak_nap` napból, középértékkel. Az ablak **az utolsó gyakorlási naphoz** kötött (nem a mai naphoz), így hosszú szünet után sem ürül ki: az utolsó gyakorlási nap és az előtte lévő 29 nap.
 - Csak akkor van szokásos tempó, ha legalább `tempo_min_meres` mért idő van az adott típusban. Ha nincs, az adott típusban nincs időfeltétel.
 

@@ -3,7 +3,9 @@
 
 import { buildReadSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
-import { syllables, rulerGeometry } from '../core/cover.js';
+import { coverUnits, rulerGeometry } from '../core/cover.js';
+import { roundLayouts, layoutFor } from '../core/fit.js';
+import { isSentence } from '../core/items.js';
 import { progressModel, dotState } from '../core/progress.js';
 import { FONT_STACK } from '../font.js';
 import { createReward } from './reward.js';
@@ -48,7 +50,8 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
   let touch = false;                // F-P10: volt már érintés/toll → a ✕ végig látszik
   const lay = { barW: 0, barY: Infinity, size: 0, top: 0, bottom: 0 };
-  let geo = null;                   // a látható tétel szótag-geometriája (F-P19, F-P22)
+  let layouts = null, curLayout = null;   // M-7: a kör két elrendezése és az épp használt
+  let geo = null;                   // a látható tétel takarási geometriája (F-P19, F-P22, M-8)
   const coverG = document.createElementNS(SVG, 'g');
   coverG.setAttribute('class', 'covers');
   el.itemText.after(coverG);
@@ -121,7 +124,7 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
 
   function dispatch(ev, arg) {
     if (mode !== 'practice') return;
-    if (ev === 'COVER_DOWN') arg = { n: curSyllables().length };
+    if (ev === 'COVER_DOWN') arg = { n: curUnits().length };
     const before = st;
     st = step(st, ev, performance.now(), arg);
     progress?.step(before, ev, st);
@@ -179,38 +182,39 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   }
 
   /* ---------- rajzolás ---------- */
-  // F-P13: egy betűméret az egész körre, a tételek közös tinta-dobozához igazítva, állandó alapvonallal
+  // F-P13, M-7: két betűméret a körre (nem-mondat tételek, mondatok), mindkettő a saját tételei közös
+  // tinta-dobozához igazítva, állandó alapvonallal. A tétel a típusa szerinti elrendezéssel jelenik meg.
   function layout() {
-    const texts = [...new Set(st.seq.map((i) => items[i]))];
     measure.font = `400 100px ${FONT_STACK}`;
-    let maxW = 1, A = 0, D = 0;
-    for (const t of texts) {
+    const metric = (t) => {
       const m = measure.measureText(t);
-      maxW = Math.max(maxW, m.width, (m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || 0));
-      A = Math.max(A, m.actualBoundingBoxAscent || 72);
-      D = Math.max(D, m.actualBoundingBoxDescent || 0);
-    }
-    const vw = innerWidth, vh = innerHeight;
-    const k = Math.min(vw * 0.72 / maxW, vh * 0.53 / Math.max(1, A + D), vh * 0.53 / 100);
-    const size = Math.max(8, Math.floor(k * 100)), s = size / 100;
-    const baseline = vh * 0.46 + ((A - D) / 2) * s;
-    el.itemText.setAttribute('font-size', size);
-    lay.size = size; lay.top = baseline - A * s; lay.bottom = baseline + D * s;
+      return { width: m.width, left: m.actualBoundingBoxLeft, right: m.actualBoundingBoxRight,
+        ascent: m.actualBoundingBoxAscent, descent: m.actualBoundingBoxDescent };
+    };
+    layouts = roundLayouts(st.seq.map((i) => items[i]), metric, innerWidth, innerHeight);
+    curLayout = null;
+    applyLayout(items[st.seq[st.index]] ?? '');
+  }
+
+  /** A tétel elrendezésére vált, ha az más, mint az épp használt (M-7). */
+  function applyLayout(text) {
+    const L = layoutFor(layouts, text);
+    if (!L || L === curLayout) return;
+    curLayout = L;
+    el.itemText.setAttribute('font-size', L.size);
+    lay.size = L.size; lay.top = L.top; lay.bottom = L.bottom;
+    lay.barW = L.barW; lay.barY = L.barY;
     geo = null;
-    el.itemText.setAttribute('y', baseline.toFixed(1));
-    // időjelző a közös tinta-doboz alatt, a kör legszélesebb tételének szélességében
-    lay.barW = Math.min(vw * 0.7, Math.max(160, maxW * s));
-    const x = (vw - lay.barW) / 2;
-    const y = Math.min(baseline + D * s + Math.max(16, vh * 0.035), vh - 110);
-    lay.barY = y;
-    for (const r of [el.barTrack, el.barFill]) { r.setAttribute('x', x.toFixed(1)); r.setAttribute('y', y.toFixed(1)); }
-    el.barTrack.setAttribute('width', lay.barW.toFixed(1));
+    el.itemText.setAttribute('y', L.baseline.toFixed(1));
+    for (const r of [el.barTrack, el.barFill]) { r.setAttribute('x', L.barX.toFixed(1)); r.setAttribute('y', L.barY.toFixed(1)); }
+    el.barTrack.setAttribute('width', L.barW.toFixed(1));
   }
 
   function render() {
     const practice = mode === 'practice';
     const showing = practice && st.phase === 'showing';
     const text = showing ? items[st.seq[st.index]] : '';
+    if (text) applyLayout(text);    // M-7: a szünetben (üres szöveg) a méret marad
     if (el.itemText.textContent !== text) { el.itemText.textContent = text; geo = null; }
     drawCovers();
     if (practice) renderProgress(progressModel(st.index, st.seq.length));
@@ -254,9 +258,9 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
     }
   }
 
-  /* ---------- szótag-takarás (spec 4.5) ---------- */
-  function curSyllables() {
-    return mode === 'practice' && st.phase === 'showing' ? syllables(items[st.seq[st.index]]) : [];
+  /* ---------- szótag-takarás (spec 4.5); mondatnál szavanként (M-8) ---------- */
+  function curUnits() {
+    return mode === 'practice' && st.phase === 'showing' ? coverUnits(items[st.seq[st.index]]) : [];
   }
 
   // Tinta-szélek a tényleges SVG-elrendezésből: a karakter kezdőpontja az SVG-ből, a tinta
@@ -269,31 +273,36 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
 
   function geometry() {
     if (geo) return geo;
-    const text = el.itemText.textContent, syl = syllables(text);
-    if (syl.length < 2) return (geo = { syl, slices: [], rulers: [] });
+    const text = el.itemText.textContent, units = coverUnits(text);
+    if (units.length < 2) return (geo = { units, slices: [], rulers: [] });
     measure.font = `400 ${lay.size}px ${FONT_STACK}`;
     const em = lay.size;
     const whole = ink(text, 0, text.length);
-    const hyph = (i) => (text[i] === '-' ? ink(text, i, 1) : null);
-    // F-P19: a közös tinta-doboz szeletei a szótagok közti kötőjel(ek) közepén
+    const startX = (u) => el.itemText.getStartPositionOfChar(u.start).x;
+    const endX = (u) => el.itemText.getEndPositionOfChar(u.end - 1).x;
+    const sentence = isSentence(text);
+    // F-P19: a közös tinta-doboz szeletei a szótagok közti kötőjel(ek) közepén;
+    // M-8: mondatban a két szó közti szóköz közepén
     const cuts = [];
-    for (let k = 0; k < syl.length - 1; k++) {
-      const a = ink(text, syl[k].end, 1), b = ink(text, syl[k + 1].start - 1, 1);
+    for (let k = 0; k < units.length - 1; k++) {
+      if (sentence) { cuts.push((endX(units[k]) + startX(units[k + 1])) / 2); continue; }
+      const a = ink(text, units[k].end, 1), b = ink(text, units[k + 1].start - 1, 1);
       cuts.push(((a.l + a.r) / 2 + (b.l + b.r) / 2) / 2);
     }
-    const slices = syl.map((_, k) => ({ l: k ? cuts[k - 1] : whole.l, r: k < cuts.length ? cuts[k] : whole.r }));
-    // F-P22: vonalzó a szótag advance-dobozán; a kötőjel felől ráhagyás nélkül, a tintáját nem éri el
-    const rulers = syl.map((sy) => {
-      const before = hyph(sy.start - 1), after = hyph(sy.end);
+    const slices = units.map((_, k) => ({ l: k ? cuts[k - 1] : whole.l, r: k < cuts.length ? cuts[k] : whole.r }));
+    // F-P22: vonalzó az egység advance-dobozán; a kötőjel felől ráhagyás nélkül, a tintáját nem éri el.
+    // M-8: a mondat szava mindkét oldalon ráhagyást kap, a szón belüli kötőjelet és az írásjelet is fedi.
+    const hyph = (i) => (!sentence && text[i] === '-' ? ink(text, i, 1) : null);
+    const rulers = units.map((u) => {
+      const before = hyph(u.start - 1), after = hyph(u.end);
       return rulerGeometry({
-        left: el.itemText.getStartPositionOfChar(sy.start).x,
-        right: el.itemText.getEndPositionOfChar(sy.end - 1).x,
+        left: startX(u), right: endX(u),
         top: lay.top, bottom: lay.bottom, barTop: lay.barY,
         hyphenLeft: before ? before.r : undefined,
         hyphenRight: after ? after.l : undefined,
       }, em);
     });
-    return (geo = { syl, slices, rulers });
+    return (geo = { units, slices, rulers });
   }
 
   function drawCovers() {
@@ -321,9 +330,9 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
     return g;
   }
 
-  /** Melyik szótag takarási területén van a pont (F-P19); -1, ha egyiken sem, vagy nincs mit takarni. */
-  function syllableAt(x, y) {
-    if (mode !== 'practice' || st.phase !== 'showing' || curSyllables().length < 2) return -1;
+  /** Melyik egység (szótag, mondatban szó) takarási területén van a pont (F-P19, M-8); -1, ha egyiken sem. */
+  function unitAt(x, y) {
+    if (mode !== 'practice' || st.phase !== 'showing' || curUnits().length < 2) return -1;
     if (y < lay.top || y > lay.bottom) return -1;
     return geometry().slices.findIndex((sl) => x >= sl.l && x <= sl.r);
   }
@@ -360,8 +369,8 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   el.stage.addEventListener('pointerup', (e) => {
     const p = tapPt; tapPt = null;
     if (!p || mode !== 'practice' || Math.hypot(e.clientX - p.x, e.clientY - p.y) > DRAG) return;
-    const i = syllableAt(p.x, p.y);
-    if (i >= 0) dispatch('COVER', { i, n: curSyllables().length });
+    const i = unitAt(p.x, p.y);
+    if (i >= 0) dispatch('COVER', { i, n: curUnits().length });
     else if (!p.mouse) dispatch('NEXT');
   });
   el.stage.addEventListener('pointercancel', () => { tapPt = null; });

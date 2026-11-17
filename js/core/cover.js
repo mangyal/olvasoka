@@ -1,7 +1,10 @@
 // Szótag-takarás (spec 4.5, F-P17–F-P21). Tiszta modul, DOM nélkül.
 //
-// A takarási állapot (`covered`) egy logikai tömb, szótagonként egy elem (true = letakarva).
+// A takarás egysége (coverUnits) szónál és szótagnál a szótag, mondatnál a szó (M-8).
+// A takarási állapot (`covered`) egy logikai tömb, egységenként egy elem (true = letakarva).
 // Az üres tömb jelenti az „egész látszik” állapotot; tételváltáskor mindig ez lesz (F-P21).
+
+import { isSentence } from './items.js';
 
 /**
  * F-P17: a tétel szótagjai a kötőjel (U+002D) mentén, a karakterpozíciókkal együtt.
@@ -21,6 +24,20 @@ export function syllables(item) {
 }
 
 export const syllableCount = (item) => syllables(item).length;
+
+/**
+ * M-8: a mondat szavai a szóköz(ök) mentén, az írásjellel együtt (`húz.`), a karakterpozíciókkal.
+ * A szón belüli kötőjel nem határ (`fi-ú` egy szó).
+ * @returns {{ text: string, start: number, end: number }[]}  end kizáró, UTF-16 index
+ */
+export function words(item) {
+  const s = String(item), out = [];
+  for (const m of s.matchAll(/\S+/g)) out.push({ text: m[0], start: m.index, end: m.index + m[0].length });
+  return out;
+}
+
+/** A takarás egységei (M-8): mondatnál a szavak, egyébként a szótagok (F-P17). */
+export const coverUnits = (item) => (isSentence(item) ? words(item) : syllables(item));
 
 /** Van-e letakart szótag. */
 export const anyCovered = (covered) => covered.some(Boolean);

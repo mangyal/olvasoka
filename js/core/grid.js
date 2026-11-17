@@ -7,7 +7,7 @@
 // betűsorozatokon), fokozat (0–1), belső arány (a fokozat a kiegyenlítő görbén át), közös kezdet és
 // kezdet súlya (docs/keresd-meg-azonos-kezdet.md).
 
-import { itemKey } from './items.js';
+import { itemKey, isSentence } from './items.js';
 import { groupOf } from './groups.js';
 
 const VOWELS = new Set([...'aáeéiíoóöőuúüű']);
@@ -22,12 +22,22 @@ const MULTI = ['dzs', ...DIGRAPHS];
 /** A t i. helyétől induló többjegyű betű, ha van (a háromjegyű előbb). */
 const multiAt = (t, i) => MULTI.find((m) => t.startsWith(m, i));
 
+/** Mondatban az írásjel nem betű (M-2). */
+const PUNCT = /[.?!,]/g;
+
 /**
  * Mohó leghosszabb egyezés: dzs, majd a kétjegyűek, végül az egyes karakterek.
  * A hosszú többjegyű mássalhangzó (ssz, ggy, ccs, ddzs …) két betű: asszony → a-sz-sz-o-ny.
+ * Mondatban (M-2) a szóköz és az írásjel kimarad; a szavakat külön bontjuk, hogy a szóhatáron ne
+ * álljon össze többjegyű betű (`ház sarka`: z, s, nem zs), majd a betűik egy sorozatot adnak.
  */
 export function tokenize(s) {
-  const t = normalize(s), out = [];
+  if (isSentence(s)) return normalize(s).replace(PUNCT, '').split(/\s+/).flatMap((w) => (w ? tokenizeWord(w) : []));
+  return tokenizeWord(normalize(s));
+}
+
+function tokenizeWord(t) {
+  const out = [];
   for (let i = 0; i < t.length;) {
     const doubled = t[i] === t[i + 1] && multiAt(t, i + 1);
     if (doubled && doubled[0] === t[i]) { out.push(doubled); i += 1; continue; }
@@ -42,8 +52,12 @@ export function tokenize(s) {
 
 export const isVowel = (letter) => VOWELS.has(letter);
 
-/** betű = 1 betű; szó = legalább 2 magánhangzó; szótag = minden más (1 magánhangzó, több betű). */
+/**
+ * mondat = van benne szóköz (M-1); betű = 1 betű; szó = legalább 2 magánhangzó;
+ * szótag = minden más (1 magánhangzó, több betű).
+ */
 export function typeOf(s) {
+  if (isSentence(s)) return 'mondat';
   const t = tokenize(s);
   if (t.length === 1) return 'betű';
   return t.filter(isVowel).length >= 2 ? 'szó' : 'szótag';
@@ -223,11 +237,13 @@ export function innerRatio(level, cc, n) {
  * számít, K-1), az eredeti alakkal, típussal, szótagszámmal, csoporttal, súllyal (ahány sora van, K-4)
  * és a páronkénti távolságokkal. A távolságtábla egyszer készül, a rácsok gyorsan épülnek belőle.
  * `groupSize`: csoport → különböző tételek száma; csak legalább 2 tételes csoport tétele játszható.
+ * A mondatok kimaradnak (M-9).
  * @param {string[]} items  a kör sorai, ismétlésekkel
  */
 export function createPool(items, cc) {
   const byKey = new Map(), entries = [];
   for (const raw of items) {
+    if (isSentence(raw)) continue;              // M-9: mondat nem kerül Keresd meg! feladatba
     const key = itemKey(raw);
     if (byKey.has(key)) { byKey.get(key).weight++; continue; }
     const tokens = tokenize(raw);

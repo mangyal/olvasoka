@@ -1453,3 +1453,80 @@ test('bemutató: nem írható localStorage mellett a munkameneten belül nem jö
   await noTour(p);
   await c.close();
 });
+
+/* ---------- mondatok (docs/mondatok-specifikacio.md) ---------- */
+
+/** A mondatos lista a táblázatból; kézi léptetés, csoportosított sorrend. */
+async function sentenceRound(rows, count) {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: ['Mondatok', ...rows].join('\r\n') }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await startRound({ flash: 0, count, list: 'Mondatok' });
+}
+const fontSize = () => page.getAttribute('#itemText', 'font-size').then(Number);
+/** A látható vonalzók és a szavak tintájának vízszintes kiterjedése. */
+const coverBoxes = () => page.evaluate(() => {
+  const t = document.getElementById('itemText'), s = t.textContent;
+  const words = [...s.matchAll(/\S+/g)].map((m) => ({
+    text: m[0], l: t.getStartPositionOfChar(m.index).x, r: t.getEndPositionOfChar(m.index + m[0].length - 1).x,
+  }));
+  const rulers = [...document.querySelectorAll('#stage .ruler-body')].map((b) => ({ l: +b.getAttribute('x'), r: +b.getAttribute('x') + +b.getAttribute('width') }));
+  return { words, rulers };
+});
+
+test('mondat (M-7, elfogadás 4): saját betűméret; a szótag mérete nem változik tőle', async () => {
+  await sentenceRound(['ma', 'a há-zi-kó pi-ci.'], 2);
+  assert.equal(await item(), 'ma', 'a mondat a kör végén');
+  const withSentence = await fontSize();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await item(), 'a há-zi-kó pi-ci.');
+  const sentenceSize = await fontSize();
+  assert.ok(sentenceSize < withSentence, `mondat: ${sentenceSize}, szótag: ${withSentence}`);
+  await page.keyboard.press('Escape');
+  await sentenceRound(['ma'], 1);
+  assert.equal(await fontSize(), withSentence, 'mondat nélkül ugyanaz a méret');
+});
+
+test('mondat (M-8, elfogadás 5): ↓ szavanként takar, négy lépés után egész; a vonalzó a szót fedi', async () => {
+  await sentenceRound(['a fi-ú fát hoz.'], 1);
+  const shownWord = [];
+  for (let k = 0; k < 4; k++) {
+    await page.keyboard.press('ArrowDown');
+    const { words, rulers } = await coverBoxes();
+    assert.equal(rulers.length, 3, `${k + 1}. lépés: három szó letakarva`);
+    const visible = words.filter((w) => !rulers.some((r) => r.l <= w.l && r.r >= w.r));
+    assert.equal(visible.length, 1, `${k + 1}. lépés: egy szó látszik`);
+    shownWord.push(visible[0].text);
+    // a vonalzók nem érnek egymásba (a szóközön belül maradnak)
+    const sorted = [...rulers].sort((a, b) => a.l - b.l);
+    for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i].l > sorted[i - 1].r, 'két vonalzó nem fedi egymást');
+  }
+  assert.deepEqual(shownWord, ['a', 'fi-ú', 'fát', 'hoz.']);
+  await page.keyboard.press('ArrowDown');
+  assert.equal((await coverBoxes()).rulers.length, 0, 'ötödikre egész');
+});
+
+test('mondat (M-8): kattintás egy szóra annak a takarását váltja, a szón belüli kötőjel nem határ', async () => {
+  await sentenceRound(['a fi-ú fát hoz.'], 1);
+  const { words } = await coverBoxes();
+  const fiu = words.find((w) => w.text === 'fi-ú');
+  const y = await page.evaluate(() => { const b = document.getElementById('itemText').getBBox(); return b.y + b.height / 2; });
+  await page.mouse.click(fiu.l + 3, y);            // a „fi” részre
+  let { rulers } = await coverBoxes();
+  assert.equal(rulers.length, 1);
+  assert.ok(rulers[0].l <= fiu.l && rulers[0].r >= fiu.r, 'az egész „fi-ú” letakarva');
+  await page.mouse.click(fiu.r - 3, y);            // az „ú” részre: ugyanaz a szó
+  ({ rulers } = await coverBoxes());
+  assert.equal(rulers.length, 0, 'újra kattintva a szó előjön');
+});
+
+test('mondat (M-9): csak mondatos listánál a Keresd meg! saját üzenetet mutat', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Mondatok\r\na ló húz.\r\na fa nő.\r\na ló fut.' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await navBtn('Mondatok').click();
+  await page.locator('#tabFind').click();
+  await page.waitForFunction(() => document.getElementById('startMsg').textContent);
+  assert.equal(await text('#startMsg'), 'A Keresd meg!-ben mondatok nem szerepelnek. Válassz betűt, szótagot vagy szót is.');
+  assert.equal(await page.locator('#startBtn').isDisabled(), true);
+});
