@@ -6,6 +6,7 @@ name: Automatikus összevonás (→ dev)
 # - Csak a dev-be menő PR-ok; a main-be (éles) menő PR-t továbbra is a tulajdonos vonja össze.
 # - Kimarad: draft PR, más repóból (forkból) jövő PR, és ha a PR-ra a teszt óta új commit jött
 #   (az összevonás a tesztelt commithoz van kötve; az új commit tesztje újra elindítja ezt).
+# - Kimarad a release/* ág: azt a Kiadás egy gombnyomással workflow vonja össze.
 # - Ha egy PR-t nem akarsz automatikusan összevonni: nyisd draftként.
 #
 # A GITHUB_TOKEN-nel végzett összevonás nem indít push-workflow-t (GitHub szabály), ezért a kiadást
@@ -33,7 +34,8 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      !startsWith(github.event.workflow_run.head_branch, 'release/')
     runs-on: ubuntu-latest
     steps:
       - name: PR keresése és összevonása
