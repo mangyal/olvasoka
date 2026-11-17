@@ -25,7 +25,7 @@ on:
         description: 'Léptetés: patch = javítás (1.0.1 → 1.0.2), minor = új funkció (→ 1.1.0), major = nem visszafelé kompatibilis (→ 2.0.0)'
         type: choice
         required: true
-        default: minor
+        default: patch
         options: [patch, minor, major]
 
 permissions:
