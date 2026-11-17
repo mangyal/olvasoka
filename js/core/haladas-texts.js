@@ -125,7 +125,7 @@ export const groupTitle = (key, n) => `${CARDS[key].title}: ${n} ${TERM.nom}`;
 /** A „Mutasd mindet” akadálymentes neve: „Megy: mind a 60 tétel”. */
 export const showAllAria = (key, n) => `${CARDS[key].title}: mind ${art(n)} ${n} ${TERM.nom}`;
 
-const TYPE_ACC = Object.freeze({ betű: 'betűt', szótag: 'szótagot', szó: 'szót' });
+const TYPE_ACC = Object.freeze({ betű: 'betűt', szótag: 'szótagot', szó: 'szót', mondat: 'mondatot' });
 
 /**
  * A tétel részleteinek fő mondata (8.4) a csoport és az ok szerint.

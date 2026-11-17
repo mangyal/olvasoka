@@ -5,7 +5,7 @@
 // A program nem tudja, melyik a jó válasz, és nem értékel: csak megjelöli, amire a gyerek rábökött.
 
 import { createPool, buildGrid, anchorChoices } from './grid.js';
-import { itemKey } from './items.js';
+import { itemKey, isSentence } from './items.js';
 import { groupOf } from './groups.js';
 
 /** Telefonon (a rövidebb oldal 500 CSS px alatt) legfeljebb ennyi kártya (F-K10). */
@@ -47,13 +47,14 @@ export const distinctCount = (items) => new Set(items.map(itemKey).filter(Boolea
 
 /**
  * Indítható-e a Keresd meg! (2.14, K-5): van-e legalább egy csoport legalább 2 különböző tétellel.
+ * A mondat nem számít (M-9).
  * A készlet nem kell hozzá (nincs távolságtábla), csak a csoportok.
  */
 export function canFind(items) {
   const seen = new Set(), size = new Map();
   for (const raw of items) {
     const k = itemKey(raw);
-    if (!k || seen.has(k)) continue;
+    if (!k || seen.has(k) || isSentence(raw)) continue;   // M-9: a mondat nem játszható
     seen.add(k);
     const g = groupOf(raw).key;
     size.set(g, (size.get(g) || 0) + 1);
@@ -61,6 +62,9 @@ export function canFind(items) {
   }
   return false;
 }
+
+/** Csak mondat van-e a forrásban (M-9): ilyenkor a Keresd meg! saját üzenetet kap. */
+export const onlySentences = (items) => items.length > 0 && items.every(isSentence);
 
 export function startFind(tasks) {
   return { tasks, index: 0, marked: null, done: false };

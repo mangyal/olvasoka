@@ -8,11 +8,16 @@
 //   4 CV      szótag: mássalhangzó + magánhangzó
 //   5 S:<sz>  egyéb szótag (pontosan 1 magánhangzó); szerkezetenként külön (CVC, CCV …)
 //   6 W:<n>   szó (legalább 2 magánhangzó); szótagszámonként külön
+//   7 M:<n>   mondat (van benne szóköz, M-1, M-3); szószámonként külön
 // Az 5. csoporton belül a kevesebb betű előbb, azonos hossznál a szerkezet ábécérendje (C < V);
-// a 6.-ban növekvő szótagszám. Magánhangzó nélküli többbetűs tétel a listákban nem fordul elő
+// a 6.-ban növekvő szótagszám, a 7.-ben növekvő szószám. Magánhangzó nélküli többbetűs tétel a listákban nem fordul elő
 // (minden szótagban van magánhangzó); ha mégis, egyéb szerkezetként kezeljük, hogy ne dobjon hibát.
 
 import { tokenize, isVowel } from './grid.js';
+import { cleanItem, isSentence } from './items.js';
+
+/** A mondat szavainak száma (a szóközök egyre vonva, M-6). */
+export const wordCount = (item) => cleanItem(item).split(' ').filter(Boolean).length;
 
 /** A tétel szerkezete betűnként: C (mássalhangzó) vagy V (magánhangzó), pl. ka-pu → CVCV. */
 export const shapeOf = (item) => tokenize(item).map((l) => (isVowel(l) ? 'V' : 'C')).join('');
@@ -22,6 +27,10 @@ export const shapeOf = (item) => tokenize(item).map((l) => (isVowel(l) ? 'V' : '
  * @returns {{ key: string, rank: (number|string)[] }}  rank: a C-2/C-3 szerinti teljes sorrend (compareRank)
  */
 export function groupOf(item) {
+  if (isSentence(item)) {
+    const n = wordCount(item);
+    return { key: `M:${n}`, rank: [7, n] };
+  }
   const shape = shapeOf(item);
   const vowels = [...shape].filter((c) => c === 'V').length;
   if (shape === 'V') return { key: 'V', rank: [1] };

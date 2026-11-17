@@ -51,6 +51,7 @@ const ASSETS = [
   'js/core/env.js',
   'js/core/exposures.js',
   'js/core/find.js',
+  'js/core/fit.js',
   'js/core/hop.js',
   'js/core/grid.js',
   'js/core/groups.js',

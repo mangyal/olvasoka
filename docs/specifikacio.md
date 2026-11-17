@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.15** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.16** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,19 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.16 (a 2.15-höz képest)
+
+Részletek, elfogadási kritériumok és döntések: [mondatok-specifikacio.md](mondatok-specifikacio.md).
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Mondat | Új tételtípus: ami szóközt tartalmaz, az mondat. Saját, 7. csoport a szavak után, szószámonként (`M:<n>`). | 4.1, M-1–M-4 |
+| 2 | Lista | Mondatra a hosszkorlát 40 karakter; a belső többszörös szóköz egynek számít (a tételkulcsban is). | F-L5, M-5, M-6 |
+| 3 | Betűméret | A kör két méretet használ: egyet a nem-mondat tételekre, egyet a mondatokra, ugyanazzal a szabállyal. | F-P13, F-P14, M-7 |
+| 4 | Takarás | Mondatban a takarás egysége a szó (írásjellel); a szón belüli kötőjel nem határ. | F-P17–F-P19, F-P22, M-8 |
+| 5 | Keresd meg! | Mondat nem kerül feladatba; csak mondatos kijelölésnél saját üzenet. | F-K3a, M-9 |
+| 6 | Haladás | A mondat saját típusonkénti tempót kap, a szavakéba nem számít. | M-10, M-11 |
 
 ### 2.15 (a 2.14-hez képest)
 
@@ -229,7 +242,12 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   3. Üres tétel eldobva.
   4. *(2.14-ben megszűnt: az ismétlődő tétel eldobása.)* Az ismétlődő tétel a helyén marad: ahányszor
      szerepel, annyiszor nagyobb eséllyel kerül a Felolvasás körébe (súlyozás, 4.1). Nem hiba, nincs figyelmeztetés.
-  5. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi a sorszámmal.
+  2a. *(2.16)* A belső többszörös szóköz (a nem törő is) egy szóközzé vonva (M-6).
+  5. Max. 20 karakter (kódpontban), mondatra (2.16, M-5) 40. A hosszabb kimarad, a szülői felület megnevezi
+     a sorszámmal és a vonatkozó korláttal (`25/20`, `41/40`).
+
+  *(2.16)* **Mondat** az a tétel, amelyben (levágás után) szóköz van (M-1). Mondaton belül nem lehet vessző,
+  mert a vessző tételt bont (M-6a).
 
   `#`-tel kezdődő tétel nem lehet: a `#`-tel kezdődő sor listanév, a vessző után álló `#`-es tétel pedig
   kimarad, figyelmeztetéssel a sorszámmal.
@@ -374,7 +392,8 @@ A kör indulásakor a program **előre elkészíti a teljes sorozatot**. Bemenet
 **Csoportok** (`js/core/groups.js`): a tétel betűiből (a Keresd meg! `tokenize()`-a: kisbetű, kötőjel nélkül,
 a többjegyű betű egy betű), ebben a fix sorrendben: magánhangzó · mássalhangzó · VC szótag · CV szótag ·
 egyéb szótag (szerkezetenként, kevesebb betű előbb, azonos hossznál `CCV` < `CVC` < `VCC`) · szó
-(szótagszámonként, növekvő).
+(szótagszámonként, növekvő) · *(2.16)* mondat (szószámonként, növekvő; M-3). Mondatban a szóköz és az
+írásjel nem betű, és a szóhatáron nem áll össze többjegyű betű (M-2).
 
 1. **Húzás (F-4):** a sorokból visszatevés nélkül, egyenletes véletlennel; a tétel annyiszor nagyobb eséllyel
    kerül a körbe, ahány sora van. Ha a sorok elfogytak, és a kör még nem teljes, új keverés.
@@ -419,6 +438,10 @@ A véletlenszám-forrás paraméter, a tesztek seedelt `rng`-t használnak (`tes
   szélesség 72%-án, a tételek közös tinta-doboza a magasság 53%-án, és a betűméret legfeljebb a magasság
   53%-a (2.8-ban 85%, 62%, 62%). Az alapvonal a körön belül állandó; a közös tinta-doboz közepe a magasság 46%-án van.
   Átméretezéskor újraszámolódik.
+  *(2.16, M-7)* A kör két méretet használ, mindkettőt e szabállyal: egyet a nem-mondat tételekre (csak
+  ezekből számolva), egyet a mondatokra (csak a mondatokból számolva). A tétel a saját típusa szerinti
+  méretben, alapvonallal és időjelzővel (F-P14) jelenik meg; csoportosított sorrendben a váltás egyszer, a
+  mondatblokk elején történik, kevert sorrendben tételenként is. Számítás: `js/core/fit.js`.
 - **F-P14** **Időjelző:** a tétel alatt 6 px magas, lekerekített csík a kör legszélesebb tételének
   szélességében (min. 160 px, max. a szélesség 70%-a). A kitöltés balról jobbra fogy a hátralévő idő
   arányában. Pause alatt áll, ← és → után tele csíkkal indul újra. A szünetben és kézi léptetésnél nem látszik.
@@ -453,6 +476,11 @@ A véletlenszám-forrás paraméter, a tesztek seedelt `rng`-t használnak (`tes
 Az iskolai módszert követi: a gyerek előbb az első szótagot olvassa (a második letakarva), aztán a
 másodikat (az első letakarva), végül az egészet. A takarás a szülő eszköze, mint a vonalzó, amit a
 könyvön a szótagra tesz: **alapból minden szótag látszik, és a program magától soha nem takar.**
+
+*(2.16, M-8)* **Mondatban a takarás egysége a szó, nem a szótag:** a szó a szóközök közti rész az
+írásjellel együtt (`hoz.`), a szón belüli kötőjel látszik, de nem határ. A lenti szabályokban a „szótag”
+mondatnál szót jelent; a takarási terület (F-P19) határa a két szó közti szóköz közepe, a vonalzó (F-P22)
+mindkét oldalon a ráhagyással a szó tintáját fedi, az írásjelet is. Egység: `coverUnits()` (`js/core/cover.js`).
 
 - **F-P17 Szótagok.** A tétel szótagjait a kötőjel (`-`, U+002D) választja el, ahogy a listában le van
   írva (`ka-ta` → `ka`, `ta`). Az üres szakasz (kezdő, záró vagy dupla kötőjel) nem szótag. Legalább két
@@ -525,6 +553,9 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
 - **F-K3a (2.14)** Egy feladat csak egy csoport (4.1) tételeiből áll; más csoportból nincs feltöltés. A horgony
   a sorok számával súlyozott véletlennel jön, és csak legalább 2 tételes csoportból (K-2, K-4). A kártyákon
   nincs ismétlés; a `ma`, a `Ma` és az `m-a` három különböző tétel (K-1).
+- **F-K3b (2.16, M-9)** Mondat nem kerül feladatba (a készletből és az indíthatóság vizsgálatából is kimarad).
+  Ha a kör tételei mind mondatok, a Keresd meg! nem indítható, a gomb alatt: „A Keresd meg!-ben mondatok nem
+  szerepelnek. Válassz betűt, szótagot vagy szót is.”
 - **F-K4** A véletlenforrás paraméter; a tesztek seedelt `rng`-t használnak (mint 4.1).
 
 ### 4a.2 Lejátszás

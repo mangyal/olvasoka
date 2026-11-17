@@ -39,7 +39,9 @@ ke-fe
 
 - A `#`-tel kezdődő sor egy új lista neve, alatta soronként egy tétel. Az üres sorok nem számítanak.
 - A tételek pontosan úgy jelennek meg, ahogy le vannak írva (kis- és nagybetű is).
-- Egy tétel legfeljebb 20 karakter. A vessző elválaszt: az `a, á, e` sor három tétel.
+- Egy tétel legfeljebb 20 karakter, mondat 40. A vessző elválaszt: az `a, á, e` sor három tétel.
+- Ami több szóból áll, az mondat (`a ló húz.`). Mondatba ezért nem kerülhet vessző. A mondatok a
+  szavak után, külön jönnek; takarásnál szavanként takarhatók; a Keresd meg!-ben nem szerepelnek.
 - A listanevek egyediek (kis-/nagybetűtől függetlenül).
 
 - Ha egy tétel többször szerepel (pl. egy oldal végi ismétlő sor), a program a Felolvasásban annyiszor
@@ -58,7 +60,7 @@ szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd á
 |---|---|
 | `Space` | következő tétel (az utolsón: jutalom) |
 | `←` / `→` | előző / következő tétel |
-| `↓` | szótag-takarás léptetése (kötőjeles tételnél) |
+| `↓` | szótag-takarás léptetése (kötőjeles tételnél; mondatban szavanként) |
 | `P` | szünet / folytatás |
 | `←` / `→`, `Space` | a kör végén: jutalom kiemelése, majd indítása (`Enter` és `↑` is indít) |
 | `Esc` | vissza a szülői felületre |
@@ -76,7 +78,7 @@ oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy
 választhatók.
 
 A Felolvasás köre csoportonként jön, ebben a sorrendben: magánhangzók, mássalhangzók, VC szótagok (`ók`),
-CV szótagok (`fa`), egyéb szótagok, végül a szavak szótagszám szerint. A **Kevert sorrend** jelölőnégyzettel
+CV szótagok (`fa`), egyéb szótagok, a szavak szótagszám szerint, végül a mondatok szószám szerint. A **Kevert sorrend** jelölőnégyzettel
 a betűk, szótagok és szavak összekeverve jönnek. Ugyanaz a tétel sosem jön kétszer egymás után.
 A Keresd meg! egy feladata mindig csak egy csoport tételeiből áll.
 
