@@ -71,6 +71,9 @@ function readSessionTour() {
 }
 function saveTour(how) {
   stats.track('tour-end', { result: how });
+  storeTour(how);
+}
+function storeTour(how) {
   app.tour = { v: TOUR_VERSION, how, at: Date.now() };
   if (persist()) return;
   try { sessionStorage.setItem(`${ENV.storageKey}_tour`, JSON.stringify(app.tour)); } catch { /* memóriában marad */ }
@@ -319,9 +322,40 @@ function autoStartTour() {
     check();
   })).then(() => {
     // közben elindított játék vagy Súgóból indított bemutató: nem indul újra
-    if (!practice.active && !tour.active && !app.tour) tour.start();
+    if (!practice.active && !tour.active && !app.tour) openWelcome();
   });
 }
+
+/* ---------- Üdvözlő ablak (10.): a bemutató előtt, egyszer ---------- */
+// „Mutasd meg”: indul a bemutató (a tárolás a végén, mint eddig). „Kihagyom, kezdjük”, ✕, Esc vagy a
+// háttérre kattintás: kihagyott bemutatóként tárolódik, és jön a „Súgóban újra elindíthatod” üzenet.
+// Statisztika: welcome-choice { choice: 'tour' | 'skip', via: 'button' | 'close' }.
+let welcomeChoice = null;
+function openWelcome() {
+  welcomeChoice = null;
+  el.dlgWelcome.showModal();
+}
+function chooseWelcome(choice, via) {
+  welcomeChoice = { choice, via };
+  el.dlgWelcome.close();
+}
+el.welcomeTour.addEventListener('click', () => chooseWelcome('tour', 'button'));
+el.welcomeSkip.addEventListener('click', () => chooseWelcome('skip', 'button'));
+el.welcomeX.addEventListener('click', () => chooseWelcome('skip', 'close'));
+// a háttérre kattintás: a dialog saját területén kívül (a ::backdrop a dialog elemre kattintásnak számít)
+el.dlgWelcome.addEventListener('click', (e) => {
+  if (e.target !== el.dlgWelcome) return;
+  const r = el.dlgWelcome.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) chooseWelcome('skip', 'close');
+});
+el.dlgWelcome.addEventListener('close', () => {
+  const { choice, via } = welcomeChoice || { choice: 'skip', via: 'close' };   // Esc
+  welcomeChoice = null;
+  stats.track('welcome-choice', { choice, via });
+  if (choice === 'tour') { tour.start(); return; }
+  storeTour('skipped');
+  tour.skippedHint();
+});
 // a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
 el.editLink.href = SHEET_EDIT_URL;
 el.listsEdit.href = SHEET_EDIT_URL;

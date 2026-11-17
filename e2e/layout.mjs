@@ -1270,6 +1270,16 @@ for (const [name, opts, list] of [
 ]) {
   test(`bemutató ${name}: minden lépésben a buborék teljesen látszik, nem takarja a célelemet, a célelem kattintható`, async () => {
     const { page, ctx, errors } = await open(opts, { hideHelp: false });
+    // üdvözlő ablak (10.): az ablakon belül, a gombok legalább 44 px magasak
+    await page.waitForSelector('#dlgWelcome[open]');
+    const wb = await page.$eval('#dlgWelcome', (d) => d.getBoundingClientRect().toJSON());
+    assert.ok(wb.left >= 0 && wb.top >= 0 && wb.right <= opts.viewport.width + 0.5 && wb.bottom <= opts.viewport.height + 0.5,
+      `az üdvözlő ablak az ablakon belül (${JSON.stringify(wb)})`);
+    for (const id of ['#welcomeTour', '#welcomeSkip', '#welcomeX']) {
+      const h = await page.$eval(id, (e) => e.getBoundingClientRect().height);
+      assert.ok(h >= 44, `${id} legalább 44 px magas`);
+    }
+    await page.click('#welcomeTour');
     await page.waitForSelector('.tour-bubble:not([hidden])');
     assert.equal(await firstListTarget(page), list, 'az 1. lépés célelme az elrendezés szerint');
     for (let n = 1; n <= 4; n++) {
@@ -1299,6 +1309,7 @@ for (const [name, opts, list] of [
 
 test('bemutató: átméretezéskor a célelem és a szöveg az új elrendezéshez igazodik', async () => {
   const { page, ctx } = await open(DESKTOP, { hideHelp: false });
+  await page.click('#welcomeTour');
   await page.waitForSelector('.tour-bubble:not([hidden])');
   assert.match(await page.textContent('#tourText'), /^Kattints egy listára\./);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1311,6 +1322,7 @@ test('bemutató: átméretezéskor a célelem és a szöveg az új elrendezéshe
 
 test('bemutató: a túl kicsi képernyő (320 × 256 alatt) alatt nem látszik', async () => {
   const { page, ctx } = await open(DESKTOP, { hideHelp: false });
+  await page.click('#welcomeTour');
   await page.waitForSelector('.tour-bubble:not([hidden])');
   await page.setViewportSize({ width: 1270, height: 240 });
   assert.ok(await shown(page, '#tooSmall'));
@@ -1322,6 +1334,7 @@ test('bemutató: a túl kicsi képernyő (320 × 256 alatt) alatt nem látszik',
 
 test('bemutató: 320 × 400 alatti, de a minimumnál nagyobb ablakban is magától indul (döntés 2026-11-13)', async () => {
   const { page, ctx } = await open({ ...PHONE_LAND, viewport: { width: 568, height: 320 } }, { hideHelp: false });
+  await page.click('#welcomeTour');
   await page.waitForSelector('.tour-bubble:not([hidden])');
   await ctx.close();
 });

@@ -328,6 +328,19 @@
   </div>
 </dialog>
 
+<!-- Üdvözlő ablak az első indításkor, a bemutató előtt (docs/bemutato-specifikacio.md 10.) -->
+<dialog id="dlgWelcome" class="dlg-welcome" aria-labelledby="welcomeH" aria-describedby="welcomeText">
+  <button type="button" class="welcome-x" id="welcomeX" aria-label="Bezárás">✕</button>
+  <img class="welcome-icon" src="img/icons/icon.svg" alt="" width="56" height="56">
+  <h2 id="welcomeH">Szia! Ez az Olvasóka.</h2>
+  <p id="welcomeText">Közös olvasásgyakorlás a könyv mellé: a gyerek olvas, te figyelsz.</p>
+  <div class="welcome-actions">
+    <button type="button" class="btn btn-primary" id="welcomeTour" autofocus>Mutasd meg (30 mp)</button>
+    <button type="button" class="btn-text" id="welcomeSkip">Kihagyom, kezdjük</button>
+  </div>
+  <p class="muted welcome-note">Nincs regisztráció, azonnal kezdhetitek.</p>
+</dialog>
+
 <dialog id="dlgFont" aria-labelledby="fontH">
   <h2 id="fontH">Betűteszt</h2>
   <p class="font-sample">a á e é i í o ó ö ő u ú ü ű<br>A Á E É I Í O Ó Ö Ő U Ú Ü Ű</p>
