@@ -1,6 +1,7 @@
 // Indítás és állapotváltás: ADMIN ⇄ PRACTICE → REWARD → ADMIN, Keresd meg! módban ADMIN ⇄ FIND → REWARD → ADMIN.
 
 import { createStore } from './data/store.js';
+import { createAnalytics } from './data/analytics.js';
 import { fetchLists, fetchPairs, fetchProgressConfig } from './data/remote.js';
 import { createProgressLog } from './data/progress-log.js';
 import { resolve as resolveProgress } from './core/haladas-config.js';
@@ -21,6 +22,10 @@ import { DEFAULTS as PROGRESS_DEFAULTS } from './core/haladas-config.js';
 
 const $ = (id) => document.getElementById(id);
 const el = new Proxy({}, { get: (c, k) => (c[k] ??= $(k)) });
+
+// Anonim használati statisztika (docs/analitika-specifikacio.md); webhely-azonosító nélkül nem csinál semmit
+const stats = createAnalytics({ websiteId: ENV.analyticsId });
+let roundNo = 0;                  // a kör sorszáma az oldal betöltése óta
 
 const store = createStore();
 const saved = store.read();
@@ -60,6 +65,7 @@ function readSessionTour() {
   try { return normalizeTour(JSON.parse(sessionStorage.getItem(`${ENV.storageKey}_tour`) || 'null')); } catch { return null; }
 }
 function saveTour(how) {
+  stats.track('tour-end', { result: how });
   app.tour = { v: TOUR_VERSION, how, at: Date.now() };
   if (persist()) return;
   try { sessionStorage.setItem(`${ENV.storageKey}_tour`, JSON.stringify(app.tour)); } catch { /* memóriában marad */ }
@@ -91,7 +97,23 @@ const progress = createProgressLog({ key: ENV.progressKey, config: resolveProgre
 /** A kör listáinak nevei: „Összes lista” módban mind, különben a kijelöltek. */
 const roundListNames = () => (app.settings.source === 'all' ? app.lists.map((l) => l.name) : app.lastLists);
 
-const practice = createPractice(el, { onExit: () => { el.admin.hidden = false; admin.render(); }, progress });
+const practice = createPractice(el, {
+  onExit: () => { el.admin.hidden = false; admin.render(); },
+  progress,
+  onRoundEnd: ({ game, completed }) => stats.track('round-end', { game, round: roundNo, completed }),
+  onReward: (name) => stats.track('reward-pick', { reward: name, round: roundNo }),
+});
+
+/** A kör indulása a statisztikába: csak a játék és a beállítások, tétel soha. */
+function trackRoundStart(game, cards) {
+  roundNo += 1;
+  const all = app.settings.source === 'all';
+  const names = roundListNames();
+  const base = { game, round: roundNo, lists: all ? '(összes lista)' : names.join(' | '), listCount: names.length };
+  stats.track('round-start', game === 'find'
+    ? { ...base, cards, tasks: app.find.tasks, level: app.find.level }
+    : { ...base, count: app.settings.count, flashMs: app.settings.flashMs, mixed: app.settings.mixed });
+}
 
 /* ---------- Haladás nézet (8.1): #haladas, #haladas/csoport/<csoport>, #haladas/tetel/<tételkulcs> ---------- */
 // A hash miatt a rendszer vissza gombja és gesztusa is működik. Gyakorlás közben nem érhető el.
@@ -134,6 +156,7 @@ function route() {
   if (r && practice.active) { history.replaceState(null, '', plainUrl()); trail.pop(); return; }
   if (r?.redirect) { history.replaceState(null, '', r.redirect); trail.pop(); route(); return; }
   if (r) {
+    if (el.haladas.hidden) stats.track('progress-open');
     el.admin.hidden = true; el.haladas.hidden = false;
     progressView.show(r, { restore });
   } else if (!el.haladas.hidden) {
@@ -185,9 +208,11 @@ const admin = createAdmin(el, app, {
       const cards = effectiveCards(app.find.cards, innerWidth, innerHeight);
       const cc = app.pairs.cc;
       const tasks = buildTasks(admin.roundItems(), { cards, tasks: app.find.tasks, level: levelToDegree(app.find.level, cc.levels) }, cc);
+      trackRoundStart('find', cards);   // a ténylegesen mutatott kártyaszám (telefonon legfeljebb 6)
       practice.startFind(tasks, cards, ev);
       return;
     }
+    trackRoundStart('read');
     practice.start(admin.roundItems(), app.settings, ev, { listNames: roundListNames(), undoMs: progress.config.szures.javitott_melle_ms });
   },
   fontTest() {

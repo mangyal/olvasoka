@@ -21,10 +21,12 @@ const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem 
 
 /**
  * @param {object} el  a DOM elemei
- * @param {{ onExit: () => void, progress?: object }} o
+ * @param {{ onExit: () => void, progress?: object, onRoundEnd?: Function, onReward?: Function }} o
  *   progress: a Haladás naplója (data/progress-log.js); a Felolvasás kör átmeneteit kapja
+ *   onRoundEnd({ game: 'read'|'find', completed }): a kör vége (completed: false, ha kilépett közben)
+ *   onReward(name): a gyerek választott jutalomjátéka (a ?jutalom= paraméterrel rögzített nem számít)
  */
-export function createPractice(el, { onExit, progress = null }) {
+export function createPractice(el, { onExit, progress = null, onRoundEnd = () => {}, onReward = () => {} }) {
   let mode = 'off';                 // 'off' | 'practice' | 'find' | 'choose' | 'reward'
   let fst = null;                   // a Keresd meg! kör állapota (core/find.js)
   let wake = null;                  // N9: a képernyő ne sötétüljön el gyakorlás közben
@@ -58,7 +60,7 @@ export function createPractice(el, { onExit, progress = null }) {
   };
   const forced = forcedReward(new URLSearchParams(location.search).get('jutalom'));
   let reward = null;
-  const chooser = createChooser({ root: el.chooser, onPick: (name) => { if (mode === 'choose') playReward(name, true); } });
+  const chooser = createChooser({ root: el.chooser, onPick: (name) => { if (mode === 'choose') { onReward(name); playReward(name, true); } } });
   const findView = createFindView({ grid: el.findGrid }, { onMark: (i) => findDispatch('MARK', i) });
 
   /* ---------- kör ---------- */
@@ -136,6 +138,7 @@ export function createPractice(el, { onExit, progress = null }) {
 
   function toReward() {
     clearTimeout(timer);
+    onRoundEnd({ game: mode === 'find' ? 'find' : 'read', completed: true });
     if (mode === 'find') { findView.clear(); el.findGrid.hidden = true; fst = null; }
     if (mode === 'practice') progress?.endRound();
     if (forced) { mode = 'reward'; el.stage.dataset.mode = 'reward'; render(); playReward(forced, false); return; }
@@ -163,6 +166,7 @@ export function createPractice(el, { onExit, progress = null }) {
     if (reward) { reward.stop(); reward = null; }
     chooser.hide();
     if (mode === 'practice') progress?.endRound(st.index);   // kilépés a kör közben
+    if (mode === 'practice' || mode === 'find') onRoundEnd({ game: mode === 'find' ? 'find' : 'read', completed: false });
     delete el.stage.dataset.reward;
     mode = 'off'; st = null; fst = null;
     findView.clear(); el.findGrid.hidden = true;

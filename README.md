@@ -129,7 +129,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   mastery.js          Haladás: csoportok és okok, szokásos tempó, a nézetek adatai
   haladas-texts.js    Haladás: a felület szövegei egy helyen
   haladas-config.js   Haladás: a haladas.json ellenőrzése és alapértékei
-js/data/            localStorage, a Haladás naplója (progress-log.js) és a listák letöltése
+js/data/            localStorage, a Haladás naplója (progress-log.js), a listák letöltése, anonim statisztika (analytics.js)
 js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalomválasztó, jutalmak (lufi, panda, konfetti), bemutató
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
@@ -205,6 +205,8 @@ variables → Actions → *Variables* fül → *New repository variable*.
 | `DEV_SHEET_EDIT_URL` | a dev táblázat szerkesztő címe | az éles cím |
 | `DEV_PROGRESS_SKIP_DAY_RULES` | `true`: a Haladás nézet napszabálya (`min_nap`) kimarad (teszteléshez: napvárás nélkül besorol, de a `min_alkalom` alkalomszám ilyenkor is kell) | kikapcsolva |
 | `PROD_PROGRESS_SKIP_DAY_RULES` | ugyanez élesben; ha `true`, a kiadás figyelmeztetést ír | kikapcsolva |
+| `PROD_UMAMI_WEBSITE_ID` | az éles Umami webhely azonosítója (anonim statisztika, [docs/analitika-specifikacio.md](docs/analitika-specifikacio.md)) | a `js/core/config.js` alapértéke |
+| `DEV_UMAMI_WEBSITE_ID` | a dev külön Umami webhelyének azonosítója; nem lehet azonos az élessel | a dev nem küld statisztikát |
 
 A változó módosítása magától nem ad ki új változatot: utána Actions → *Kiadás (GitHub Pages)* →
 *Run workflow* (ág: `main`). A futás naplójában az *A táblázat címei* lépés kiírja, melyik cím honnan
