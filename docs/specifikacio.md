@@ -261,8 +261,8 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   | TRUE      | FALSE | TRUE      |
   | fa        | á     | pá-va     |
   ```
-  Az alapból kijelölt listák akkor számítanak, amíg a szülő nem választott listát (nincs mentett
-  `lastLists`, F-S3): ilyenkor a kijelölés mindig a táblázat aktuális jelölőit követi, és nem mentődik.
+  Az alapból kijelölt listák akkor számítanak, amíg a szülő nem választott listát (nincs mentett `lastLists`,
+  és a mentett tételforrás sem „Összes lista”, F-S3): ilyenkor a kijelölés mindig a táblázat aktuális jelölőit követi, és nem mentődik.
   Amint a szülő listát vagy tételforrást választ, az övé marad (U-A2). Ha egy lista sincs bejelölve, az első
   lista lesz kijelölve, mint eddig; ha mind, az „Összes lista”. A `lists.txt`-ben nincs jelölő.
 - **F-L1c** Címek: CSV `…/pub?output=csv`, szerkesztő `…/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit`
