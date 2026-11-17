@@ -7,9 +7,11 @@
 //
 // A listák táblázata környezetenként: core/config.js (kiadáskor GitHub repository variable-ökből).
 
-import { SHEETS, PROGRESS } from './config.js';
+import * as CONFIG from './config.js';
 
-export { SHEETS, PROGRESS };
+// Névtérrel: egy régebbi kiadási szkript által írt config.js-ből hiányozhat az ANALYTICS (az oldal akkor is fut).
+export const { SHEETS, PROGRESS } = CONFIG;
+const ANALYTICS = CONFIG.ANALYTICS || {};
 
 /** 'dev', ha a cím a /dev/ almappában van, vagy helyi gépen fut; különben 'prod'. */
 export function envFrom(loc) {
@@ -30,6 +32,8 @@ export function envConfig(env) {
     // Haladás: a napszabályok kihagyása (teszteléshez) és a napló tárolási neve; dev és éles külön
     skipDayRules: Boolean((dev ? PROGRESS.dev : PROGRESS.prod).skipDayRules),
     progressKey: `${dev ? 'olvasoka-dev' : 'olvasoka'}.haladas`,
+    // Umami webhely-azonosító; üres: nincs statisztika
+    analyticsId: (dev ? ANALYTICS.dev : ANALYTICS.prod)?.websiteId || '',
   });
 }
 

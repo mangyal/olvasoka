@@ -69,6 +69,7 @@ const ASSETS = [
   'js/core/settings.js',
   'js/core/source.js',
   'js/core/tour.js',
+  'js/data/analytics.js',
   'js/data/progress-codec.js',
   'js/data/progress-log.js',
   'js/data/remote.js',
