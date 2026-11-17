@@ -108,7 +108,16 @@ jobs:
           DEV_SHEET_EDIT_URL: ${{ vars.DEV_SHEET_EDIT_URL }}
           PROD_PROGRESS_SKIP_DAY_RULES: ${{ vars.PROD_PROGRESS_SKIP_DAY_RULES }}
           DEV_PROGRESS_SKIP_DAY_RULES: ${{ vars.DEV_PROGRESS_SKIP_DAY_RULES }}
-        run: node "$RUNNER_TEMP/write-sheet-config.mjs" site/js/core/config.js site/dev/js/core/config.js
+          PROD_UMAMI_WEBSITE_ID: ${{ vars.PROD_UMAMI_WEBSITE_ID }}
+          DEV_UMAMI_WEBSITE_ID: ${{ vars.DEV_UMAMI_WEBSITE_ID }}
+        # A dev config.js-t utána a dev saját szkriptje írja újra, így egy még ki nem adott új beállítás
+        # (pl. a statisztika azonosítója) a dev oldalon a kiadás előtt is kipróbálható.
+        run: |
+          set -e
+          node "$RUNNER_TEMP/write-sheet-config.mjs" site/js/core/config.js site/dev/js/core/config.js
+          if [ -f devsrc/.github/scripts/write-sheet-config.mjs ]; then
+            node devsrc/.github/scripts/write-sheet-config.mjs site/dev/js/core/config.js
+          fi
 
       - name: Keresd meg! nehézségi görbe (kalibrálás a táblázat listáján)
         # A görbe kártyaszámonként a kiadott parok.json-ba kerül, a repóba nem. A lista a környezet táblázatából
