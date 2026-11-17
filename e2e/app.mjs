@@ -190,6 +190,14 @@ test('lista: a táblázat második sorának jelölője adja az induló kijelöl�
   assert.deepEqual(await pressed(), ['false', 'true', 'false'], 'Betűk, Szavak, Szótagok');
 });
 
+test('lista: a mentett „Összes lista” listanevek nélkül is választás, nem a táblázat jelölője dönt (F-L1d)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Betűk,Szótagok,Szavak\r\nTRUE,FALSE,FALSE\r\na,ma,alma' }));
+  await page.evaluate(() => localStorage.setItem('olvasoka-dev', JSON.stringify({ v: 4, hideHelp: true, settings: { source: 'all' } })));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#listNav .nav-item[aria-pressed="true"]').length === 3);
+  assert.deepEqual(await pressed(), ['true', 'true', 'true']);
+});
+
 test('lista: „Összes lista” minden listát kijelöl; egy listára kattintva vissza „Kijelölt listák”', async () => {
   await navBtn('Betűk').click();
   await page.locator('#srcAll').check();

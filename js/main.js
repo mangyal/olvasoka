@@ -33,8 +33,8 @@ const saved = store.read();
 const app = {
   lists: [], problems: [], selected: [], anchor: null,
   preset: [],                       // a táblázatban alapból kijelölt listák neve (F-L1d)
-  // a szülő még nem választott listát: a kijelölés a táblázat jelölőit követi, és nem mentődik (F-L1d)
-  autoSel: saved.lastLists.length === 0,
+  // a szülő még nem választott listát (az „Összes lista” is választás): a kijelölés a táblázat jelölőit követi, és nem mentődik (F-L1d)
+  autoSel: saved.lastLists.length === 0 && saved.settings.source !== 'all',
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
   mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
