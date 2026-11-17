@@ -32,15 +32,15 @@ const cellAt = (col, row) => `A táblázat ${colName(col)}${row + 1} cellája`;
  * `at` mindig egy emberi helymegjelölés („Az 5. sor”, „A táblázat B3 cellája”).
  */
 function createBuilder() {
-  const lists = [], problems = [], duplicates = [];
+  const lists = [], problems = [];
   const names = new Set();
-  let cur = null, seen = new Set();
+  let cur = null;
 
   return {
-    lists, problems, duplicates,
+    lists, problems,
     /** Új lista. A hibás fejlécű lista (üres vagy ismétlődő név) a tételeivel együtt kimarad. */
     header(name, at, emptyMsg) {
-      cur = null; seen = new Set();
+      cur = null;
       if (!name) { problems.push(`${at}: ${emptyMsg}`); return; }
       const k = nameKey(name);
       if (names.has(k)) { problems.push(`${at}: a „${name}” lista már szerepel, a második kimaradt.`); return; }
@@ -49,8 +49,11 @@ function createBuilder() {
       lists.push(cur);
     },
     get open() { return cur !== null; },
-    /** Egy forrásegység (sor vagy cella) tételei: vessző választja el őket. */
-    items(text, at, loc) {
+    /**
+     * Egy forrásegység (sor vagy cella) tételei: vessző választja el őket. Az ismétlődő tétel a helyén
+     * marad (2.14, S-1): ahányszor szerepel, annyiszor nagyobb eséllyel kerül a Felolvasás körébe.
+     */
+    items(text, at) {
       if (!cur) return;
       for (const part of text.split(',')) {
         const item = part.trim();
@@ -59,8 +62,6 @@ function createBuilder() {
           problems.push(`${at}: a „${item}” #-tel kezdődik, ezért kimaradt.`);
           continue;
         }
-        if (seen.has(item)) { duplicates.push({ list: cur.name, item, ...loc }); continue; }
-        seen.add(item);
         const len = [...item].length;
         if (len > MAXLEN) {
           problems.push(`${at}: a „${item}” túl hosszú (${len}/${MAXLEN} karakter), kimaradt.`);
@@ -71,7 +72,7 @@ function createBuilder() {
     },
     done() {
       lists.sort((a, b) => byName(a.name, b.name));
-      return { lists, problems, duplicates };
+      return { lists, problems };
     },
   };
 }
@@ -79,9 +80,8 @@ function createBuilder() {
 /**
  * @param {string} text  a lists.txt tartalma
  * @returns {{
- *   lists: {name:string, items:string[]}[],
- *   problems: string[],                                   // a szülői felületen figyelmeztetésként jelenik meg
- *   duplicates: {list:string, item:string, line:number}[] // csak a teszt jelzi, az app csendben kihagyja
+ *   lists: {name:string, items:string[]}[],  // items: a lista sorai, ismétlésekkel
+ *   problems: string[],                      // a szülői felületen figyelmeztetésként jelenik meg
  * }}
  */
 export function parseListsText(text) {
@@ -99,7 +99,7 @@ export function parseListsText(text) {
       return;
     }
     if (!b.open) { if (!started) orphans.push(line); return; }
-    b.items(t, lineAt(line), { line });
+    b.items(t, lineAt(line));
   });
 
   if (orphans.length) {
@@ -115,7 +115,7 @@ export function parseListsText(text) {
  * A teljesen üres oszlop (név és tétel nélkül) csendben kimarad; név nélküli, de tételes oszlop
  * figyelmeztetéssel. A név elején álló # jel(ek) elhagyhatók, mint a lists.txt-ben.
  * @param {string} csv
- * @returns {{ lists:{name:string, items:string[]}[], problems:string[], duplicates:{list:string,item:string,cell:string}[] }}
+ * @returns {{ lists:{name:string, items:string[]}[], problems:string[] }}
  */
 export function parseSheetCsv(csv) {
   const rows = parseCsv(csv).map((r) => r.map((c) => c.normalize('NFC').trim()));
@@ -128,7 +128,7 @@ export function parseSheetCsv(csv) {
     for (let r = 1; r < rows.length; r++) if (rows[r][c]) cells.push(r);
     if (!name && !cells.length) continue;
     b.header(name, cellAt(c, 0), 'üres, ezért az oszlop kimaradt. Írd be ide a lista nevét.');
-    for (const r of cells) b.items(rows[r][c], cellAt(c, r), { cell: `${colName(c)}${r + 1}` });
+    for (const r of cells) b.items(rows[r][c], cellAt(c, r));
   }
 
   if (!b.lists.length) b.problems.push('A táblázatban nincs lista. Az első sorba kerül a lista neve, alá a tételek, oszloponként.');

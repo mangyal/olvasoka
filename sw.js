@@ -34,6 +34,7 @@ const ASSETS = [
   'css/admin.css',
   'css/stage.css',
   'css/haladas.css',
+  'css/tour.css',
   'fonts/arimo-latin-400-normal.woff2',
   'fonts/arimo-latin-ext-400-normal.woff2',
   'img/hoslegfuvo.svg',
@@ -52,6 +53,7 @@ const ASSETS = [
   'js/core/find.js',
   'js/core/hop.js',
   'js/core/grid.js',
+  'js/core/groups.js',
   'js/core/haladas-config.js',
   'js/core/haladas-texts.js',
   'js/core/items.js',
@@ -66,6 +68,7 @@ const ASSETS = [
   'js/core/sequence.js',
   'js/core/settings.js',
   'js/core/source.js',
+  'js/core/tour.js',
   'js/data/progress-codec.js',
   'js/data/progress-log.js',
   'js/data/remote.js',
@@ -78,6 +81,7 @@ const ASSETS = [
   'js/ui/panda.js',
   'js/ui/practice.js',
   'js/ui/reward.js',
+  'js/ui/tour.js',
 ];
 
 self.addEventListener('install', (e) => {

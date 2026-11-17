@@ -34,21 +34,17 @@ A feature leírása (mit lát a szülő és a gyerek) a fő specben van ([specif
 | Be | Kártyaszám (N) | 4, 6 vagy 8. |
 | Be | Fokozat | 0–1, alapértelmezetten 0. |
 | Be | Konfiguráció | `parok.json` a repóban (párok, költségek, görbe). |
-| Ki | Rács | N különböző tétel, mind a kijelölt listákból, véletlen sorrendben. |
+| Ki | Rács | N különböző tétel, mind a kijelölt listákból és a horgony csoportjából, véletlen sorrendben. |
 
-Ha a kijelölt listákban összesen N-nél kevesebb egyedi tétel van, a rács az összes elérhető tételből áll.
+Ha a horgony csoportjában N-nél kevesebb különböző tétel van, a rács a csoport összes tételéből áll (legalább 2 kártya; spec 2.14, K-3).
+Két tétel akkor azonos, ha a tételkulcsuk egyezik: a `ma`, a `Ma` és az `m-a` három különböző tétel (K-1).
 
 ## Szabályok
 
 A rács tételenként épül: horgony, majd N−1 súlyozott véletlen húzás visszatevés nélkül.
 
-1. **Forrás.** Minden tétel, a horgonyt is beleértve, csak a kijelölt listákból jöhet. A horgonyt a program húzza, egyenletes véletlennel. Egy körön belül két egymást követő rács horgonya nem lehet azonos (ha legalább két egyedi tétel van): az előző horgony ilyenkor kimarad a húzásból.
-2. **Típus és feltöltés.** Elsődleges készlet: a horgonnyal azonos típusú tételek; szónál a szótagszám is egyezik. Ha ez elfogy, a feltöltés más típusból jön, ebben a sorrendben:
-   - betű → szótag → szó
-   - szótag → betű → szó
-   - szó → szótag → betű
-
-   Szónál az eltérő szótagszámú szavak a szótagok előtt jönnek: azonos szótagszámú szó → más szótagszámú szó → szótag → betű.
+1. **Forrás.** Minden tétel, a horgonyt is beleértve, csak a kijelölt listákból jöhet. A horgonyt a program húzza, a sorok számával súlyozott véletlennel (ahányszor szerepel a tétel a kijelölt listákon, annyiszor nagyobb eséllyel; 2.14, K-4). Horgony csak legalább 2 tételes csoportból lehet; az 1 tételes csoport tétele nem jelenik meg. Egy körön belül két egymást követő rács horgonya nem lehet azonos (ha legalább két egyedi tétel van): az előző horgony ilyenkor kimarad a húzásból.
+2. **Csoport (2.14, K-2).** A rács minden tétele a horgony csoportjából jön ([csoportositas-sulyozas.md](csoportositas-sulyozas.md), C-2: magánhangzó, mássalhangzó, VC, CV, egyéb szótag szerkezetenként, szó szótagszámonként). Más csoportból való feltöltés nincs, egyik fokozaton sem. *(A korábbi „Típus és feltöltés” szabály helyébe lépett.)* Kis csoportban a hasonló párok nem kerülhetők el: a 9 magánhangzóból 6 vagy 8 kártyánál a legkönnyebb fokozaton is kerül egy rácsba rövid–hosszú pár (a–á, o–ó).
 3. **Tokenizálás.** Normalizálás után mohó leghosszabb egyezés: előbb `dzs`, majd a kétjegyűek, végül az egyes karakterek. A hosszú többjegyű mássalhangzó két betű: `ssz` → `sz`+`sz` (asszony → a-sz-sz-o-ny), `ggy` → `gy`+`gy`.
 4. **Távolság.** Súlyozott Levenshtein a betűsorozatokon. Beszúrás, törlés, csere költsége a konfigurációból jön (lásd Konfiguráció); ha egy pár több kategóriában is szerepel, a legkisebb költség érvényes.
 5. **Súly.** Minden jelölt két 0–1 közötti pontszámot kap, ezeket a fokozat keveri (képletek lent).
@@ -110,7 +106,7 @@ A kiegyenlítő görbe deploy-kor készül a teljes listára, hogy a fokozatok k
 A teljes lista a környezet Google táblázatából jön (ugyanaz a cím, amit az app is olvas). Ha a táblázat nem érhető el, nem CSV-t ad vagy nincs benne lista, a repó `lists.txt`-je a tartalék, figyelmeztetéssel; a deploy ilyenkor nem áll meg. A szkript: `.github/scripts/calibrate.mjs`.
 
 1. **Mutató:** a rács tételeinek átlagos távolsága a horgonytól (kisebb = nehezebb).
-2. **Mintavétel:** a teljes lista minden tétele egyszer horgony (ez pontosan típusarányos); horgonyonként 20 rács, kártyaszámonként külön.
+2. **Mintavétel:** a teljes lista minden horgonynak választható tétele (legalább 2 tételes csoportból, 2.14) egyszer horgony; horgonyonként 20 rács, kártyaszámonként külön.
 3. **Mérés:** a mutató a belső arány 21 pontján (0, 0.05 … 1).
 4. **Lépcsők:** a két végponti érték közti tartományt a fokozatok számának megfelelő egyenlő részre osztjuk.
 5. **Visszakeresés:** lineáris interpolációval megkeressük, milyen belső arány adja az egyes lépcsőket; ezek a töréspontok.
@@ -157,7 +153,7 @@ Az alábbi táblázat a prototípus mérése a 165 tételes listán, tájékozta
 | 0.75 | 1.06 | 1.6 |
 | 1 | 0.79 | 2.6 |
 
-Elfogadás: mindkét mutató szigorúan monoton a fokozattal; a 0-s fokozaton átlagosan legfeljebb 0.1 közeli pár van rácsonként; a lépcsők eltérése egymástól legfeljebb ±0.05.
+Elfogadás: mindkét mutató szigorúan monoton a fokozattal; a 0-s fokozaton átlagosan legfeljebb 0.1 közeli pár van rácsonként, olyan horgonynál, amelynek csoportja legalább 3 × N tételes (2.14 óta a rács csak a horgony csoportjából jön, és kis csoportban, pl. a 9 magánhangzónál a hasonló párok nem kerülhetők el); a lépcsők eltérése egymástól legfeljebb ±0.05. A mérés horgonyai csak legalább 2 tételes csoportból jönnek.
 
 ## Ismert korlátok
 

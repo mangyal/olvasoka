@@ -1,12 +1,12 @@
 // Szülői felület: a listák csak olvashatók; forrásuk a Google táblázat, tartalékként a repó lists.txt-je.
 
 import { GAPS, estimate, fmtNum, CARDS, LEVEL_LABELS, findEstimate, levelToDegree } from '../core/settings.js';
-import { nameKey } from '../core/items.js';
+import { nameKey, distinctItems } from '../core/items.js';
 import { itemsOf } from '../core/selection.js';
-import { distinctCount, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
+import { canFind, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
 import { createPool, buildGrid } from '../core/grid.js';
 
-const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
+export const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 // érintős elsődleges mutató: az oldalsávban koppintás = hozzáad/elvesz (Ctrl nélkül)
 const COARSE = matchMedia('(hover:none) and (pointer:coarse)');
 // a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)
@@ -30,19 +30,31 @@ export function createAdmin(el, app, act) {
   const selected = () => app.lists.filter(isSel);
 
   /* A tételek egy rendereléshez többször is kellenek; csak akkor számolódnak újra, ha a listák vagy a
-     kijelölés megváltozott (mindkettő cserével változik, helyben soha). A visszaadott tömb nem módosítható. */
-  let selMemo = { lists: null, selected: null, items: [] };
-  let allMemo = { lists: null, items: [] };
-  function selectedItems() {
-    if (selMemo.lists !== app.lists || selMemo.selected !== app.selected) {
-      selMemo = { lists: app.lists, selected: app.selected, items: itemsOf(app.lists, app.selected, nameKey) };
-    }
-    return selMemo.items;
+     kijelölés megváltozott (mindkettő cserével változik, helyben soha). A visszaadott tömb nem módosítható.
+     Sor: a lista egy bejegyzése, ismétlésekkel (a kör ezekből húz, 2.14 S-2). A felület mindenhol a
+     különböző tételeket mutatja (S-3). */
+  let selMemo = { lists: null, selected: null, rows: [], items: [] };
+  let allMemo = { lists: null, rows: [] };
+  const distinctOf = new WeakMap();
+  /** Egy lista különböző tételei, első előfordulásuk sorrendjében (a lista objektumához tárolva). */
+  function listItems(l) {
+    if (!distinctOf.has(l)) distinctOf.set(l, distinctItems(l.items));
+    return distinctOf.get(l);
   }
+  function selMemoNow() {
+    if (selMemo.lists !== app.lists || selMemo.selected !== app.selected) {
+      const rows = itemsOf(app.lists, app.selected, nameKey);
+      selMemo = { lists: app.lists, selected: app.selected, rows, items: distinctItems(rows) };
+    }
+    return selMemo;
+  }
+  /** A kijelölt listák különböző tételei (felület). */
+  const selectedItems = () => selMemoNow().items;
+  /** A kör sorai (ismétlésekkel): a kijelölt listákéi vagy, „Összes lista” forrásnál, az összesé. */
   function roundItems() {
-    if (app.settings.source !== 'all') return selectedItems();
-    if (allMemo.lists !== app.lists) allMemo = { lists: app.lists, items: [...new Set(app.lists.flatMap((l) => l.items))] };
-    return allMemo.items;
+    if (app.settings.source !== 'all') return selMemoNow().rows;
+    if (allMemo.lists !== app.lists) allMemo = { lists: app.lists, rows: app.lists.flatMap((l) => l.items) };
+    return allMemo.rows;
   }
 
   /* Egy DOM-rész csak akkor épül újra, ha a tartalma (kulcsa) megváltozott; különben a hívó csak az
@@ -55,8 +67,8 @@ export function createAdmin(el, app, act) {
     built.set(box, key);
     return true;
   }
-  /** A listák szerkezete (név, tételszám): ha ez nem változik, a listasáv elemei megmaradnak. */
-  const listsKey = () => app.lists.map((l) => l.name + SEP + l.items.length).join(SEP2);
+  /** A listák szerkezete (név, különböző tételek száma): ha ez nem változik, a listasáv elemei megmaradnak. */
+  const listsKey = () => app.lists.map((l) => l.name + SEP + listItems(l).length).join(SEP2);
 
   /** Jelölőnégyzetes listasor (keskeny nézet és mobil lap). */
   function checkRow(l, rowClass, nameClass) {
@@ -64,7 +76,7 @@ export function createAdmin(el, app, act) {
     const c = document.createElement('input'); c.type = 'checkbox';
     const name = document.createElement('span'); name.textContent = l.name;
     if (nameClass) name.className = nameClass;
-    const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
+    const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = listItems(l).length;
     c.addEventListener('change', () => act.select(l.name, { toggle: true }));
     lab.append(c, name, cnt); return lab;
   }
@@ -89,8 +101,8 @@ export function createAdmin(el, app, act) {
     if (!n) {
       return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : !k ? 'Jelölj ki legalább egy listát.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
     }
-    // F-S8: a Keresd meg!-hez legalább két különböző tétel kell
-    if (findMode() && distinctCount(roundItems()) < 2) return { enabled: false, msg: 'A Keresd meg!-hez legalább két különböző tétel kell.' };
+    // K-5: a Keresd meg!-hez kell egy csoport legalább két különböző tétellel
+    if (findMode() && !canFind(roundItems())) return { enabled: false, msg: 'A Keresd meg!-hez legalább két különböző tétel kell.' };
     // a gomb alatt csak hiba vagy figyelmeztetés (a lista- és tételszámot a fejléc mutatja)
     const fontWarn = app.font.state === 'failed';
     return { enabled: true, msg: fontWarn ? 'A betűk alakja eltérhet.' : '', warn: fontWarn };
@@ -120,7 +132,7 @@ export function createAdmin(el, app, act) {
       const li = document.createElement('li');
       const b = document.createElement('button'); b.type = 'button'; b.className = 'nav-item';
       const name = document.createElement('span'); name.textContent = l.name;
-      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = l.items.length;
+      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = listItems(l).length;
       b.append(name, cnt);
       b.addEventListener('click', (e) => {
         const touch = e.pointerType === 'touch' || e.pointerType === 'pen' || (COARSE.matches && e.pointerType !== 'mouse');
@@ -192,8 +204,8 @@ export function createAdmin(el, app, act) {
     const key = sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
     if (sel.length === 1) {
       el.listName.textContent = l.name;
-      el.listCount.textContent = `${l.items.length} tétel`;
-      rebuild(el.listBody, key, () => [chipBox(l.items)]);
+      el.listCount.textContent = `${listItems(l).length} tétel`;
+      rebuild(el.listBody, key, () => [chipBox(listItems(l))]);
       return;
     }
     el.listName.textContent = `${sel.length} lista kijelölve`;
@@ -202,9 +214,9 @@ export function createAdmin(el, app, act) {
       const g = document.createElement('section'); g.className = 'group';
       const h = document.createElement('div'); h.className = 'ed-head';
       const h3 = document.createElement('h3'); h3.textContent = x.name;
-      const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${x.items.length} tétel`;
+      const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${listItems(x).length} tétel`;
       h.append(h3, n);
-      g.append(h, chipBox(x.items));
+      g.append(h, chipBox(listItems(x)));
       return g;
     }));
   }
@@ -235,6 +247,7 @@ export function createAdmin(el, app, act) {
     el.srcList.checked = s.source !== 'all';
     el.srcAll.checked = s.source === 'all';
     el.countIn.value = s.count;
+    el.mixedIn.checked = s.mixed;
     renderEstimate();
   }
 
@@ -304,7 +317,7 @@ export function createAdmin(el, app, act) {
     const key = [cc ? 1 : 0, n, app.find.level, itemsKey].join('|');
     if (!force && key === sampleKey) return;
     sampleKey = key;
-    if (!cc || distinctCount(items) < 2) { el.sampleBox.hidden = true; el.sample.replaceChildren(); return; }
+    if (!cc || !canFind(items)) { el.sampleBox.hidden = true; el.sample.replaceChildren(); return; }
     el.sampleBox.hidden = false;
     if (poolMemo.cc !== cc || poolMemo.key !== itemsKey) poolMemo = { cc, key: itemsKey, pool: createPool(items, cc) };
     const pool = poolMemo.pool;
@@ -349,6 +362,7 @@ export function createAdmin(el, app, act) {
   el.countIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setCount(el.countIn.value); } });
   el.countDec.addEventListener('click', () => setCount(app.settings.count - 1));
   el.countInc.addEventListener('click', () => setCount(app.settings.count + 1));
+  el.mixedIn.addEventListener('change', () => act.setting({ mixed: el.mixedIn.checked }));
   el.refreshBtn.addEventListener('click', act.refresh);
   el.modKey.textContent = MOD;
 

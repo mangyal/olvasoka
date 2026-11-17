@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { clickSelect, reconcile, itemsOf, sourceFor, applySource } from '../js/core/selection.js';
+import { distinctItems } from '../js/core/items.js';
 import { normalizeState } from '../js/core/settings.js';
 
 const keys = ['a', 'b', 'c', 'd', 'e'];
@@ -32,15 +33,21 @@ test('kijelölés: egyeztetés a létező listákkal', () => {
   assert.deepEqual(reconcile(['x'], []), []);
 });
 
-test('kijelölés: tételek uniója ismétlődés nélkül', () => {
-  const lists = [{ name: 'A', items: ['m', 'a'] }, { name: 'B', items: ['x'] }, { name: 'C', items: ['a', 'o'] }];
-  assert.deepEqual(itemsOf(lists, ['a', 'c'], (n) => n.toLowerCase()), ['m', 'a', 'o']);
+test('kijelölés: a kijelölt listák sorai, ismétlésekkel, a listák sorrendjében (2.14, S-2)', () => {
+  const lists = [{ name: 'A', items: ['m', 'a', 'm'] }, { name: 'B', items: ['x'] }, { name: 'C', items: ['a', 'o'] }];
+  assert.deepEqual(itemsOf(lists, ['a', 'c'], (n) => n.toLowerCase()), ['m', 'a', 'm', 'a', 'o']);
+});
+
+test('különböző tételek: itemKey szerint, első előfordulásuk sorrendjében (S-3)', () => {
+  assert.deepEqual(distinctItems(['a', 'e', 'a', 'e', 'o']), ['a', 'e', 'o']);
+  assert.deepEqual(distinctItems(['ma', 'Ma', 'm-a', 'ma', 'mama']), ['ma', 'Ma', 'm-a', 'mama'], 'a kis- és nagybetű, a kötőjel számít');
+  assert.deepEqual(distinctItems([]), []);
 });
 
 test('tárolt állapot: v2 → v3', () => {
   assert.deepEqual(normalizeState({ v: 2, lastList: '45. oldal' }).lastLists, ['45. oldal']);
   assert.deepEqual(normalizeState({ v: 3, lastLists: ['A', 3, 'B'] }).lastLists, ['A', 'B']);
-  assert.deepEqual(normalizeState(null), { v: 4, mode: 'read', settings: normalizeState(null).settings, find: { cards: 4, tasks: 10, level: 1 }, lastLists: [], hideHelp: false, cache: null });
+  assert.deepEqual(normalizeState(null), { v: 4, mode: 'read', settings: normalizeState(null).settings, find: { cards: 4, tasks: 10, level: 1 }, lastLists: [], hideHelp: false, tour: null, cache: null });
   assert.equal(normalizeState({ hideHelp: true }).hideHelp, true);
   assert.equal(normalizeState({ hideHelp: 'igen' }).hideHelp, false);
 });

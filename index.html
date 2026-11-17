@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="css/admin.css">
 <link rel="stylesheet" href="css/stage.css">
 <link rel="stylesheet" href="css/haladas.css">
+<link rel="stylesheet" href="css/tour.css">
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
@@ -142,6 +143,14 @@
               <input type="number" id="countIn" min="1" max="50" step="1" inputmode="numeric">
               <button type="button" id="countInc" aria-label="Több tétel">+</button>
             </span>
+          </div>
+          <!-- Kevert sorrend (2.14, F-1–F-3); a magyarázat a Nehézség információs dobozával azonos -->
+          <div class="ctl ctl-mixed">
+            <label class="check"><input type="checkbox" id="mixedIn" aria-describedby="mixedInfo"><span>Kevert sorrend</span></label>
+            <div class="info-box" id="mixedInfo">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>
+              <p>Bekapcsolva a betűk, szótagok és szavak összekeverve jönnek.</p>
+            </div>
           </div>
         </div>
 
@@ -315,7 +324,7 @@
   </ol>
   <p class="muted help-install">Telepítve teljes képernyőn, internet nélkül is fut. iPhone/iPad: Safari › Megosztás › Főképernyőhöz adás. Android: Chrome › Telepítés.</p>
   <div class="dlg-actions help-actions">
-    <label class="help-hide"><input type="checkbox" id="helpHide"> Ne jelenjen meg újra</label>
+    <button type="button" class="btn btn-secondary" id="tourAgain">Bemutató újra</button>
     <button type="button" class="btn btn-primary" data-close autofocus>Kezdjük</button>
   </div>
 </dialog>

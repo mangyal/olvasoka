@@ -195,7 +195,7 @@ test('9. 3. verzió oda-vissza: villantásos idők 100 ms-ra kerekítve, a villa
   const { log, clock, storage } = fresh();
   play(log, clock, { items: ['ma', 'me'], flash: 2500 }, [['NEXT', 1240], ['NEXT', 2490]]);
   const s = JSON.parse(storage.getItem('k'));
-  assert.equal(s.v, 3);
+  assert.equal(s.v, VERSION);
   assert.equal(s.r[0][14], 1, 'fd');
   const row = s.d.find((x) => x[0] === 'ma');
   assert.deepEqual(row[11], [[12, 25]]);
@@ -261,7 +261,7 @@ test('10. pótlás: ha minden nyers esemény megvan, ugyanaz lesz, mint az élő
   const l2 = reopen(old, clock, KEEP_ALL);
   assert.deepEqual(decode(encode(l2.root)).daily, want);
   assert.ok(l2.root.rounds.every((r) => r.flashDwellDone));
-  assert.equal(JSON.parse(old.getItem('k')).v, 3, 'a pótlás után mentődik');
+  assert.equal(JSON.parse(old.getItem('k')).v, VERSION, 'a pótlás után mentődik');
   const l3 = reopen(old, clock, KEEP_ALL);
   assert.deepEqual(decode(encode(l3.root)).daily, want, 'második betöltés: nem fűz hozzá újra');
 });

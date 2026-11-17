@@ -39,8 +39,8 @@ ke-fe
 - Egy tétel legfeljebb 20 karakter. A vessző elválaszt: az `a, á, e` sor három tétel.
 - A listanevek egyediek (kis-/nagybetűtől függetlenül).
 
-- Ha egy tétel egy listán belül többször szerepel (pl. egy oldal végi ismétlő sor), a program csak
-  egyszer veszi be.
+- Ha egy tétel többször szerepel (pl. egy oldal végi ismétlő sor), a program a Felolvasásban annyiszor
+  nagyobb eséllyel hozza, ahányszor le van írva. A felületen és a Keresd meg! kártyáin egyszer látszik.
 
 **Ha valami nem stimmel** (túl hosszú tétel, sor a lista neve előtt, üres vagy ismétlődő listanév),
 a commit után a GitHub *Actions* fülén piros ✕ jelenik meg, és a GitHub e-mailben elküldi, melyik
@@ -61,6 +61,8 @@ szándékosan átnevezel vagy kiveszel belőle egy ilyen tételt, ott is írd á
 | `Esc` | vissza a szülői felületre |
 | `Ctrl`+`Enter` | kör indítása a szülői felületen |
 
+Első indításkor egy 4 lépéses bemutató (Első lépések) mutatja meg a listákat, a játékokat, a Haladást és az Indítás gombot: kis buborék a valódi kezelőelem mellett. Bármikor kihagyható (`Kihagyom` vagy `Esc`), és a böngésző megjegyzi; a Súgó **Bemutató újra** gombja újraindítja. Részletek: [`docs/bemutato-specifikacio.md`](docs/bemutato-specifikacio.md).
+
 A beállítások a szülői felület jobb oldali paneljén vannak (tableten és telefonon a listák alatt), az
 Indítás gomb mindig látszik. A gyakorlás billentyűit a panel **Így játsszátok** gombja mutatja.
 A **Keresd meg!** fülön a program 4, 6 vagy 8 kártyát mutat a kijelölt listákból (telefonon legfeljebb 6).
@@ -69,6 +71,11 @@ Te kimondod az egyiket, a gyerek rábök; a program csak megjelöli, amire bök�
 Billentyűk: `Space`/`→` következő feladat, `←` előző, kattintás jelöl, `Esc` kilépés. Érintőképernyőn (pl. fekvő iPad) az
 oldalsávban koppintással több lista is kijelölhető; telefonon a listák egy lenyíló sorból nyíló lapon
 választhatók.
+
+A Felolvasás köre csoportonként jön, ebben a sorrendben: magánhangzók, mássalhangzók, VC szótagok (`ók`),
+CV szótagok (`fa`), egyéb szótagok, végül a szavak szótagszám szerint. A **Kevert sorrend** jelölőnégyzettel
+a betűk, szótagok és szavak összekeverve jönnek. Ugyanaz a tétel sosem jön kétszer egymás után.
+A Keresd meg! egy feladata mindig csak egy csoport tételeiből áll.
 
 A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább. A tételek közti szünet 0, 0,5, 1, 2 vagy 3 mp.
 Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
@@ -93,15 +100,17 @@ index.html          markup
 lists.txt           a listák
 parok.json          Keresd meg!: hasonló betűpárok, költségek, nehézségi görbe (docs/keresd-meg-heurisztika.md)
 haladas.json        Haladás: a szűrés és a csoportok küszöbei (docs/haladas-specifikacio.md, 7.)
-css/                tokens · szülői felület · gyakorló és jutalom nézet
+css/                tokens · szülői felület · gyakorló és jutalom nézet · Haladás · bemutató
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
 js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
-  sequence.js         sorozat-generátor („húzózsák”)
+  groups.js           tételcsoportok (magánhangzó, mássalhangzó, VC, CV, egyéb szótag, szó szótagszám szerint)
+  sequence.js         a Felolvasás köre: súlyozott húzás, csoportonkénti sorrend, szomszédsági szabály
   round.js            a gyakorlókör állapotgépe (időzítés, szünet, navigáció)
   items.js            tételek tisztítása
   lists.js            a lists.txt és a táblázat értelmezése
   csv.js              CSV-olvasó
   source.js           forrás: táblázat, tartalékként lists.txt
+  tour.js             Első lépések: megjelenítési feltétel, célelem, szövegek, a buborék helye
   selection.js        listák kijelölése
   drift.js            a jutalom lufijainak mozgása
   hop.js              a panda-ugrálás pályája és mozgása
@@ -121,7 +130,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   haladas-texts.js    Haladás: a felület szövegei egy helyen
   haladas-config.js   Haladás: a haladas.json ellenőrzése és alapértékei
 js/data/            localStorage, a Haladás naplója (progress-log.js) és a listák letöltése
-js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalomválasztó, jutalmak (lufi, panda, konfetti)
+js/ui/              szülői felület, gyakorlás, Keresd meg!, Haladás nézet, jutalomválasztó, jutalmak (lufi, panda, konfetti), bemutató
 js/font.js          betűtípus-kapu (Arial, ha nincs: Arimo)
 js/main.js          indítás
 test/               node --test

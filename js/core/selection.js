@@ -41,14 +41,15 @@ export function reconcile(sel, keys) {
 }
 
 /**
- * A kijelölt listák tételeinek uniója, ismétlődés nélkül, a listák sorrendjében.
+ * A kijelölt listák sorai a listák sorrendjében, ismétlésekkel (2.14, S-2): ha egy tétel két kijelölt
+ * listán szerepel, kétszer jön. A különböző tételeket a distinctItems (items.js) adja.
  * @param {{name:string, items:string[]}[]} lists
  * @param {string[]} sel
  * @param {(name:string)=>string} keyOf
  */
 export function itemsOf(lists, sel, keyOf) {
   const set = new Set(sel);
-  return [...new Set(lists.filter((l) => set.has(keyOf(l.name))).flatMap((l) => l.items))];
+  return lists.filter((l) => set.has(keyOf(l.name))).flatMap((l) => l.items);
 }
 
 /** A tételforrás a kijelölésből: ha minden lista ki van jelölve, 'all', különben 'list'. */

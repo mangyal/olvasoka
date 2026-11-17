@@ -4,9 +4,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  normalize, validateConfig, compileConfig, prefix, prefixScore, createPool, buildGrid, gridFrom,
-  innerRatio, seeded, meanToAnchor, closePairs, readingDepth, calibrateCurve,
+  validateConfig, compileConfig, prefix, prefixScore, createPool, buildGrid, gridFrom,
+  innerRatio, seeded, meanToAnchor, closePairs, readingDepth, calibrateCurve, anchorChoices,
 } from '../js/core/grid.js';
+import { groupOf } from '../js/core/groups.js';
+import { itemKey } from '../js/core/items.js';
 import { parseListsText } from '../js/core/lists.js';
 
 const fx = (f) => new URL(`./fixtures/${f}`, import.meta.url);
@@ -52,10 +54,10 @@ test('olvasási mélység: felismerési pont a kártya hosszához mérve, a rác
   const pool = createPool(['ka-pa', 'ka-pu', 'pa-pa', 'ma', 'ma-ma'], ccWith(0));
   const at = (...ks) => ks.map((k) => pool.entries.findIndex((e) => e.key === k));
   // ka-pa és ka-pu: 4. betűig kell olvasni (1); pa-pa: az első betű elég (1/4)
-  assert.equal(readingDepth(pool, at('kapa', 'kapu', 'papa')), (1 + 1 + 0.25) / 3);
+  assert.equal(readingDepth(pool, at('ka-pa', 'ka-pu', 'pa-pa')), (1 + 1 + 0.25) / 3);
   // ma a mama előtagja: a teljes kártya kell (1); mama: a 3. betű dönt (3/4)
-  assert.equal(readingDepth(pool, at('ma', 'mama')), (1 + 0.75) / 2);
-  assert.equal(readingDepth(pool, at('papa')), 0.25);
+  assert.equal(readingDepth(pool, at('ma', 'ma-ma')), (1 + 0.75) / 2);
+  assert.equal(readingDepth(pool, at('pa-pa')), 0.25);
 });
 
 /* ---------- konfiguráció ---------- */
@@ -129,33 +131,33 @@ test('azonos kezdet: M a rács minden tagjához mér → a horgonytól függetle
   let groups = 0;
   for (let seed = 1; seed <= 200; seed++) {
     const g = key(gridFrom(pool, a, 4, 1, seeded(seed)));
-    assert.equal(g[0], 'kapa');
-    if (g[1].startsWith('pa')) { groups++; assert.deepEqual(new Set(g), new Set(['kapa', 'papa', 'pata', 'paca'])); }
+    assert.equal(g[0], 'ka-pa');
+    if (g[1].startsWith('pa')) { groups++; assert.deepEqual(new Set(g), new Set(['ka-pa', 'pa-pa', 'pa-ta', 'pa-ca'])); }
   }
   assert.ok(groups > 60 && groups < 140, `pa-csoport: ${groups}/200`);
 });
 
-test('azonos kezdet: a feltöltés készletére is érvényes (szótag horgony, kevés szótag → szavak)', () => {
-  // ma horgony, egyetlen további szótag: a feltöltés betű, majd szó. β = 1, s = 1 mellett a feltöltésből
-  // a ma-kezdetű szavak jönnek, a többi súlya 0.
+test('azonos kezdet: csak a horgony csoportján belül számít (2.14, K-2)', () => {
+  // ma-ma horgony (2 szótagú szó): a ma (CV) más csoport, nem kerülhet mellé. β = 1, s = 1 mellett a
+  // csoportból a ma-kezdetű ma-ci jön, a többi súlya 0.
   const pool = createPool(['ma', 'lo', 'ma-ma', 'ma-ci', 'ro-fe', 'ti-nu'], ccWith(1));
+  const a = pool.entries.findIndex((e) => e.key === 'ma-ma');
   for (let seed = 1; seed <= 50; seed++) {
-    const g = gridFrom(pool, 0, 4, 1, seeded(seed)).map((i) => pool.entries[i].key);
-    assert.deepEqual(new Set(g), new Set(['ma', 'lo', 'mama', 'maci']), g.join(' · '));
+    const g = gridFrom(pool, a, 2, 1, seeded(seed)).map((i) => pool.entries[i].key);
+    assert.deepEqual(g, ['ma-ma', 'ma-ci']);
+    const g4 = gridFrom(pool, a, 4, 1, seeded(seed)).map((i) => pool.entries[i].key);
+    assert.deepEqual(new Set(g4), new Set(['ma-ma', 'ma-ci', 'ro-fe', 'ti-nu']), g4.join(' · '));
   }
 });
 
-test('a szabálytesztek β = 0.5 mellett is teljesülnek (forrás, N különböző, típus)', () => {
+test('a szabálytesztek β = 0.5 mellett is teljesülnek (forrás, különböző, egy csoport)', () => {
   const pool = createPool(LIST, ccWith(0.5)), rng = seeded(17);
-  const same = (a) => (a.type === 'szó' ? (e) => e.type === 'szó' && e.syl === a.syl : (e) => e.type === a.type);
   for (const lv of pool.cc.levels) for (const n of [4, 6, 8]) for (let k = 0; k < 40; k++) {
     const g = buildGrid(pool, n, lv, rng);
-    assert.equal(new Set(g.items.map(normalize)).size, n);
+    const want = groupOf(g.anchor).key;
+    assert.equal(new Set(g.items.map(itemKey)).size, Math.min(n, pool.groupSize.get(want)));
     for (const t of g.items) assert.ok(LIST.includes(t), t);
-    const a = pool.entries.find((e) => e.key === g.anchor);
-    if (pool.entries.filter(same(a)).length >= n) {
-      for (const t of g.items) assert.ok(same(a)(pool.entries.find((e) => e.key === normalize(t))), `${g.anchor} mellett ${t}`);
-    }
+    for (const t of g.items) assert.equal(groupOf(t).key, want, `${g.anchor} mellett ${t}`);
   }
 });
 
@@ -169,11 +171,15 @@ function calibrated(beta) {
 }
 const CAL = { 0: calibrated(0), 0.5: calibrated(0.5) };
 
-/** Mutatók fokozatonként. anchors: 'szó' | 'összes'. K: rácsok száma fokozatonként. */
+/**
+ * Mutatók fokozatonként. anchors: 'szó' | 'összes' | 'nagy' (legalább 3 × N tételes csoport); mindig csak
+ * horgonynak választható tétel (legalább 2 tételes csoport, K-4). K: rácsok száma fokozatonként.
+ */
 function stats(cc, seed, { anchors = 'összes', K = 1500 } = {}) {
   const pool = createPool(LIST, cc), rng = seeded(seed);
-  const all = pool.entries.map((e, i) => i);
-  const from = anchors === 'szó' ? all.filter((i) => pool.entries[i].type === 'szó') : all;
+  const all = anchorChoices(pool);
+  const from = anchors === 'szó' ? all.filter((i) => pool.entries[i].type === 'szó')
+    : anchors === 'nagy' ? all.filter((i) => pool.groupSize.get(pool.entries[i].group) >= 3 * N) : all;
   return cc.levels.map((lv) => {
     const s = innerRatio(lv, cc, N);
     let md = 0, cp = 0, depth = 0, shared = 0;
@@ -212,7 +218,9 @@ test('statisztika: a meglévő elfogadási feltételek β = 0.5 mellett is telje
     assert.ok(st[i].md < st[i - 1].md, `távolság csökken: ${fmt(st, 'md')}`);
     assert.ok(st[i].cp > st[i - 1].cp, `közeli párok nőnek: ${fmt(st, 'cp')}`);
   }
-  assert.ok(st[0].cp <= 0.1, `0-s fokozat: ${st[0].cp}`);
+  // kis csoportban (pl. 9 magánhangzó, 8 kártya) a hasonló párok nem kerülhetők el (K-2)
+  const big = stats(CAL[0.5], 2026, { anchors: 'nagy' });
+  assert.ok(big[0].cp <= 0.1, `0-s fokozat: ${big[0].cp}`);
   // lépcsők: a kalibrálásból kihagyott (más seedű) horgonyokon
   const ctl = stats(CAL[0.5], 77, { K: 2000 });
   const steps = ctl.slice(1).map((x, i) => ctl[i].md - x.md);

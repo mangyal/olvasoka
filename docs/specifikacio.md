@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.13** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.14** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,18 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.14 (a 2.13-hoz képest)
+
+Részletek, elfogadási kritériumok és döntések: [csoportositas-sulyozas.md](csoportositas-sulyozas.md).
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Csoportok | Minden tétel automatikusan csoportba kerül a betűszerkezetéből: magánhangzó, mássalhangzó, VC, CV, egyéb szótag (szerkezetenként), szó (szótagszámonként). | 4.1 |
+| 2 | Súlyozás ismétléssel | Az ismétlődő tétel **nem marad ki** (F-L5 4. lépése megszűnik): ahányszor szerepel, annyiszor nagyobb eséllyel kerül a körbe. A felület továbbra is a különböző tételeket mutatja. | F-L5, F-S1a, F-S1, 4.1 |
+| 3 | Felolvasás | A kör csoportonként, fix sorrendben jön. Új **Kevert sorrend** jelölőnégyzet (alapból ki) visszaadja a vegyes sorrendet. A „húzózsák” helyébe sorokból húzás lép, szomszédsági szabállyal. | 3.3, F-S3, 4.1 |
+| 4 | Keresd meg! | Egy feladat csak egy csoport tételeiből áll; nincs más csoportból való feltöltés. A horgony súlyozott, 1 tételes csoport tétele nem jelenik meg. A `ma`, `Ma`, `m-a` három különböző tétel. | F-S8, 4a.1 |
+| 5 | Haladás | A kör rekordja `order` mezőt kap (`grouped` / `mixed`); 4. tárolt verzió. | haladas-specifikacio.md 4.2a |
 
 ### 2.13 (a 2.12-höz képest)
 
@@ -209,9 +221,8 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   1. Unicode NFC-normalizálás.
   2. A két végén szóköz levágva.
   3. Üres tétel eldobva.
-  4. **Ismétlődő tétel eldobva** a listán belül (pontos egyezés; az `a` és az `A` két külön tétel).
-     Az ismétlés szándékos is lehet (oldal végi ismétlő sor), ezért nem hiba: az app csendben kihagyja,
-     a teszt csak tájékoztatásként írja ki.
+  4. *(2.14-ben megszűnt: az ismétlődő tétel eldobása.)* Az ismétlődő tétel a helyén marad: ahányszor
+     szerepel, annyiszor nagyobb eséllyel kerül a Felolvasás körébe (súlyozás, 4.1). Nem hiba, nincs figyelmeztetés.
   5. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi a sorszámmal.
 
   `#`-tel kezdődő tétel nem lehet: a `#`-tel kezdődő sor listanév, a vessző után álló `#`-es tétel pedig
@@ -268,17 +279,20 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 | Felvillanási idő | 0–25 mp, 0,5 mp lépés; **0 = kézi** | **10 mp** |
 | Szünet a tételek között | 0 · 0,5 · 1 · 2 · 3 mp (a régi 1,5 / 2,5 mp tárolt érték 1 / 2 mp-re áll) | **0 mp** |
 | Tételszám a körben | 1–50 | **10** |
+| Kevert sorrend (2.14) | jelölőnégyzet | **kikapcsolva** (csoportosított sorrend) |
 
 - **F-S1a Kijelölt listák:** egy vagy több lista jelölhető ki (U-A1). A kör a kijelölt listák
-  tételeinek uniójából épül, ismétlődés nélkül, kiegyenlítés nélkül (a nagyobb lista több tételt ad).
-  A kijelölt listák és a különböző tételek száma a középső rész fejlécében (U-A3), mobilon a lista-lenyílón látszik.
+  sorainak összességéből épül, ismétlésekkel (2.14): ha egy tétel két kijelölt listán szerepel, a súlya 2.
+  Kiegyenlítés nincs (a nagyobb lista több tételt ad). A felület mindenhol a **különböző** tételeket mutatja,
+  első előfordulásuk sorrendjében: a listasáv számlálói, a középső rész fejléce és felsorolása (U-A3),
+  a mobilos lista-lenyíló és a kijelölés összegzése („2 lista · 38 tétel”).
 - **F-S1b A forrásválasztó követi a kijelölést, és fordítva.**
   - Ha kézzel minden lista ki van jelölve, a választón az „Összes lista” aktív; ha legalább egy nincs, a „Kijelölt listák”.
   - Az „Összes lista” megnyomása minden listát kijelöl.
   - A „Kijelölt listák” megnyomása, amikor minden lista ki van jelölve, csak az első listát hagyja kijelölve.
   - „Összes lista” módban frissítés után az újonnan megjelent lista is kijelölődik.
-- **F-S1 Összes lista:** a kör az összes lista tételeinek uniójából épül, ismétlődés nélkül.
-  Az „Indítás” mellett: „4 lista, 98 különböző tétel”.
+- **F-S1 Összes lista:** a kör az összes lista sorából épül, ismétlésekkel (2.14): a sok listán szereplő
+  tétel nagyobb súlyt kap. A felület a különböző tételek számát mutatja.
 - **F-S2 Kézi léptetés (0 mp):** a tétel addig látszik, amíg Space-t vagy →-t nem nyomnak.
   A csúszka mellett „kézi”, a becsült hossz helyén „kézi léptetés” áll.
 
@@ -297,14 +311,18 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   hogy a rács szabályok szerint, véletlennel áll össze; csak a hasonlóságról beszél.
 - **F-S7** A Keresd meg! módban nincs felvillanási idő és szünet: egy feladat addig látszik, amíg a szülő
   tovább nem lép (F-K5).
-- **F-S8** Az Indítás feltétele legalább 2 különböző tétel a kör forrásában. Különben inaktív:
-  „Legalább két különböző tétel kell.”
+- **F-S8** *(2.14)* Az Indítás feltétele, hogy legyen legalább egy csoport (4.1) legalább 2 különböző
+  tétellel (K-5). Különben inaktív: „A Keresd meg!-hez legalább két különböző tétel kell.”
+- **F-S9 Kevert sorrend (2.14, F-1–F-3).** Jelölőnégyzet a Felolvasás beállításai között, alapból kikapcsolva;
+  a szülő utolsó választása megmarad. Alatta mindig látható magyarázat a Nehézség információs dobozával
+  azonos komponensben: „Bekapcsolva a betűk, szótagok és szavak összekeverve jönnek.” A Keresd meg!
+  beállításai között nem jelenik meg.
 
 ### 3.4 Helyi tárolás
 - **F-S3** A beállítások, a legutóbb kijelölt listák neve és a legutóbb letöltött `lists.txt` szövege a
   `localStorage`-ban, `olvasoka` kulcs alatt (a dev környezetben `olvasoka-dev`, N10):
   ```json
-  { "v": 4, "mode": "read", "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list" },
+  { "v": 4, "mode": "read", "settings": { "flashMs": 10000, "gapMs": 0, "count": 10, "source": "list", "mixed": false },
     "find": { "cards": 4, "tasks": 10, "level": 1 },
     "lastLists": ["44. oldal", "45. oldal"], "hideHelp": false,
     "cache": { "text": "45. oldal,Á-A-E\nfa,á\n…", "fetchedAt": 1794080000000, "kind": "sheet" } }
@@ -317,6 +335,7 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   A `find` a Keresd meg! beállításai (3.3a): `cards` 4 | 6 | 8, `tasks` 1–30, `level` 1–5. Hiányzó vagy
   érvénytelen mezőnél az alapérték; a mező új, de csak hozzáadás, ezért a `v` marad 4. A telefonos
   korlát (F-K10) nem írja át a `cards` értékét.
+  A `settings.mixed` (2.14) a Kevert sorrend: hiányzó vagy érvénytelen értéknél `false`; csak hozzáadás, a `v` marad 4.
 - **F-S4** Minden hozzáférés `try/catch` között. Sérült adatnál alapállapot. Tárolás nélkül (privát ablak)
   a program fut, figyelmeztetéssel: a beállítások nem maradnak meg, és hálózat nélkül nem lesz lista.
 - **F-S5** A tárolás böngészőnként és címenként külön él. A listák a repóból jönnek, ezért nem vesznek el.
@@ -325,18 +344,29 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
 
 ## 4. Gyakorlókör (PRACTICE)
 
-### 4.1 Sorozat előállítása („húzózsák”)
-A kör indulásakor a program **előre legenerálja a teljes sorozatot** a kör tételeinek indexeiből.
+### 4.1 Sorozat előállítása (2.14: csoportok és súlyozás)
+A kör indulásakor a program **előre elkészíti a teljes sorozatot**. Bemenete a kijelölt listák sorai
+(ismétlésekkel), a kért tételszám (`N`), a Kevert sorrend állása és egy `rng`
+(`buildReadSequence(rows, N, { mixed }, rng)`, `js/core/sequence.js`). A szabályok részletesen:
+[csoportositas-sulyozas.md](csoportositas-sulyozas.md), 1. és 3. fejezet.
 
-1. `N` = kért tételszám, `L` = a kör különböző tételeinek száma.
-2. Az indexek véletlen keverése (Fisher–Yates), hozzáfűzés a sorozathoz; ismétlés, amíg `N` hosszú nem lesz.
-3. Minden keverésen belül minden index pontosan egyszer szerepel.
-4. Az utolsó, részleges keverésből az első `k` elem kerül be.
-5. Ha az új keverés első indexe egyezik az előző keverés utolsójával (és `L > 1`), az első elem egy
-   véletlen `j ≥ 1` pozícióval cserél, a levágás előtt.
+**Csoportok** (`js/core/groups.js`): a tétel betűiből (a Keresd meg! `tokenize()`-a: kisbetű, kötőjel nélkül,
+a többjegyű betű egy betű), ebben a fix sorrendben: magánhangzó · mássalhangzó · VC szótag · CV szótag ·
+egyéb szótag (szerkezetenként, kevesebb betű előbb, azonos hossznál `CCV` < `CVC` < `VCC`) · szó
+(szótagszámonként, növekvő).
 
-Mivel a tételek egyediek (F-L5), **két azonos tétel soha nem kerül egymás után** (`L = 1` kivételével).
-A véletlenszám-forrás paraméter (`buildSequence(L, N, rng)`), a tesztek seedelt `rng`-t használnak.
+1. **Húzás (F-4):** a sorokból visszatevés nélkül, egyenletes véletlennel; a tétel annyiszor nagyobb eséllyel
+   kerül a körbe, ahány sora van. Ha a sorok elfogytak, és a kör még nem teljes, új keverés.
+2. **Szomszédsági szabály (F-5):** ugyanaz a tétel soha nem jön kétszer egymás után. Egy sor csak akkor kerül be,
+   ha a tétele a blokkjában legfeljebb ⌈blokkméret / 2⌉-szer szerepel. Blokk: kikapcsolt kapcsolónál a tétel
+   csoportja, bekapcsoltnál az egész kör.
+3. **Kihagyott sor (F-6):** ami nem fér be, félrekerül; minden befogadott sor után előbb a félretettek jönnek
+   újra szóba. Újrakeveréskor a félretett sorok eldobódnak.
+4. **Kör hossza (F-7):** `N`, kivéve ha egyetlen sor sem fér már be (pl. csak `a` sorok: 1 tételes kör).
+5. **Sorrend (F-8–F-10):** kikapcsolt kapcsolónál a blokkok a csoportok sorrendjében, bekapcsoltnál egyetlen
+   blokk; blokkon belül véletlen elrendezés szomszédos ismétlés nélkül.
+
+A véletlenszám-forrás paraméter, a tesztek seedelt `rng`-t használnak (`test/sequence.test.js`).
 
 ### 4.2 Lejátszás
 - **F-P1** A tétel a beállított ideig látszik, majd magától vált. Kézi léptetésnél nem vált magától.
@@ -469,8 +499,11 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
   a kártyaszám (F-K10 után) és a fokozat (F-S6).
 - **F-K2** Egy feladat a körön belül nem változik: ← után ugyanaz a rács ugyanabban a sorrendben jön
   vissza, a jelölés törlődik.
-- **F-K3** Ha a forrásban N-nél kevesebb különböző tétel van, a feladat az összes elérhető tételből áll,
-  kevesebb kártyával (a heurisztika szerint).
+- **F-K3** Ha a horgony csoportjában N-nél kevesebb különböző tétel van, a feladat a csoport összes tételéből
+  áll, kevesebb (legalább 2) kártyával (2.14, K-3).
+- **F-K3a (2.14)** Egy feladat csak egy csoport (4.1) tételeiből áll; más csoportból nincs feltöltés. A horgony
+  a sorok számával súlyozott véletlennel jön, és csak legalább 2 tételes csoportból (K-2, K-4). A kártyákon
+  nincs ismétlés; a `ma`, a `Ma` és az `m-a` három különböző tétel (K-1).
 - **F-K4** A véletlenforrás paraméter; a tesztek seedelt `rng`-t használnak (mint 4.1).
 
 ### 4a.2 Lejátszás
@@ -1079,9 +1112,9 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   a panel bal szélén (✕, Esc, kívülre kattintás, a gomb újbóli megnyomása zárja; a fókusz a ✕-re, majd
   vissza a gombra); érintőn, 900 px alatt és mobil fekvőben alsó lap „Értem” gombbal. A gyakorlás
   billentyűi itt vannak, az admin alsó sorából kikerültek.
-- **U-A7a Súgó:** modális ablak a program céljáról és használatáról (5 lépés). Induláskor magától
-  megjelenik, amíg a „Ne jelenjen meg újra” jelölőnégyzet nincs bepipálva (`hideHelp` a helyi
-  állapotban); a fejléc „Súgó” gombja bármikor megnyitja. Billentyűs eszközön a billentyűket,
+- **U-A7a Súgó:** modális ablak a program céljáról és használatáról (5 lépés). A fejléc „Súgó”
+  gombja bármikor megnyitja; induláskor helyette az Első lépések bemutató indul
+  ([bemutato-specifikacio.md](bemutato-specifikacio.md)), amit a Súgó „Bemutató újra” gombja újraindít. Billentyűs eszközön a billentyűket,
   érintőképernyőn és 600 px alatt a jelölőnégyzeteket és a gombokat írja le. Telefonon szinte
   teljes képernyős, a gomb teljes szélességű. Egy mondatban említi a szótag-takarást is
   (kattintás/koppintás a szótagra, illetve `↓`).

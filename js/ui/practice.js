@@ -1,7 +1,7 @@
 // Gyakorló-, Keresd meg!- és jutalomnézet vezérlése. A logika a core/round.js és a core/find.js
 // reducerekben van; ez a modul csak rajzol, időzítőt állít és eseményeket fordít le.
 
-import { buildSequence } from '../core/sequence.js';
+import { buildReadSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
 import { syllables, rulerGeometry } from '../core/cover.js';
 import { progressModel, dotState } from '../core/progress.js';
@@ -63,16 +63,18 @@ export function createPractice(el, { onExit, progress = null }) {
 
   /* ---------- kör ---------- */
   /** @param {{ listNames?: string[], undoMs?: number }} [opt]  a Haladás naplójához */
+  /** roundItems: a kör sorai, ismétlésekkel (2.14); settings.mixed: „Kevert sorrend” (F-8, F-9) */
   function start(roundItems, settings, ev, { listNames = [], undoMs } = {}) {
     items = roundItems;
-    const seq = buildSequence(items.length, settings.count);
+    const seq = buildReadSequence(items, settings.count, { mixed: settings.mixed });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     mode = 'practice';
     if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
     el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
     st = startRound(seq, settings.flashMs, settings.gapMs, performance.now(), { undoMs });
-    progress?.beginRound({ seq: st.seq, items, listNames, flashMs: settings.flashMs, gapMs: settings.gapMs, count: settings.count });
+    progress?.beginRound({ seq: st.seq, items, listNames, flashMs: settings.flashMs, gapMs: settings.gapMs, count: settings.count,
+      order: settings.mixed ? 'mixed' : 'grouped' });
     buildProgress(st.seq.length);
     layout();
     render(); arm();                // S1: azonnal az első tétel, teljes idővel

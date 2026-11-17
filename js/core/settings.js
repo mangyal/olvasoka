@@ -1,9 +1,12 @@
 // Beállítások és a helyben tárolt állapot sémája. Tiszta modul.
 
+import { normalizeTour } from './tour.js';
+
 /** A „Szünet a tételek között” választható értékei (ms). */
 export const GAPS = [0, 500, 1000, 2000, 3000];
 export const FLASH_MAX = 25000;
-export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count: 10, source: 'list' });
+// mixed: a Felolvasás „Kevert sorrend” kapcsolója (2.14, F-1, F-2); alapból csoportosított sorrend.
+export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count: 10, source: 'list', mixed: false });
 
 /** A játékok: Felolvasás és Keresd meg!. */
 export const MODES = ['read', 'find'];
@@ -29,14 +32,14 @@ export function snapGap(ms) {
   return best;
 }
 
-/** Bármilyen bemenetből érvényes beállítás. flashMs = 0: kézi léptetés. */
+/** Bármilyen bemenetből érvényes beállítás. flashMs = 0: kézi léptetés. mixed: csak a true kapcsol be. */
 export function clampSettings(s) {
   s = s && typeof s === 'object' ? s : {};
   let f = Math.round(num(s.flashMs, DEFAULT_SETTINGS.flashMs) / 500) * 500;
   f = Math.min(FLASH_MAX, Math.max(0, f));
   let c = Math.round(num(s.count, DEFAULT_SETTINGS.count));
   c = Math.min(50, Math.max(1, c));
-  return { flashMs: f, gapMs: snapGap(s.gapMs), count: c, source: s.source === 'all' ? 'all' : 'list' };
+  return { flashMs: f, gapMs: snapGap(s.gapMs), count: c, source: s.source === 'all' ? 'all' : 'list', mixed: s.mixed === true };
 }
 
 /** Bármilyen bemenetből érvényes Keresd meg! beállítás; hiányzó vagy érvénytelen mezőnél az alapérték. */
@@ -58,18 +61,21 @@ export const levelToDegree = (level, levels = [0, 0.25, 0.5, 0.75, 1]) =>
 export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ? m : 'read');
 
 /**
- * Helyi állapot: { v: 4, mode, settings, find, lastLists: string[], hideHelp: boolean,
+ * Helyi állapot: { v: 4, mode, settings, find, lastLists: string[], hideHelp: boolean, tour,
  *                  cache: { text, fetchedAt, kind: 'sheet'|'txt' } | null }.
  * mode: a kiválasztott játék ('read' | 'find').
  * find: a Keresd meg! beállításai (clampFind); a mező csak hozzáadás, ezért a v marad 4.
- * hideHelp: a súgó ne jelenjen meg magától induláskor.
+ * settings.mixed (2.14): szintén csak hozzáadás; hiányzó vagy érvénytelen érték: false.
+ * hideHelp: a régi „Ne jelenjen meg újra” jelölő; már csak olvassuk (aki bepipálta, annak a bemutató sem indul magától).
+ * tour: az Első lépések bemutató állapota (js/core/tour.js): null | { v, how: 'done'|'skipped', at };
+ * a mező csak hozzáadás, ezért a v marad 4.
  * lastLists: a legutóbb kijelölt listák neve. A cache a legutóbb letöltött lista szövege
  * (táblázat CSV vagy lists.txt, `kind` szerint; a kind nélküli régi cache lists.txt).
  * A v2 egyetlen lastList neve átkerül a lastLists tömbbe; a v3 mode nélkül 'read'.
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), lastLists: [], hideHelp: false, cache: null };
+  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), lastLists: [], hideHelp: false, tour: null, cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -80,6 +86,7 @@ export function normalizeState(o) {
     find: clampFind(o.find),
     lastLists,
     hideHelp: o.hideHelp === true,
+    tour: normalizeTour(o.tour),
     cache: o.cache && typeof o.cache === 'object' && typeof o.cache.text === 'string' && Number.isFinite(o.cache.fetchedAt)
       ? { text: o.cache.text, fetchedAt: o.cache.fetchedAt, kind: o.cache.kind === 'sheet' ? 'sheet' : 'txt' } : null,
   };
