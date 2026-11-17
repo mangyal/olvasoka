@@ -278,6 +278,8 @@ export function createTour(el, { mod = 'Ctrl', minDays = () => 3, onEnd = () => 
     key,
     /** A játék elindult a bemutató közben: egyenértékű a Kész gombbal (4.2). */
     gameStarted() { if (step) end('done'); },
+    /** A kihagyás utáni üzenet (4.4) a bemutató nélkül: az üdvözlő ablak „Kihagyom, kezdjük” után (10.). */
+    skippedHint() { showToast(); el.helpBtn.focus({ preventScroll: true }); },
     /** A szöveg függ külső adattól (haladas.json): újrarajzolás. */
     refresh() { if (step) { render(); schedule(); } },
   };

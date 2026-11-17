@@ -22,7 +22,8 @@ Az oldalmegtekintést az Umami magától rögzíti. Ezen felül:
 | `round-start` | kör indul | `game` (`read` / `find`), `round` (a kör sorszáma az oldal betöltése óta), `lists` (a kijelölt listák nevei ` \| `-vel, vagy `(összes lista)`), `listCount`; Felolvasás: `count`, `flashMs`, `mixed`; Keresd meg!: `cards` (ténylegesen mutatott), `tasks`, `level` |
 | `round-end` | kör vége vagy kilépés közben | `game`, `round`, `completed` (`false`: kilépett a kör közben) |
 | `reward-pick` | a gyerek jutalomjátékot választ | `reward` (`lufi` / `panda`), `round` |
-| `tour-end` | az Első lépések bemutató vége | `result` (`done` / `skipped`) |
+| `tour-end` | az Első lépések bemutató vége (csak ha a „Mutasd meg”-gel vagy a Súgóból elindult) | `result` (`done` / `skipped`) |
+| `welcome-choice` | döntés az üdvözlő ablakban (első indítás, a bemutató előtt) | `choice` (`tour`: „Mutasd meg”, `skip`: „Kihagyom, kezdjük” vagy bezárás), `via` (`button` / `close`: ✕, Esc vagy a háttérre kattintás) |
 | `progress-open` | a Haladás nézet megnyílik | nincs |
 
 Bővítés: új esemény a `js/main.js`-ben a `stats.track(név, adatok)` hívással. Az adat csak szám, logikai érték vagy szöveg lehet (a szöveg legfeljebb 500 karakter, a `js/data/analytics.js` vágja). A `test/analytics.test.js` felsorolja a megengedett eseményneveket: új esemény esetén ott is bővíteni kell, és ellenőrizni, hogy tétel nem kerül bele.

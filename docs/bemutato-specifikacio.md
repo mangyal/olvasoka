@@ -1,6 +1,6 @@
 # Olvasóka: Első lépések (bemutató) specifikáció
 
-Verzió: 1.1 · 2026. november 13. (1.1: a fejlesztés előtti döntések, lásd 9.)
+Verzió: 1.2 · 2026. november 17. (1.1: a fejlesztés előtti döntések, lásd 9.; 1.2: üdvözlő ablak a bemutató előtt, lásd 10.)
 Képernyőtervek: „Olvasóka – Első lépések (bevezető)” vászon (Windows 4 lépés, Mac eltérések, telefon 4 lépés, kihagyás utáni üzenet). A vászon cetlijei ennek a dokumentumnak a rövid kivonatai; eltérés esetén ez a dokumentum az irányadó.
 
 ## 1. Cél
@@ -118,6 +118,8 @@ Induláskor, ha mind igaz:
 - az ablak legalább 320 × 256 px (a „túl kicsi képernyő” határa). Ha kisebb, a program vár, és ha egy átméretezés után belefér, akkor indul;
 - a listák betöltődtek (első `admin.render()` listákkal), vagy 3 másodperc eltelt.
 
+Ha a feltételek teljesülnek, először az üdvözlő ablak jelenik meg (10.), és a bemutató csak a „Mutasd meg” után indul.
+
 Az eddigi induló `openHelp()` hívás megszűnik.
 
 ### 4.2 Lépkedés és interakció
@@ -196,7 +198,6 @@ E2E:
 
 - Animált átmenetek a lépések között (a pozícióváltás 200 ms-os áttűnése elég).
 - Külön bemutató a Keresd meg! játékhoz, a Haladás nézethez vagy játék közbeni vezérléshez. Ezekre a meglévő „Így játsszátok” gomb és a Haladás nézet saját magyarázatai szolgálnak.
-- Használati statisztika a bemutatóról.
 
 ## 9. Döntések a fejlesztés előtt (2026-11-13)
 
@@ -205,3 +206,24 @@ E2E:
 3. A nyilak csak akkor léptetnek, ha a fókusz a buborékban van (4.2).
 4. Megvalósítás: `js/core/tour.js` (tiszta logika, `test/tour.test.js`), `js/ui/tour.js`, `css/tour.css`; E2E: `e2e/app.mjs` és `e2e/layout.mjs` „bemutató” tesztjei.
 
+
+## 10. Üdvözlő ablak (1.2, 2026-11-17)
+
+Az automatikus indításkor (4.1) a bemutató előtt egy kis, középre igazított modális ablak (`#dlgWelcome`) jelenik meg, ami egy mondatban elmondja, mit lát az új felhasználó. A Súgó „Bemutató újra” gombja nem mutatja, rögtön a bemutatót indítja.
+
+| Elem | Szöveg |
+|---|---|
+| Cím | Szia! Ez az Olvasóka. |
+| Szöveg | Közös olvasásgyakorlás a könyv mellé: a gyerek olvas, te figyelsz. |
+| Fő gomb (teljes szélesség) | Mutasd meg (30 mp) |
+| Másodlagos (szöveges gomb alatta) | Kihagyom, kezdjük |
+| Apró betű a gombok alatt | Nincs regisztráció, azonnal kezdhetitek. |
+
+Működés:
+- `Mutasd meg`: bezárja az ablakot, és az 1. lépéstől indítja a bemutatót. A tárolás a bemutató végén történik (4.3).
+- `Kihagyom, kezdjük`, a ✕, az `Esc` és a háttérre kattintás egyaránt: `how: "skipped"` tárolás, majd a kihagyás utáni üzenet (4.4), a fókusz a Súgó gombra kerül.
+- A lap bezárása vagy újratöltése az ablak nyitva tartása alatt: semmi nem tárolódik, legközelebb újra megjelenik.
+
+Megjelenés: natív `<dialog>` (`showModal`), szélesség legfeljebb 400 px, az app ikonja felül (420 px-nél alacsonyabb ablakban elmarad). A fókusz megnyitáskor a fő gombon van, az ablakon belül marad. Minden gomb legalább 44 px magas (a fő és a másodlagos 48 px).
+
+Statisztika (docs/analitika-specifikacio.md): `welcome-choice` esemény `choice: "tour" | "skip"` és `via: "button" | "close"` adattal. A bemutató vége továbbra is `tour-end`.

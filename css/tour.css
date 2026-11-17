@@ -49,3 +49,21 @@
 @media (max-width:319px),(max-height:255px){
   .tour-scrim,.tour-ring,.tour-bubble,.tour-toast{display:none!important}
 }
+
+/* ================= Üdvözlő ablak (bemutató előtt; docs/bemutato-specifikacio.md 10.) ================= */
+dialog.dlg-welcome{width:min(400px,calc(100vw - 32px));padding:28px 24px 20px;text-align:center;position:relative}
+.welcome-icon{display:block;margin:0 auto 12px;width:56px;height:56px;border-radius:14px}
+.dlg-welcome h2{font-size:20px;font-weight:700;margin:0 0 8px}
+.dlg-welcome #welcomeText{margin:0 0 20px;font-size:16px}
+.welcome-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.welcome-actions .btn-primary{min-height:48px;font-size:16px;border-radius:8px}
+.welcome-actions .btn-text{min-height:48px;text-align:center;color:var(--ink-2);text-decoration:underline;text-underline-offset:3px}
+.welcome-note{margin:8px 0 0;font-size:13px}
+.welcome-x{position:absolute;top:6px;right:6px;width:44px;height:44px;border:0;background:none;color:var(--ink-2);font-size:18px;cursor:pointer;border-radius:8px}
+.welcome-x:hover{background:var(--paper-2)}
+/* alacsony ablak (fekvő telefon): ikon nélkül, szorosabban, hogy görgetés nélkül elférjen */
+@media (max-height:420px){
+  dialog.dlg-welcome{padding:16px 20px 12px}
+  .welcome-icon{display:none}
+  .dlg-welcome #welcomeText{margin-bottom:12px}
+}

@@ -949,8 +949,8 @@ test('Haladás: tiltott localStorage mellett a gyakorlás hibátlanul működik'
   const errors = [];
   p.on('pageerror', (e) => errors.push(e.message));
   await p.goto(base);
-  // tároló nélkül a bemutató minden indításkor megjelenik; az Esc kihagyja
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  // tároló nélkül az üdvözlő ablak minden indításkor megjelenik; az Esc kihagyja
+  await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
   await p.keyboard.press('Escape');
   await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
   await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
@@ -1181,6 +1181,12 @@ async function tourPage({ seed = null, hash = '', viewport = { width: 1280, heig
   await p.goto(base + hash);
   return { c, p, errors };
 }
+/** Az automatikus indulás az üdvözlő ablakkal kezdődik (10.): „Mutasd meg”, majd az 1. lépés. */
+async function viaWelcome(p) {
+  await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
+  await p.click('#welcomeTour');
+  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+}
 const bubbleShown = (p) => p.locator('.tour-bubble').isVisible();
 const tourStepOf = (p) => p.locator('.tour-eyebrow').textContent();
 const storedTour = (p) => p.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null')?.tour ?? null, TOUR_KEY);
@@ -1189,11 +1195,65 @@ async function noTour(p) {
   await p.locator('#listNav .nav-item').first().waitFor();
   await p.waitForTimeout(3300);
   assert.equal(await bubbleShown(p), false, 'nincs bemutató');
+  assert.equal(await p.locator('#dlgWelcome').isVisible(), false, 'nincs üdvözlő ablak');
+}
+
+test('üdvözlő ablak: üres tárolóval megjelenik; szöveg, fókusz a fő gombon; „Mutasd meg” indítja a bemutatót', async () => {
+  const { c, p, errors } = await tourPage();
+  await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
+  assert.equal(await bubbleShown(p), false, 'a bemutató még nem fut');
+  assert.equal(await p.textContent('#welcomeH'), 'Szia! Ez az Olvasóka.');
+  assert.equal(await p.textContent('#welcomeText'), 'Közös olvasásgyakorlás a könyv mellé: a gyerek olvas, te figyelsz.');
+  assert.equal(await p.textContent('#welcomeTour'), 'Mutasd meg (30 mp)');
+  assert.equal(await p.textContent('#welcomeSkip'), 'Kihagyom, kezdjük');
+  assert.equal(await p.textContent('.welcome-note'), 'Nincs regisztráció, azonnal kezdhetitek.');
+  assert.equal(await p.evaluate(() => document.activeElement.id), 'welcomeTour');
+  assert.equal(await p.$eval('#dlgWelcome', (d) => d.matches(':modal')), true);
+  await p.click('#welcomeTour');
+  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  assert.equal(await tourStepOf(p), 'Első lépések · 1/4');
+  assert.equal(await p.evaluate(() => document.activeElement.id), 'tourTitle');
+  assert.equal(await storedTour(p), null, 'a tárolás a bemutató végén');
+  assert.deepEqual(errors, []);
+  await c.close();
+});
+
+test('üdvözlő ablak: „Kihagyom, kezdjük” = kihagyott bemutató, jön az üzenet; újratöltve semmi', async () => {
+  const { c, p, errors } = await tourPage();
+  await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
+  await p.click('#welcomeSkip');
+  assert.equal(await p.locator('#dlgWelcome').isVisible(), false);
+  await p.waitForFunction((k) => JSON.parse(localStorage.getItem(k) || 'null')?.tour?.how === 'skipped', TOUR_KEY);
+  assert.equal(await bubbleShown(p), false);
+  assert.ok(await p.locator('#tourToast').isVisible());
+  assert.equal(await p.evaluate(() => document.activeElement.id), 'helpBtn');
+  await p.reload();
+  await noTour(p);
+  assert.deepEqual(errors, []);
+  await c.close();
+});
+
+for (const [how, act] of [
+  ['✕', (p) => p.click('#welcomeX')],
+  ['Esc', (p) => p.keyboard.press('Escape')],
+  ['a háttérre kattintás', (p) => p.mouse.click(20, 20)],
+]) {
+  test(`üdvözlő ablak: ${how} = Kihagyom`, async () => {
+    const { c, p } = await tourPage();
+    await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
+    await act(p);
+    await p.locator('#dlgWelcome').waitFor({ state: 'hidden' });
+    // a dialog close eseménye a bezárás után, külön feladatként jön: megvárjuk a tárolást
+    await p.waitForFunction((k) => JSON.parse(localStorage.getItem(k) || 'null')?.tour?.how === 'skipped', TOUR_KEY);
+    assert.equal(await bubbleShown(p), false);
+    assert.ok(await p.locator('#tourToast').isVisible());
+    await c.close();
+  });
 }
 
 test('bemutató: üres tárolóval az 1. lépés jelenik meg; a kiemelt lista kattintható, a sötétítés nem zár', async () => {
   const { c, p, errors } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   assert.equal(await tourStepOf(p), 'Első lépések · 1/4');
   assert.equal(await p.textContent('#tourTitle'), 'Válassz listát');
   assert.equal(await p.getAttribute('.tour-bubble', 'role'), 'dialog');
@@ -1214,7 +1274,7 @@ test('bemutató: üres tárolóval az 1. lépés jelenik meg; a kiemelt lista ka
 
 test('bemutató: Tovább és Kész; újratöltve nem jelenik meg, üzenet nincs', async () => {
   const { c, p, errors } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   const titles = ['Válassz játékot', 'Itt látod a haladást', 'Kezdődhet a közös olvasás'];
   for (const [i, t] of titles.entries()) {
     await p.click('#tourNext');
@@ -1238,7 +1298,7 @@ test('bemutató: Tovább és Kész; újratöltve nem jelenik meg, üzenet nincs'
 
 test('bemutató: Kihagyom; az üzenet egyszer látszik, a fókusz a Súgón, újratöltve semmi', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.click('#tourNext');
   await p.click('#tourSkip');
   assert.equal(await bubbleShown(p), false);
@@ -1262,8 +1322,8 @@ test('bemutató: az üzenet 8 mp után magától eltűnik', async () => {
   const { c, p } = await tourPage();
   await p.clock.install();
   await p.reload();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible', timeout: 10000 }).catch(async () => { await p.clock.runFor(3100); });
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await p.locator('#dlgWelcome').waitFor({ state: 'visible', timeout: 10000 }).catch(async () => { await p.clock.runFor(3100); });
+  await viaWelcome(p);
   await p.click('#tourSkip');
   assert.ok(await p.locator('#tourToast').isVisible());
   await p.clock.runFor(7900);
@@ -1275,7 +1335,7 @@ test('bemutató: az üzenet 8 mp után magától eltűnik', async () => {
 
 test('bemutató: Esc = Kihagyom', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.keyboard.press('Escape');
   assert.equal(await bubbleShown(p), false);
   assert.equal((await storedTour(p)).how, 'skipped');
@@ -1285,12 +1345,12 @@ test('bemutató: Esc = Kihagyom', async () => {
 
 test('bemutató: a közbeni újratöltés után újra az 1. lépés jön', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.click('#tourNext');
   await p.click('#tourNext');
   assert.equal(await tourStepOf(p), 'Első lépések · 3/4');
   await p.reload();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   assert.equal(await tourStepOf(p), 'Első lépések · 1/4');
   assert.equal(await storedTour(p), null);
   await c.close();
@@ -1332,7 +1392,7 @@ test('bemutató: a Súgó „Bemutató újra” gombja az 1. lépést nyitja, a 
 
 test('bemutató: nyilak a buborékban léptetnek; a játékfülön a nyíl játékot vált (döntés 2026-11-13)', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.keyboard.press('ArrowRight');
   assert.equal(await tourStepOf(p), 'Első lépések · 2/4');
   await p.keyboard.press('ArrowLeft');
@@ -1357,7 +1417,7 @@ test('bemutató: nyilak a buborékban léptetnek; a játékfülön a nyíl ját�
 
 test('bemutató: a Tab a buborék gombjai és a célelem között jár körbe', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.click('#tourNext');                    // 2. lépés: játékfülek
   await p.focus('#tourTitle');
   const seq = [];
@@ -1370,7 +1430,7 @@ test('bemutató: a Tab a buborék gombjai és a célelem között jár körbe', 
 
 test('bemutató: a játék indítása bármelyik lépésben = Kész, és a játék indul', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
   await p.click('#tourNext');                    // 2. lépés
   await p.keyboard.press('Control+Enter');
@@ -1383,7 +1443,7 @@ test('bemutató: a játék indítása bármelyik lépésben = Kész, és a ját�
 
 test('bemutató: a 4. lépésben az Indítás gombra kattintás = Kész', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.locator('#listNav .nav-item', { hasText: 'Betűk' }).click();
   for (let i = 0; i < 3; i++) await p.click('#tourNext');
   await p.click('#startBtn');
@@ -1394,7 +1454,7 @@ test('bemutató: a 4. lépésben az Indítás gombra kattintás = Kész', async 
 
 test('bemutató: a 3. lépésből a Haladás nézet, visszatérve a 4. lépés', async () => {
   const { c, p } = await tourPage();
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.click('#tourNext');
   await p.click('#tourNext');
   assert.match(await p.textContent('#tourText'), /legalább 3 különböző napon olvasta\./);
@@ -1412,7 +1472,7 @@ test('bemutató: a 3. lépésből a Haladás nézet, visszatérve a 4. lépés',
 
 test('bemutató telefonon: a listalap alatt rejtve, az Esc csak a lapot zárja, utána ugyanaz a lépés', async () => {
   const { c, p } = await tourPage({ viewport: { width: 390, height: 844 }, touch: true });
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   assert.match(await p.textContent('#tourText'), /^Koppints ide, és pipáld be a listákat\./);
   await p.tap('#listsBtn');
   await p.locator('#dlgLists').waitFor({ state: 'visible' });
@@ -1432,7 +1492,7 @@ test('bemutató: Macen ⌘ a szövegben', async () => {
   await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: FIXTURE }));
   const p = await c.newPage();
   await p.goto(base);
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   assert.equal(await p.textContent('#tourText kbd'), '⌘');
   await c.close();
 });
@@ -1446,7 +1506,7 @@ test('bemutató: nem írható localStorage mellett a munkameneten belül nem jö
   await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: FIXTURE }));
   const p = await c.newPage();
   await p.goto(base);
-  await p.locator('.tour-bubble').waitFor({ state: 'visible' });
+  await viaWelcome(p);
   await p.click('#tourSkip');
   assert.equal(JSON.parse(await p.evaluate(() => sessionStorage.getItem('olvasoka-dev_tour'))).how, 'skipped');
   await p.reload();
