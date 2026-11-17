@@ -3,7 +3,7 @@
 import { GAPS, estimate, fmtNum, CARDS, LEVEL_LABELS, findEstimate, levelToDegree } from '../core/settings.js';
 import { nameKey, distinctItems } from '../core/items.js';
 import { itemsOf } from '../core/selection.js';
-import { canFind, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
+import { canFind, onlySentences, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
 import { createPool, buildGrid } from '../core/grid.js';
 
 export const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
@@ -102,7 +102,12 @@ export function createAdmin(el, app, act) {
       return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : !k ? 'Jelölj ki legalább egy listát.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
     }
     // K-5: a Keresd meg!-hez kell egy csoport legalább két különböző tétellel
-    if (findMode() && !canFind(roundItems())) return { enabled: false, msg: 'A Keresd meg!-hez legalább két különböző tétel kell.' };
+    // M-9: a mondat nem játszható; ha csak mondat van, ezt mondjuk meg, nem a tételszámot
+    if (findMode() && !canFind(roundItems())) {
+      return { enabled: false, msg: onlySentences(roundItems())
+        ? 'A Keresd meg!-ben mondatok nem szerepelnek. Válassz betűt, szótagot vagy szót is.'
+        : 'A Keresd meg!-hez legalább két különböző tétel kell.' };
+    }
     // a gomb alatt csak hiba vagy figyelmeztetés (a lista- és tételszámot a fejléc mutatja)
     const fontWarn = app.font.state === 'failed';
     return { enabled: true, msg: fontWarn ? 'A betűk alakja eltérhet.' : '', warn: fontWarn };

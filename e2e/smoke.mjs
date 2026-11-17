@@ -35,10 +35,17 @@ before(async () => {
 });
 after(async () => { await browser?.close(); });
 
+// Az élő oldalon fut: a statisztikát (Umami) letiltjuk, hogy a füstteszt ne számítson látogatásnak.
+async function newContext() {
+  const ctx = await browser.newContext();
+  await ctx.route('https://cloud.umami.is/**', (r) => r.abort());
+  return ctx;
+}
+
 /** Megnyitja a címet friss böngészőben (service worker és tároló nélkül), és kiolvassa a fejlécet. */
 async function open(path, { page } = {}) {
   const own = !page;
-  page ??= await (await browser.newContext()).newPage();
+  page ??= await (await newContext()).newPage();
   try {
     await page.goto(url(path), { waitUntil: 'load' });
     await page.waitForFunction(() => document.getElementById('appVersion')?.textContent, null, { timeout: 15000 });
@@ -105,7 +112,7 @@ test('dev (/dev, perjel nélkül): a dev oldalra visz', async () => {
 });
 
 test('dev (/dev, perjel nélkül) telepített éles service workerrel is a dev oldalra visz', async () => {
-  const ctx = await browser.newContext();
+  const ctx = await newContext();
   const page = await ctx.newPage();
   try {
     await page.goto(url(BASE.pathname));

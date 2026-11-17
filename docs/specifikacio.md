@@ -1,6 +1,6 @@
 # Olvasóka – Specifikáció
 
-Verzió: **2.14** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
+Verzió: **2.16** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
@@ -46,6 +46,25 @@ bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0.
 | 5 | Koppintás | Érintőképernyőn a gyakorlónézetben bárhová koppintva a következő tétel jön. | F-P16 |
 | 6 | Jutalom | A lufik felszállnak, egy oldalt álló hőlégfúvó szele sodorja őket; kimenve alul visszajönnek. | F-R8–F-R11, U-R1 |
 | 7 | PWA | Telepíthető, offline is induló alkalmazás lufi ikonnal; Arimo a repóból; képernyőzár gyakorlás alatt; a súgó a telepítést is említi. | N2, N8, N9, F-F2, U-A7a |
+
+### 2.16 (a 2.15-höz képest)
+
+Részletek, elfogadási kritériumok és döntések: [mondatok-specifikacio.md](mondatok-specifikacio.md).
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Mondat | Új tételtípus: ami szóközt tartalmaz, az mondat. Saját, 7. csoport a szavak után, szószámonként (`M:<n>`). | 4.1, M-1–M-4 |
+| 2 | Lista | Mondatra a hosszkorlát 40 karakter; a belső többszörös szóköz egynek számít (a tételkulcsban is). | F-L5, M-5, M-6 |
+| 3 | Betűméret | A kör két méretet használ: egyet a nem-mondat tételekre, egyet a mondatokra, ugyanazzal a szabállyal. | F-P13, F-P14, M-7 |
+| 4 | Takarás | Mondatban a takarás egysége a szó (írásjellel); a szón belüli kötőjel nem határ. | F-P17–F-P19, F-P22, M-8 |
+| 5 | Keresd meg! | Mondat nem kerül feladatba; csak mondatos kijelölésnél saját üzenet. | F-K3a, M-9 |
+| 6 | Haladás | A mondat saját típusonkénti tempót kap, a szavakéba nem számít. | M-10, M-11 |
+
+### 2.15 (a 2.14-hez képest)
+
+| # | Terület | Változás | Érintett pontok |
+|---|---|---|---|
+| 1 | Alapból kijelölt listák | A táblázat második sorában igaz/hamis jelölő adhatja meg, mely listák legyenek kijelölve, amíg a szülő nem választ (pl. aki linkként kapja a programot). Ha ott más áll, az rendes tétel, mint eddig. | F-L1a, F-L1d, F-S3, U-A2 |
 
 ### 2.14 (a 2.13-hoz képest)
 
@@ -223,7 +242,12 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   3. Üres tétel eldobva.
   4. *(2.14-ben megszűnt: az ismétlődő tétel eldobása.)* Az ismétlődő tétel a helyén marad: ahányszor
      szerepel, annyiszor nagyobb eséllyel kerül a Felolvasás körébe (súlyozás, 4.1). Nem hiba, nincs figyelmeztetés.
-  5. Max. 20 karakter (kódpontban). A hosszabb kimarad, a szülői felület megnevezi a sorszámmal.
+  2a. *(2.16)* A belső többszörös szóköz (a nem törő is) egy szóközzé vonva (M-6).
+  5. Max. 20 karakter (kódpontban), mondatra (2.16, M-5) 40. A hosszabb kimarad, a szülői felület megnevezi
+     a sorszámmal és a vonatkozó korláttal (`25/20`, `41/40`).
+
+  *(2.16)* **Mondat** az a tétel, amelyben (levágás után) szóköz van (M-1). Mondaton belül nem lehet vessző,
+  mert a vessző tételt bont (M-6a).
 
   `#`-tel kezdődő tétel nem lehet: a `#`-tel kezdődő sor listanév, a vessző után álló `#`-es tétel pedig
   kimarad, figyelmeztetéssel a sorszámmal.
@@ -241,9 +265,24 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   | ke-fe     | pá    | pu-li     |
   ```
   Az üres cellák nem számítanak; a cellán belüli vessző is elválaszt. A név elején álló `#` elhagyható.
+  A második sorban állhat igaz/hamis jelölő (F-L1d).
 - **F-L1b** A szabályok ugyanazok, mint a `lists.txt`-nél (F-L2–F-L7): névsor, egyedi név, tisztítás,
   hosszkorlát. A helymegjelölés a cella: „A táblázat B3 cellája: …”. A név és tétel nélküli oszlop csendben
   kimarad; a név nélküli, de tételes oszlop figyelmeztetéssel.
+- **F-L1d Alapból kijelölt listák (2.15).** Ha egy oszlop második sorában igaz/hamis érték áll (`TRUE`/`FALSE`
+  vagy `IGAZ`/`HAMIS`, kis- és nagybetűtől függetlenül; a Google jelölőnégyzete `TRUE`/`FALSE`), az a cella
+  nem tétel, hanem azt mondja meg, hogy a lista alapból ki legyen-e jelölve. Ha a második sorban bármi más
+  áll (pl. már egy tétel), az rendes tétel, és a lista nem alapból kijelölt; a jelölő nélküli táblázat így
+  változatlanul működik.
+  ```
+  | 45. oldal | Á-A-E | 44. oldal |
+  | TRUE      | FALSE | TRUE      |
+  | fa        | á     | pá-va     |
+  ```
+  Az alapból kijelölt listák akkor számítanak, amíg a szülő nem választott listát (nincs mentett `lastLists`,
+  és a mentett tételforrás sem „Összes lista”, F-S3): ilyenkor a kijelölés mindig a táblázat aktuális jelölőit követi, és nem mentődik.
+  Amint a szülő listát vagy tételforrást választ, az övé marad (U-A2). Ha egy lista sincs bejelölve, az első
+  lista lesz kijelölve, mint eddig; ha mind, az „Összes lista”. A `lists.txt`-ben nincs jelölő.
 - **F-L1c** Címek: CSV `…/pub?output=csv`, szerkesztő `…/d/1j87SRjs4ZvyEJmModdTuNwPdyzgkwzx34yarw3qdCEM/edit`
   (`js/core/source.js`).
 
@@ -353,7 +392,8 @@ A kör indulásakor a program **előre elkészíti a teljes sorozatot**. Bemenet
 **Csoportok** (`js/core/groups.js`): a tétel betűiből (a Keresd meg! `tokenize()`-a: kisbetű, kötőjel nélkül,
 a többjegyű betű egy betű), ebben a fix sorrendben: magánhangzó · mássalhangzó · VC szótag · CV szótag ·
 egyéb szótag (szerkezetenként, kevesebb betű előbb, azonos hossznál `CCV` < `CVC` < `VCC`) · szó
-(szótagszámonként, növekvő).
+(szótagszámonként, növekvő) · *(2.16)* mondat (szószámonként, növekvő; M-3). Mondatban a szóköz és az
+írásjel nem betű, és a szóhatáron nem áll össze többjegyű betű (M-2).
 
 1. **Húzás (F-4):** a sorokból visszatevés nélkül, egyenletes véletlennel; a tétel annyiszor nagyobb eséllyel
    kerül a körbe, ahány sora van. Ha a sorok elfogytak, és a kör még nem teljes, új keverés.
@@ -398,6 +438,10 @@ A véletlenszám-forrás paraméter, a tesztek seedelt `rng`-t használnak (`tes
   szélesség 72%-án, a tételek közös tinta-doboza a magasság 53%-án, és a betűméret legfeljebb a magasság
   53%-a (2.8-ban 85%, 62%, 62%). Az alapvonal a körön belül állandó; a közös tinta-doboz közepe a magasság 46%-án van.
   Átméretezéskor újraszámolódik.
+  *(2.16, M-7)* A kör két méretet használ, mindkettőt e szabállyal: egyet a nem-mondat tételekre (csak
+  ezekből számolva), egyet a mondatokra (csak a mondatokból számolva). A tétel a saját típusa szerinti
+  méretben, alapvonallal és időjelzővel (F-P14) jelenik meg; csoportosított sorrendben a váltás egyszer, a
+  mondatblokk elején történik, kevert sorrendben tételenként is. Számítás: `js/core/fit.js`.
 - **F-P14** **Időjelző:** a tétel alatt 6 px magas, lekerekített csík a kör legszélesebb tételének
   szélességében (min. 160 px, max. a szélesség 70%-a). A kitöltés balról jobbra fogy a hátralévő idő
   arányában. Pause alatt áll, ← és → után tele csíkkal indul újra. A szünetben és kézi léptetésnél nem látszik.
@@ -432,6 +476,11 @@ A véletlenszám-forrás paraméter, a tesztek seedelt `rng`-t használnak (`tes
 Az iskolai módszert követi: a gyerek előbb az első szótagot olvassa (a második letakarva), aztán a
 másodikat (az első letakarva), végül az egészet. A takarás a szülő eszköze, mint a vonalzó, amit a
 könyvön a szótagra tesz: **alapból minden szótag látszik, és a program magától soha nem takar.**
+
+*(2.16, M-8)* **Mondatban a takarás egysége a szó, nem a szótag:** a szó a szóközök közti rész az
+írásjellel együtt (`hoz.`), a szón belüli kötőjel látszik, de nem határ. A lenti szabályokban a „szótag”
+mondatnál szót jelent; a takarási terület (F-P19) határa a két szó közti szóköz közepe, a vonalzó (F-P22)
+mindkét oldalon a ráhagyással a szó tintáját fedi, az írásjelet is. Egység: `coverUnits()` (`js/core/cover.js`).
 
 - **F-P17 Szótagok.** A tétel szótagjait a kötőjel (`-`, U+002D) választja el, ahogy a listában le van
   írva (`ka-ta` → `ka`, `ta`). Az üres szakasz (kezdő, záró vagy dupla kötőjel) nem szótag. Legalább két
@@ -504,6 +553,9 @@ sorrendben; a `marked` az aktuális feladatban megjelölt kártya sorszáma vagy
 - **F-K3a (2.14)** Egy feladat csak egy csoport (4.1) tételeiből áll; más csoportból nincs feltöltés. A horgony
   a sorok számával súlyozott véletlennel jön, és csak legalább 2 tételes csoportból (K-2, K-4). A kártyákon
   nincs ismétlés; a `ma`, a `Ma` és az `m-a` három különböző tétel (K-1).
+- **F-K3b (2.16, M-9)** Mondat nem kerül feladatba (a készletből és az indíthatóság vizsgálatából is kimarad).
+  Ha a kör tételei mind mondatok, a Keresd meg! nem indítható, a gomb alatt: „A Keresd meg!-ben mondatok nem
+  szerepelnek. Válassz betűt, szótagot vagy szót is.”
 - **F-K4** A véletlenforrás paraméter; a tesztek seedelt `rng`-t használnak (mint 4.1).
 
 ### 4a.2 Lejátszás
@@ -673,7 +725,7 @@ Nincs pontszám, idő, felirat (a számlálón kívül), hang, büntetés, újra
   Ha nincs, az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
   legfeljebb 5 mp-ig. Sikertelen betöltésnél aktív, figyelmeztetéssel: „A betűk alakja eltérhet.”
   Ha az Arimo később mégis megjön, a figyelmeztetés eltűnik.
-- **F-F3 Betűteszt** (fejléc, jobb oldal): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,
+- **F-F3 Betűteszt** (a Súgó ablak gombsorában, balra; telefonon legalul): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,
   alatta az ellenőrzés eredménye (Arial / Arimo / nem a gyakorló betű). Feltétel: az `ő` és `ű`
   dupla hosszú ékezettel jelenik meg, nem `ô`/`û` alakban.
 
@@ -770,7 +822,7 @@ Függőségi irány: `core` ← `data` ← `ui` ← `main`. A `core` nem import�
 | Azonos nevű listák | A második kimarad, figyelmeztetés |
 | Túl hosszú tétel | Kimarad, a figyelmeztetés megnevezi |
 | Ismétlődő tétel egy listán belül | Csendben kimarad; a teszt tájékoztat, de nem bukik |
-| A legutóbb kijelölt listák egy része már nincs a fájlban | Az a rész kimarad; ha egy sem marad, az első lista lesz kijelölve |
+| A legutóbb kijelölt listák egy része már nincs a fájlban | Az a rész kimarad; ha egy sem marad, az alapból kijelöltek (F-L1d), ha azok sincsenek, az első lista |
 | Üres lista kiválasztva | „Indítás” inaktív: „A listában nincs tétel.” (több listánál: „A kijelölt listákban nincs tétel.”) |
 | Összes lista, mind üres | „Indítás” inaktív: „Egyik listában sincs tétel.” |
 | Font még töltődik (nincs Arial) | „Indítás” inaktív, max. 5 mp |
@@ -981,6 +1033,8 @@ Az S4 (explicit mentés) a 2.0-ban tárgytalan, mert az alkalmazásban nincs sze
 | Leesésnél csendes vége, nincs újrakezdés | Jutalomról van szó: nincs kudarcélmény, és a kör nem nyúlik meg. |
 | A jutalmat a gyerek választja, a véletlen váltakozás helyett (2.13) | A gyerek tudja, mit szeretne; a választás maga is jutalom. Felirat nincs (U-E4), a két kép önmagáért beszél. Nincs szülői beállítás és emlékezés az előző választásra: mindkét játék mindig egyenlő eséllyel indul. |
 | Rögzített kártyasorrend, kiemelés nélküli indulás, 600 ms-os bemenetzár | Ugyanazon a helyen van mindig ugyanaz, így a gyerek megtanulja. A kör végi →/Space-sorozat ne indítson játékot magától. |
+| Alapból kijelölt listák jelölője a táblázat második sorában, nem URL-paraméter (2.15) | Aki linkként kapja a programot és csak az Indításra nyom, értelmes listákat gyakoroljon. A szülő a táblázatból, kiadás nélkül állítja; egyetlen link mindenkinek. A más tartalmú második sor tétel marad, így a régi táblázat nem törik el. |
+| A jelölő csak addig érvényes, amíg a szülő nem választ, és ilyenkor nem mentődik | A szülő választása erősebb; aki még nem választott, a táblázat későbbi változását is követi. |
 | A minta tördelődő címkesor, nem fix rács | Keskeny nézetben (360–390 px) a 6 oszlopos rács ~55 px-es cellájából a háromszótagú szavak kilógtak; a betű kicsinyítése 11–12 px-et adna, ami olvashatatlan. |
 
 ---
@@ -1041,7 +1095,7 @@ A részletes design specifikáció (elrendezés, komponensek, reszponzív viselk
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│ Olvasóka                                                    Súgó   Betűteszt   │
+│ Olvasóka  v1.4.5                                              Haladás   Súgó   │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │ ▌ figyelmeztetések (ha vannak)                                               ✕ │
 ├────────────────┬───────────────────────────────────┬──────────────────────────┤
@@ -1064,7 +1118,7 @@ egy lenyíló sorból nyíló alsó lapon (Mind / Egyik sem, tételszámok, Kés
 szerkesztése a táblázatban” link együtt görgetnek, a fejléc és a Kész mindig látszik; alacsony fekvő nézetben a lap
 szinte a teljes magasságot kapja, a Kész az összesítő mellett, így 256 px-en is legalább két lista látszik); mobil fekvő
 (`max-height:500px` és fekvő, desktopon alacsony ablakban is) két oszlop, külön fejlécsor nélkül:
-balra a cím, a verziócímke és ikonos Súgó/Betűteszt gomb, alattuk listák, fülek, súgógomb (700 px alatti
+balra a cím, a verziócímke és ikonos Haladás/Súgó gomb, alattuk listák, fülek, súgógomb (700 px alatti
 szélességen a cím elmarad, a verziócímke marad); jobbra a görgethető beállítások, alattuk az Indítás.
 A jobb oszlop a teljes magasságot kapja, a bal oszlop tartalma nem tolhatja le az Indítást: 256 px
 magasságig görgetés nélkül látszik (#40). Keskeny fekvő nézetben (568 px-nél keskenyebb, ez valódi telefonon nem fordul elő, csak nagyításnál
@@ -1085,7 +1139,8 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
   Ctrl lenne lenyomva; egérrel minden a régi. 900 px alatt a lista fölött jelölőnégyzetes chipek
   „2 lista · 38 tétel” összesítővel, 600 px alatt lenyíló sor és alsó lap; ezeken is hozzáad vagy kivesz
   a pipa, az utolsó itt sem vehető ki (a mobil lapon a „Egyik sem” kiürítheti, ekkor az Indítás tilt).
-- **U-A2** Megnyitáskor a `lastLists` szerinti listák, amelyik megvan; ha egy sem, az első.
+- **U-A2** Megnyitáskor a `lastLists` szerinti listák, amelyik megvan; ha nincs ilyen (vagy a szülő még nem
+  választott), a táblázatban alapból kijelöltek (F-L1d); ha azok sincsenek, az első.
 - **U-A3** A kijelölt lista tételei vékony keretes címkékként, Arialban, a fájlbeli sorrendben. Több
   kijelölt listánál a fejléc „3 lista kijelölve · 47 különböző tétel”, alatta listánként csoportosítva
   a név, a tételszám és a címkék.

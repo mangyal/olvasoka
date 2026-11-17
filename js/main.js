@@ -9,7 +9,7 @@ import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
 import { clampSettings, clampFind, normalizeMode, levelToDegree } from './core/settings.js';
 import { buildTasks, effectiveCards } from './core/find.js';
 import { nameKey } from './core/items.js';
-import { clickSelect, reconcile, sourceFor, applySource } from './core/selection.js';
+import { clickSelect, reconcile, sourceFor, applySource, wantedSelection } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
 import { ENV } from './core/env.js';
 import { VERSION } from './version.js';
@@ -32,6 +32,9 @@ const saved = store.read();
 
 const app = {
   lists: [], problems: [], selected: [], anchor: null,
+  preset: [],                       // a táblázatban alapból kijelölt listák neve (F-L1d)
+  // a szülő még nem választott listát (az „Összes lista” is választás): a kijelölés a táblázat jelölőit követi, és nem mentődik (F-L1d)
+  autoSel: saved.lastLists.length === 0 && saved.settings.source !== 'all',
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
   mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
@@ -50,13 +53,15 @@ let cache = saved.cache;
 // azonnali indulás a legutóbb letöltött listákkal, amíg a friss megjön
 if (cache) {
   const p = parseByKind(cache.kind, cache.text);
-  app.lists = p.lists; app.problems = p.problems;
+  app.lists = p.lists; app.problems = p.problems; app.preset = p.preset;
 }
 
 function persist() {
   // amíg a parok.json nem jött meg (vagy hibás), a tárolt mód nem íródik felül: legközelebb újra próbálja
   const mode = app.pairs.state === 'ok' ? app.mode : saved.mode;
-  return store.write({ v: 4, mode: normalizeMode(mode), settings: app.settings, find: app.find, lastLists: app.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
+  // amíg a szülő nem választott listát, a kijelölés (és vele a tételforrás) nem mentődik: legközelebb is a táblázat jelölői döntenek
+  const sel = app.autoSel ? { lastLists: [], settings: { ...app.settings, source: 'list' } } : { lastLists: app.lastLists, settings: app.settings };
+  return store.write({ v: 4, mode: normalizeMode(mode), settings: sel.settings, find: app.find, lastLists: sel.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
 }
 
 /* Első lépések: ha a localStorage nem írható (pl. privát ablak), a sessionStorage-ba kerül, hogy a
@@ -66,6 +71,9 @@ function readSessionTour() {
 }
 function saveTour(how) {
   stats.track('tour-end', { result: how });
+  storeTour(how);
+}
+function storeTour(how) {
   app.tour = { v: TOUR_VERSION, how, at: Date.now() };
   if (persist()) return;
   try { sessionStorage.setItem(`${ENV.storageKey}_tour`, JSON.stringify(app.tour)); } catch { /* memóriában marad */ }
@@ -84,9 +92,10 @@ function setSelection(sel) {
 
 function pickSelected() {
   const keys = listKeys();
-  // „Összes lista” módban egy újonnan megjelent lista is bekerül
-  const want = app.settings.source === 'all' ? keys
-    : app.selected.length ? app.selected : app.lastLists.map(nameKey);
+  // „Összes lista” módban egy újonnan megjelent lista is bekerül; mentett kijelölés nélkül a táblázat jelölői (F-L1d)
+  const want = wantedSelection(app.autoSel
+    ? { source: 'list', selected: [], last: [], preset: app.preset.map(nameKey), keys }
+    : { source: app.settings.source, selected: app.selected, last: app.lastLists.map(nameKey), preset: app.preset.map(nameKey), keys });
   setSelection(reconcile(want, keys));
 }
 
@@ -172,14 +181,14 @@ const admin = createAdmin(el, app, {
   // mod: { toggle, range } – Ctrl/Cmd, illetve Shift kattintás
   select(name, mod = {}) {
     const r = clickSelect(app.selected, nameKey(name), { ...mod, anchor: app.anchor, keys: listKeys() });
-    app.anchor = r.anchor;
+    app.anchor = r.anchor; app.autoSel = false;
     setSelection(r.sel);
     persist(); admin.render();
   },
   // mobil listaválasztó: Mind / Egyik sem
   selectAll(all) {
     const keys = listKeys();
-    app.anchor = all ? keys[0] || null : null;
+    app.anchor = all ? keys[0] || null : null; app.autoSel = false;
     setSelection(all ? keys : []);
     persist(); admin.render();
   },
@@ -193,6 +202,7 @@ const admin = createAdmin(el, app, {
   },
   setting(patch) {
     app.settings = clampSettings({ ...app.settings, ...patch });
+    if ('source' in patch) app.autoSel = false;
     if ('source' in patch && app.lists.length) setSelection(applySource(app.settings.source, app.selected, listKeys()));
     persist(); admin.render();
   },
@@ -223,6 +233,8 @@ const admin = createAdmin(el, app, {
         : '✓ Rendben – az Arimo látszik, ami az Arial pontos megfelelője (ezen a gépen nincs Arial).')
       : app.font.state === 'loading' ? 'A betűtípus még töltődik…' : '✕ Nem az Arial látszik – a gyerek nem a tanult betűalakokat fogja látni (pl. ő, ű)!';
     el.fontResult.className = ok ? '' : 'err';
+    // a Súgó ablakból nyílik: előbb az zárul be, a két ablak nem nyílik egymásra
+    if (el.dlgHelp.open) el.dlgHelp.close();
     el.dlgFont.showModal();
   },
 });
@@ -231,7 +243,7 @@ async function refresh() {
   app.listsState = 'loading'; admin.render();
   try {
     const r = await fetchLists();
-    app.lists = r.lists; app.problems = r.problems; app.loadError = '';
+    app.lists = r.lists; app.problems = r.problems; app.preset = r.preset || []; app.loadError = '';
     app.listsState = 'ok'; app.fetchedAt = Date.now();
     app.kind = r.kind; app.fallback = r.fallback;
     cache = { text: r.text, fetchedAt: app.fetchedAt, kind: r.kind };
@@ -289,6 +301,8 @@ document.addEventListener('keydown', (e) => {
 document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 // súgó: a fejlécből bármikor; induláskor helyette az Első lépések bemutató (docs/bemutato-specifikacio.md)
 el.helpBtn.addEventListener('click', () => el.dlgHelp.showModal());
+// a Betűteszt gombja a (már bezárt) Súgó ablakban van, ezért bezáráskor a fejléc Súgó gombja kapja a fókuszt
+el.dlgFont.addEventListener('close', () => el.helpBtn.focus({ preventScroll: true }));
 
 /* ---------- Első lépések (bemutató) ---------- */
 let tourDays = PROGRESS_DEFAULTS.allapot.min_nap;
@@ -308,9 +322,40 @@ function autoStartTour() {
     check();
   })).then(() => {
     // közben elindított játék vagy Súgóból indított bemutató: nem indul újra
-    if (!practice.active && !tour.active && !app.tour) tour.start();
+    if (!practice.active && !tour.active && !app.tour) openWelcome();
   });
 }
+
+/* ---------- Üdvözlő ablak (10.): a bemutató előtt, egyszer ---------- */
+// „Mutasd meg”: indul a bemutató (a tárolás a végén, mint eddig). „Kihagyom, kezdjük”, ✕, Esc vagy a
+// háttérre kattintás: kihagyott bemutatóként tárolódik, és jön a „Súgóban újra elindíthatod” üzenet.
+// Statisztika: welcome-choice { choice: 'tour' | 'skip', via: 'button' | 'close' }.
+let welcomeChoice = null;
+function openWelcome() {
+  welcomeChoice = null;
+  el.dlgWelcome.showModal();
+}
+function chooseWelcome(choice, via) {
+  welcomeChoice = { choice, via };
+  el.dlgWelcome.close();
+}
+el.welcomeTour.addEventListener('click', () => chooseWelcome('tour', 'button'));
+el.welcomeSkip.addEventListener('click', () => chooseWelcome('skip', 'button'));
+el.welcomeX.addEventListener('click', () => chooseWelcome('skip', 'close'));
+// a háttérre kattintás: a dialog saját területén kívül (a ::backdrop a dialog elemre kattintásnak számít)
+el.dlgWelcome.addEventListener('click', (e) => {
+  if (e.target !== el.dlgWelcome) return;
+  const r = el.dlgWelcome.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) chooseWelcome('skip', 'close');
+});
+el.dlgWelcome.addEventListener('close', () => {
+  const { choice, via } = welcomeChoice || { choice: 'skip', via: 'close' };   // Esc
+  welcomeChoice = null;
+  stats.track('welcome-choice', { choice, via });
+  if (choice === 'tour') { tour.start(); return; }
+  storeTour('skipped');
+  tour.skippedHint();
+});
 // a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
 el.editLink.href = SHEET_EDIT_URL;
 el.listsEdit.href = SHEET_EDIT_URL;

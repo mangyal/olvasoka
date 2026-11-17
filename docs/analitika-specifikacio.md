@@ -1,6 +1,6 @@
 # Olvasóka: anonim használati statisztika (Umami)
 
-Verzió: 1.0 · 2026. november 17.
+Verzió: 1.1 · 2026. november 17.
 
 ## 1. Cél
 
@@ -22,7 +22,8 @@ Az oldalmegtekintést az Umami magától rögzíti. Ezen felül:
 | `round-start` | kör indul | `game` (`read` / `find`), `round` (a kör sorszáma az oldal betöltése óta), `lists` (a kijelölt listák nevei ` \| `-vel, vagy `(összes lista)`), `listCount`; Felolvasás: `count`, `flashMs`, `mixed`; Keresd meg!: `cards` (ténylegesen mutatott), `tasks`, `level` |
 | `round-end` | kör vége vagy kilépés közben | `game`, `round`, `completed` (`false`: kilépett a kör közben) |
 | `reward-pick` | a gyerek jutalomjátékot választ | `reward` (`lufi` / `panda`), `round` |
-| `tour-end` | az Első lépések bemutató vége | `result` (`done` / `skipped`) |
+| `tour-end` | az Első lépések bemutató vége (csak ha a „Mutasd meg”-gel vagy a Súgóból elindult) | `result` (`done` / `skipped`) |
+| `welcome-choice` | döntés az üdvözlő ablakban (első indítás, a bemutató előtt) | `choice` (`tour`: „Mutasd meg”, `skip`: „Kihagyom, kezdjük” vagy bezárás), `via` (`button` / `close`: ✕, Esc vagy a háttérre kattintás) |
 | `progress-open` | a Haladás nézet megnyílik | nincs |
 
 Bővítés: új esemény a `js/main.js`-ben a `stats.track(név, adatok)` hívással. Az adat csak szám, logikai érték vagy szöveg lehet (a szöveg legfeljebb 500 karakter, a `js/data/analytics.js` vágja). A `test/analytics.test.js` felsorolja a megengedett eseményneveket: új esemény esetén ott is bővíteni kell, és ellenőrizni, hogy tétel nem kerül bele.
@@ -34,4 +35,11 @@ Bővítés: új esemény a `js/main.js`-ben a `stats.track(név, adatok)` hívá
 
 ## 5. Tájékoztatás
 
-A szülőnek egy rövid, könnyen megtalálható mondat jelzi (súgó vagy bemutatkozó oldal), hogy a program anonim látogatási statisztikát gyűjt, süti nélkül, és a gyerekről semmit. A szöveg külön döntés.
+A Súgó ablak (`#dlgHelp`) **Adatvédelem** része, a telepítési sor alatt. A szöveg szó szerint:
+
+> A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal és melyik listákból. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.
+
+- A „személyes adat” kifejezés szándékosan nem szerepel: az IP-cím és a böngésző típusa technikailag eljut az Umamihoz, akkor is, ha azt nem tárolja.
+- A szöveg akkor is megjelenik, ha az adott környezetben nincs statisztika (helyi futtatás, beállítatlan dev).
+- Nincs süti-banner és nincs hozzájárulás kérése. Landing oldal és GYIK még nincs, a Súgó az egyetlen hely.
+- Ismert korlát: a `round-start` a listák **nevét** küldi. A nevet a szülő adja a táblázatban; ha a gyerek nevét írja bele (pl. „Dani gyakorló”), az kimegy. A szöveg ennek ellenére marad (2026. november 17-i döntés).

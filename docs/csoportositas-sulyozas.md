@@ -44,6 +44,7 @@ Három változás:
   | 4 | CV szótag | 2 betű: mássalhangzó + magánhangzó | `fa`, `szó` |
   | 5 | Egyéb szótag | Pontosan 1 magánhangzó, más szerkezet. **Minden szerkezet külön csoport** (CVC, CCV, VCC …). | `kap`, `pré` |
   | 6 | Szó | Legalább 2 magánhangzó. **Szótagszámonként külön csoport** (a szótagszám a magánhangzók száma). | `ke-fe`, `pi-ló-ta` |
+  | 7 | Mondat *(2.16)* | Van benne szóköz. **Szószámonként külön csoport** (`M:<n>`, növekvő). Lásd [mondatok-specifikacio.md](mondatok-specifikacio.md), M-3. | `a ló`, `a ló húz.` |
 
 - **C-3** Az 5. csoporton belül a szerkezetek sorrendje: kevesebb betű előbb, azonos betűszámnál a szerkezet ábécérendje (`C` < `V`, pl. `CCV` < `CVC` < `VCC`). A 6. csoportban növekvő szótagszám: a 2 szótagú szavak előbb, aztán a 3 szótagúak, és így tovább.
 - **C-4** A csoportosító tiszta függvény egy új core modulban (javaslat: `js/core/groups.js`): `groupOf(item) → { key, rank }`, ahol a `rank` a C-2/C-3 szerinti teljes sorrend. A Felolvasás és a Keresd meg! ugyanezt használja. A meglévő `typeOf()` (betű / szótag / szó) a Haladás típusonkénti tempójánál marad, azt ez a változás nem érinti.
