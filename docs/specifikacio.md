@@ -354,8 +354,8 @@ A `covered` a látható tétel szótagjainak takarási állapota (F-P21).
   tétellel (K-5). Különben inaktív: „A Keresd meg!-hez legalább két különböző tétel kell.”
 - **F-S9 Kevert sorrend (2.14, F-1–F-3).** Jelölőnégyzet a Felolvasás beállításai között, alapból kikapcsolva;
   a szülő utolsó választása megmarad. Alatta mindig látható magyarázat a Nehézség információs dobozával
-  azonos komponensben: „Bekapcsolva a betűk, szótagok és szavak összekeverve jönnek.” A Keresd meg!
-  beállításai között nem jelenik meg.
+  azonos komponensben: „A Meixner-módszer nem keveri a betűket, szótagokat és szavakat, ezért csoportonként
+  jönnek a játékban. Bekapcsolva ez a sorrend felborul.” A Keresd meg! beállításai között nem jelenik meg.
 
 ### 3.4 Helyi tárolás
 - **F-S3** A beállítások, a legutóbb kijelölt listák neve és a legutóbb letöltött `lists.txt` szövege a
