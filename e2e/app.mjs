@@ -912,7 +912,7 @@ test('Kevert sorrend: alapból ki, a magyarázat látszik; újratöltés után m
   const box = page.locator('#mixedIn');
   assert.equal(await box.isChecked(), false);
   assert.equal(await page.locator('#mixedInfo').isVisible(), true);
-  assert.equal(await text('#mixedInfo p'), 'Bekapcsolva a betűk, szótagok és szavak összekeverve jönnek.');
+  assert.equal(await text('#mixedInfo p'), 'A Meixner-módszer nem keveri a betűket, szótagokat és szavakat, ezért csoportonként jönnek a játékban. Bekapcsolva ez a sorrend felborul.');
   assert.equal(await box.getAttribute('aria-describedby'), 'mixedInfo');
   await box.check();
   await page.reload();
@@ -1302,7 +1302,7 @@ test('üdvözlő ablak: üres tárolóval megjelenik; szöveg, fókusz a fő gom
   await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
   assert.equal(await bubbleShown(p), false, 'a bemutató még nem fut');
   assert.equal(await p.textContent('#welcomeH'), 'Szia! Ez az Olvasóka.');
-  assert.equal(await p.textContent('#welcomeText'), 'Olvasásgyakorlás elsősöknek, együtt a szülővel, ahol ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz.');
+  assert.equal(await p.textContent('#welcomeText'), 'Olvasásgyakorlás elsősöknek a Meixner-módszer alapján, együtt a szülővel. Ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz.');
   assert.equal(await p.textContent('#welcomeTour'), 'Mutasd meg 30 mp-ben');
   assert.equal(await p.textContent('#welcomeSkip'), 'Kihagyom, kezdjük');
   assert.equal(await p.textContent('.welcome-note'), 'Nincs regisztráció, azonnal kezdhetitek.');

@@ -52,7 +52,7 @@ test('szövegek: meta leírás mindhárom helyen, „Hangtalan” nélkül', () 
 
 test('szövegek: üdvözlő ablak és Adatvédelem (6.)', () => {
   const html = read('index.html');
-  assert.match(html, /<p id="welcomeText">Olvasásgyakorlás elsősöknek, együtt a szülővel, ahol ti választjátok ki, mit gyakoroltok\. A gyerek olvas, te figyelsz\.<\/p>/);
+  assert.match(html, /<p id="welcomeText">Olvasásgyakorlás elsősöknek a Meixner-módszer alapján, együtt a szülővel\. Ti választjátok ki, mit gyakoroltok\. A gyerek olvas, te figyelsz\.<\/p>/);
   assert.match(html, />Mutasd meg 30 mp-ben<\/button>/);
   assert.match(html, /melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör\. Sütit nem használ/);
 });
