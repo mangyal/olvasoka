@@ -178,6 +178,8 @@ dialog p{margin:0 0 12px}
 /* szegmensek (4.3, 4.5) */
 .seg{border:0;margin:0;padding:0;min-width:0}
 .seg legend{padding:0 0 6px}
+/* a Szünet felirata olyan, mint a Tételek a körben és a Kevert sorrend felirata */
+.seg-gap legend{font-size:14px;color:var(--ink)}
 .seg-opts{display:flex;border:1px solid var(--line);border-radius:var(--r-ctl);overflow:hidden;background:var(--field)}
 .seg-opts label{position:relative;flex:1;min-width:0;cursor:pointer}
 .seg-opts label+label span{border-left:1px solid var(--line)}
@@ -202,6 +204,8 @@ input[type=range]{accent-color:var(--accent);width:100%;margin:0}
 .check{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
 .ctl-mixed .info-box{margin-top:0}
 .check input{accent-color:var(--accent);width:18px;height:18px;margin:0;flex:none;cursor:pointer}
+/* felirat balra, jelölőnégyzet jobbra, mint a Tételek a körben sorában a stepper */
+.check-end{justify-content:space-between;gap:12px}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--field);overflow:hidden}
 .stepper button{font:inherit;font-size:18px;width:36px;height:36px;background:none;border:0;color:var(--ink);cursor:pointer}
 .stepper button:hover{background:var(--paper)}
