@@ -7,7 +7,7 @@ export const TOUR_STEPS = 4;
 /** Magától csak ennél nagyobb ablakban indul (a „túl kicsi képernyő” határa, WCAG 1.4.10; döntés 2026-11-13). */
 export const TOUR_MIN = Object.freeze({ w: 320, h: 256 });
 /** Az 1. lépés célelemei, ebben a sorrendben: az első látható nyer (2.1). */
-export const LIST_TARGETS = Object.freeze(['listNav', 'listChecks', 'listsBtn']);
+export const LIST_TARGETS = Object.freeze(['sidebar', 'listChecks', 'listsBtn']);
 /** A 2–4. lépés célelemei. */
 export const STEP_TARGETS = Object.freeze({ 2: 'modeTabs', 3: 'progressBtn', 4: 'startBtn' });
 
@@ -46,7 +46,7 @@ export const targetFor = (step, visible) => (step === 1 ? pickTarget(visible) : 
  * target: az 1. lépés célelemének azonosítója; touch: érintéses eszköz;
  * minDays: a haladas.json min_nap értéke (a napszabály-kapcsolótól függetlenül; döntés 2026-11-13).
  */
-export function stepContent(step, { target = 'listNav', touch = false, minDays = 3 } = {}) {
+export function stepContent(step, { target = 'sidebar', touch = false, minDays = 3 } = {}) {
   const t = (s) => ({ t: s });
   let title, lines;
   if (step === 1) {

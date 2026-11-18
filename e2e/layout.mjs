@@ -861,9 +861,9 @@ test('asztali elrendezés (3.): a három cím azonos stílusú és egy vonalban,
       return { text: h.textContent.trim(), font: [c.fontSize, c.fontWeight, c.lineHeight, c.color].join(' '), top: r.top, h: r.height };
     }));
     assert.deepEqual(t.map((x) => x.text), ['Kártyacsomagok', 'Ezekkel játszotok', 'Játékok']);
-    assert.equal(t[0].font, '20px 650 28px rgb(30, 42, 50)');
+    assert.equal(t[0].font, '18px 600 26px rgb(30, 42, 50)');
     assert.ok(t.every((x) => x.font === t[0].font), 'azonos stílus');
-    assert.ok(t.every((x) => Math.abs(x.top - t[0].top) < 1 && x.h <= 29), `egy vonalban, egy sorban: ${t.map((x) => x.top)}`);
+    assert.ok(t.every((x) => Math.abs(x.top - t[0].top) < 1 && x.h <= 27), `egy vonalban, egy sorban: ${t.map((x) => x.top)}`);
     assert.equal(await page.locator('#srcList, #srcAll, #srcListF, #srcAllF, .seg-src, #editLink, #listsEdit, #navHint[hidden] + .label').count(), 0);
     assert.equal(await page.locator('.sidebar .label').count(), 0, 'nincs régi LISTÁK felirat');
     assert.match(await page.textContent('#listCount'), /^\d+ különböző tétel · \d+ csomag$/);
@@ -962,7 +962,7 @@ test('Keresd meg! mobil: forgatás kör közben – a kártyaszám marad, az elr
 
 test('Keresd meg! mobil szülői felület: 8 szürke, a címke figyelmeztet; fekvőben nincs minta', async () => {
   const { page, ctx } = await open(PHONE, FIND(8));
-  assert.equal(await page.textContent('#cardsLegend'), 'Kártyák · telefonon max. 6');
+  assert.equal(await page.textContent('#cardsLegend'), 'Kártyák a képernyőn · telefonon max. 6');
   assert.equal(await page.getAttribute('#cards8', 'aria-disabled'), 'true');
   assert.equal(await page.isChecked('#cards6'), true);
   assert.equal(await page.textContent('#estimate'), '3 feladat · 6 kártya');
@@ -975,7 +975,7 @@ test('Keresd meg! mobil szülői felület: 8 szürke, a címke figyelmeztet; fek
 
 test('Keresd meg! tablet: nincs telefonos korlát', async () => {
   const { page, ctx } = await open(TABLET, FIND(8));
-  assert.equal(await page.textContent('#cardsLegend'), 'Kártyák');
+  assert.equal(await page.textContent('#cardsLegend'), 'Kártyák a képernyőn');
   assert.equal(await page.getAttribute('#cards8', 'aria-disabled'), null);
   assert.equal(await page.isChecked('#cards8'), true);
   await ctx.close();
@@ -1358,11 +1358,11 @@ const tourGeometry = (page, sel) => page.evaluate((s) => {
   };
 }, sel);
 const tourStep = (page) => page.$eval('.tour-eyebrow', (e) => e.textContent);
-const firstListTarget = (page) => page.evaluate(() => ['listNav', 'listChecks', 'listsBtn']
+const firstListTarget = (page) => page.evaluate(() => ['sidebar', 'listChecks', 'listsBtn']
   .find((id) => { const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.height > 0; }));
 
 for (const [name, opts, list] of [
-  ['1280×800', DESKTOP, 'listNav'],
+  ['1280×800', DESKTOP, 'sidebar'],
   ['820×1180 (álló tablet)', TABLET, 'listChecks'],
   ['390×844 (telefon)', PHONE, 'listsBtn'],
   ['844×390 (fekvő telefon)', PHONE_LAND, 'listsBtn'],
@@ -1436,4 +1436,34 @@ test('bemutató: 320 × 400 alatti, de a minimumnál nagyobb ablakban is magát�
   await page.click('#welcomeTour');
   await page.waitForSelector('.tour-bubble:not([hidden])');
   await ctx.close();
+});
+
+test('bemutató 1024×600: az 1. lépés a teljes Kártyacsomagok oszlopot emeli ki, és nem görgeti le', async () => {
+  const { page, ctx } = await open(SMALL, { hideHelp: false });
+  await page.click('#welcomeTour');
+  await page.waitForSelector('.tour-bubble:not([hidden])');
+  await page.waitForTimeout(260);
+  const st = await page.evaluate(() => {
+    const s = document.getElementById('sidebar'), r = s.getBoundingClientRect(), ring = document.querySelector('.tour-ring').getBoundingClientRect();
+    return { scroll: s.scrollTop, overflows: s.scrollHeight > s.clientHeight, ring: ring.toJSON(), side: r.toJSON(), vw: innerWidth, vh: innerHeight };
+  });
+  assert.ok(st.overflows, 'ezen a méreten a csomagoszlop görgethető (különben a teszt nem mond semmit)');
+  assert.equal(st.scroll, 0, 'nem görgetett le');
+  assert.ok(st.ring.left <= st.side.left + 2 && st.ring.right >= st.side.right - 1 && st.ring.top <= st.side.top, 'a gyűrű az egész oszlopon');
+  assert.ok(st.ring.left >= 0 && st.ring.bottom <= st.vh, 'a gyűrű az ablakon belül');
+  await ctx.close();
+});
+
+test('Keresd meg!: „Feladatok a körben” ugyanolyan stílusú, mint a „Tételek a körben”; a címke „Kártyák a képernyőn”', async () => {
+  for (const opts of [DESKTOP, TABLET, PHONE]) {
+    const { page, ctx } = await open(opts);
+    const look = () => page.$eval('.settings:not([hidden]) .ctl-count label', (l) => { const c = getComputedStyle(l); return [c.fontSize, c.fontWeight, c.color]; });
+    const read = await look();
+    await (opts.hasTouch ? page.tap('#tabFind') : page.click('#tabFind'));
+    assert.deepEqual(await look(), read, 'azonos betűméret, vastagság és szín');
+    assert.match(await page.textContent('#cardsLegend'), /^Kártyák a képernyőn/);
+    const lg = await page.$eval('#cardsLegend', (e) => e.getBoundingClientRect().height);
+    assert.ok(lg < 26, `a címke egy sorban (${lg} px)`);
+    await ctx.close();
+  }
 });

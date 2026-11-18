@@ -334,7 +334,7 @@ export function createAdmin(el, app, act) {
     const f = app.find;
     // F-K10: telefonon a 8 szürke és nem választható; a tárolt beállítás nem változik
     const phone = phoneCards(8) < 8;
-    el.cardsLegend.textContent = phone ? `Kártyák · telefonon max. ${PHONE_MAX_CARDS}` : 'Kártyák';
+    el.cardsLegend.textContent = phone ? `Kártyák a képernyőn · telefonon max. ${PHONE_MAX_CARDS}` : 'Kártyák a képernyőn';
     for (const r of el.cardOpts.querySelectorAll('input')) {
       const n = +r.value, off = phone && n > PHONE_MAX_CARDS;
       r.checked = n === phoneCards(f.cards);

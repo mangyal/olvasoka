@@ -24,7 +24,7 @@ Nincs `Vissza` gomb.
 
 ### 2.1 1. lépés: listák
 
-Célelem az aktuális elrendezés szerint: az első **látható** elem a sorból: `#listNav` (széles), `#listChecks` (álló tablet, pipálható chipek), `#listsBtn` (telefon).
+Célelem az aktuális elrendezés szerint: az első **látható** elem a sorból: `#sidebar` (széles: a teljes Kártyacsomagok oszlop, görgetés nélkül; 2026-11-18), `#listChecks` (álló tablet, pipálható chipek), `#listsBtn` (telefon).
 
 Cím: **Válassz kártyacsomagot** (docs/kartyacsomagok-specifikacio.md, 5.; 2026-11-18)
 
@@ -32,8 +32,8 @@ Szöveg a célelem szerint:
 
 | Célelem | Szöveg |
 |---|---|
-| `#listNav`, egeres eszköz | Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban. |
-| `#listNav`, érintéses eszköz | Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban. |
+| `#sidebar`, egeres eszköz | Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban. |
+| `#sidebar`, érintéses eszköz | Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban. |
 | `#listChecks` | Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő. |
 | `#listsBtn` | Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban. |
 
@@ -103,7 +103,7 @@ A sötétítésre kattintás semmit nem csinál, nem zárja be a bemutatót.
 
 - Ha az elsődleges oldalon nem fér el, a szemközti oldalra fordul, ha ott sem, akkor alá vagy fölé. A buborék mindig az ablakon belül marad, a nyíl a célelem közepére mutat (legalább 20 px-re a buborék szélétől).
 - Helyét a célelem `getBoundingClientRect()`-je alapján JS számolja. Újraszámol átméretezéskor, görgetéskor, elforgatáskor és a célelem méretváltozásakor (`ResizeObserver`).
-- Ha átméretezéskor az elrendezés vált (pl. a `#listNav` eltűnik és a `#listsBtn` jelenik meg), a lépés célelemét újra kell keresni a 2.1 sorrendje szerint, és a szöveget is ahhoz igazítani.
+- Ha átméretezéskor az elrendezés vált (pl. a `#sidebar` eltűnik és a `#listsBtn` jelenik meg), a lépés célelemét újra kell keresni a 2.1 sorrendje szerint, és a szöveget is ahhoz igazítani.
 - Lépésváltáskor a célelem `scrollIntoView({ block: 'nearest' })`.
 - Minden gomb legalább 44 px magas.
 

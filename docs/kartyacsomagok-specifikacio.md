@@ -36,7 +36,7 @@ A három oszlop elrendezése a mostani marad (nincs új keret, kártya vagy marg
 | Közép (előnézet) | Ezekkel játszotok |
 | Jobb (játék) | Játékok |
 
-Stílus: 20 px, 650-es vastagság, sötét szöveg (`--ink`), sor-magasság 28 px. A régi kis „LISTÁK” felirat megszűnik.
+Stílus: 18 px, 600-as vastagság, sötét szöveg (`--ink`), sor-magasság 26 px (2026-11-18: az eredeti 20 px / 650 túl erős volt). A régi kis „LISTÁK” felirat megszűnik.
 
 ### 3.1 Bal oszlop
 
@@ -80,7 +80,7 @@ Kijelölés:
 ### 4.1 Telefon álló (≤ 600 px)
 
 Fentről lefelé (lásd vászon):
-1. Cím: **Kártyacsomagok** (17 px, 650, sötét). A „Játékok” cím ugyanilyen.
+1. Cím: **Kártyacsomagok** (16 px, 600, sötét). A „Játékok” cím ugyanilyen.
 2. Csomag gomb (`#listsBtn`): felül kicsi szürke sor `Kijelölt csomagok · {k} tétel` vagy `Összes csomag · {k} tétel`, alatta a kijelölt csomagok neve vesszővel (hosszú esetén levágva), jobbra lefelé mutató nyíl.
 3. Mondat: „A játékban csak ezek a tételek jöhetnek elő, semmi más:”
 4. Tétel-előnézet: kis kártyák két sorban, a többi levágva.
@@ -114,8 +114,8 @@ Négy lépés marad, a sorrend és a célelemek változatlanok; a Haladás a 3. 
 
 | Célelem | Szöveg |
 |---|---|
-| `#listNav`, egeres eszköz | Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban. |
-| `#listNav`, érintéses eszköz | Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban. |
+| `#sidebar` (az egész oszlop), egeres eszköz | Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban. |
+| `#sidebar` (az egész oszlop), érintéses eszköz | Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban. |
 | `#listChecks` | Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő. |
 | `#listsBtn` | Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban. |
 
