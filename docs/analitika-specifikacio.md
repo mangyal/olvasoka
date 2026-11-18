@@ -1,6 +1,6 @@
 # Olvasóka: anonim használati statisztika (Umami)
 
-Verzió: 1.1 · 2026. november 17.
+Verzió: 1.2 · 2026. november 18.
 
 ## 1. Cél
 
@@ -25,6 +25,9 @@ Az oldalmegtekintést az Umami magától rögzíti. Ezen felül:
 | `tour-end` | az Első lépések bemutató vége (csak ha a „Mutasd meg”-gel vagy a Súgóból elindult) | `result` (`done` / `skipped`) |
 | `welcome-choice` | döntés az üdvözlő ablakban (első indítás, a bemutató előtt) | `choice` (`tour`: „Mutasd meg”, `skip`: „Kihagyom, kezdjük” vagy bezárás), `via` (`button` / `close`: ✕, Esc vagy a háttérre kattintás) |
 | `progress-open` | a Haladás nézet megnyílik | nincs |
+| `first-round` | a készüléken legelőször induló kör, a `round-start` előtt (docs/kartyacsomagok-specifikacio.md, 7.) | `sec` (egész másodperc az oldal betöltésétől az Indításig), `firstVisit` (ez az oldalbetöltés volt a készüléken az első), `welcome` (`tour` / `skip` / `none`: ebben a betöltésben nem jelent meg), `tour` (`done` / `skipped` / `none`, ebben a betöltésben), `game` (`read` / `find`) |
+
+A `first-round` két helyi jelzője a `<storageKey>_elsokor` kulcsban van (`seen`: az első betöltés ideje, `sent`: elment). Ha a készüléken már van Olvasóka adat (beállítás vagy haladás), amikor a jelzők még nincsenek, a `sent` küldés nélkül igazra áll. Tárolás nélkül nincs esemény. Elemzés: a `firstVisit: true` esetek mediánja; a 30 percnél hosszabbak a „később visszatért” csoport.
 
 Bővítés: új esemény a `js/main.js`-ben a `stats.track(név, adatok)` hívással. Az adat csak szám, logikai érték vagy szöveg lehet (a szöveg legfeljebb 500 karakter, a `js/data/analytics.js` vágja). A `test/analytics.test.js` felsorolja a megengedett eseményneveket: új esemény esetén ott is bővíteni kell, és ellenőrizni, hogy tétel nem kerül bele.
 
@@ -37,7 +40,7 @@ Bővítés: új esemény a `js/main.js`-ben a `stats.track(név, adatok)` hívá
 
 A Súgó ablak (`#dlgHelp`) **Adatvédelem** része, a telepítési sor alatt. A szöveg szó szerint:
 
-> A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal és melyik listákból. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.
+> A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.
 
 - A „személyes adat” kifejezés szándékosan nem szerepel: az IP-cím és a böngésző típusa technikailag eljut az Umamihoz, akkor is, ha azt nem tárolja.
 - A szöveg akkor is megjelenik, ha az adott környezetben nincs statisztika (helyi futtatás, beállítatlan dev).

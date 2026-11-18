@@ -26,18 +26,18 @@ Nincs `Vissza` gomb.
 
 Célelem az aktuális elrendezés szerint: az első **látható** elem a sorból: `#listNav` (széles), `#listChecks` (álló tablet, pipálható chipek), `#listsBtn` (telefon).
 
-Cím: **Válassz listát**
+Cím: **Válassz kártyacsomagot** (docs/kartyacsomagok-specifikacio.md, 5.; 2026-11-18)
 
 Szöveg a célelem szerint:
 
 | Célelem | Szöveg |
 |---|---|
-| `#listNav`, billentyűzetes eszköz | Kattints egy listára. A játékban csak a kijelölt listák tételei jönnek elő. Többet is kijelölhetsz `{MOD}` + kattintással. |
-| `#listNav`, érintéses eszköz | Koppints egy listára. A játékban csak a kijelölt listák tételei jönnek elő. |
-| `#listChecks` | Pipáld be a listákat, amelyekből gyakoroltok. A játékban csak a kijelölt listák tételei jönnek elő. |
-| `#listsBtn` | Koppints ide, és pipáld be a listákat. A játékban csak a kijelölt listák tételei jönnek elő. |
+| `#listNav`, egeres eszköz | Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban. |
+| `#listNav`, érintéses eszköz | Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban. |
+| `#listChecks` | Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő. |
+| `#listsBtn` | Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban. |
 
-`{MOD}` a meglévő `MOD` érték (`admin.js`): Macen, iPhone-on, iPaden `⌘`, máshol `Ctrl`, `<kbd>`-ként megjelenítve. Billentyűzetes vs érintéses: ugyanaz a feltétel, mint a meglévő `.only-keys` / `.only-touch` osztályoké.
+Egeres vs érintéses: ugyanaz a feltétel, mint a meglévő `.only-keys` / `.only-touch` osztályoké.
 
 ### 2.2 2. lépés: játék
 
@@ -214,8 +214,10 @@ Az automatikus indításkor (4.1) a bemutató előtt egy kis, középre igazíto
 | Elem | Szöveg |
 |---|---|
 | Cím | Szia! Ez az Olvasóka. |
-| Szöveg | Közös olvasásgyakorlás a könyv mellé: a gyerek olvas, te figyelsz. |
-| Fő gomb (teljes szélesség) | Mutasd meg (30 mp) |
+| Szöveg | Olvasásgyakorlás elsősöknek, együtt a szülővel, ahol ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz. |
+| Fő gomb (teljes szélesség) | Mutasd meg 30 mp-ben |
+
+A szöveget és a fő gombot a docs/kartyacsomagok-specifikacio.md 6. pontja írta felül (2026-11-18).
 | Másodlagos (szöveges gomb alatta) | Kihagyom, kezdjük |
 | Apró betű a gombok alatt | Nincs regisztráció, azonnal kezdhetitek. |
 

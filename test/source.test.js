@@ -40,12 +40,12 @@ test('táblázat: hibás részek kimaradnak, figyelmeztetéssel a cellával', ()
   assert.deepEqual(r.lists, [{ name: 'Első', items: ['a'] }, { name: 'Üres', items: [] }]);
   assert.equal(r.problems.length, 4);
   assert.match(r.problems.find((p) => p.includes('B1')), /^A táblázat B1 cellája: üres, ezért az oszlop kimaradt/);
-  assert.match(r.problems.find((p) => p.includes('C1')), /„első” lista már szerepel/);
+  assert.match(r.problems.find((p) => p.includes('C1')), /„első” csomag már szerepel/);
   assert.match(r.problems.find((p) => p.includes('A3')), /#-tel kezdődik/);
   assert.match(r.problems.find((p) => p.includes('A4')), /túl hosszú/);
   assert.equal(parseSheetCsv('A\nő').lists[0].items[0], 'ő', 'NFC');
   assert.equal(parseSheetCsv(',,\n,,').lists.length, 0);
-  assert.match(parseSheetCsv('').problems[0], /nincs lista/);
+  assert.match(parseSheetCsv('').problems[0], /nincs csomag/);
 });
 
 // kitalált hálózat: url → válasz vagy hiba
@@ -70,7 +70,7 @@ test('forrás: a táblázat hibájánál a lists.txt jön, az okkal', async () =
     [new Error('A táblázat nem érhető el (HTTP 404).'), /HTTP 404/],
     [{ text: '<!doctype html><title>Bejelentkezés</title>', type: 'text/html; charset=utf-8' }, /nem a várt formában/],
     [{ text: ' <html>', type: '' }, /nem a várt formában/],
-    [',,\n,,', /nincs lista/],
+    [',,\n,,', /nincs csomag/],
   ];
   for (const [sheet, why] of cases) {
     const r = await loadLists(net({ [SHEET_CSV_URL]: sheet, [TXT_URL]: TXT }));

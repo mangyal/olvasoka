@@ -1,42 +1,43 @@
-// Listák kijelölése (egy vagy több). Tiszta modul.
+// Csomagok (a kódban: listák) kijelölése. Tiszta modul. Spec: docs/kartyacsomagok-specifikacio.md, 3.1.
 //
-// A kijelölés listakulcsok (nameKey) tömbje, mindig a listák megjelenési sorrendjében,
-// és sosem üres, ha van lista.
+// A kijelölés listakulcsok (nameKey) tömbje, mindig a listák megjelenési sorrendjében. Lehet üres
+// („Egyik sem”); ilyenkor nem indul kör. A „Kijelölt csomagok” / „Összes csomag” forrás külön állapot
+// (settings.source): az Összes nem írja felül a szülő saját kijelölését (lastLists).
+
+const order = (keys, set) => keys.filter((k) => set.has(k));
 
 /**
- * Kattintás a listasávban.
+ * Kattintás egy csomagsorra: a sor pipáját váltja (a többi marad). Shifttel tartomány az előző kattintott
+ * sortól (anchor) a kattintott sorig, mindegyik a kattintott sor új állapotát kapja.
  * @param {string[]} sel     a jelenlegi kijelölés
- * @param {string} key       a kattintott lista kulcsa
- * @param {{ toggle?:boolean, range?:boolean, anchor?:string|null, keys:string[] }} o
- *   toggle: Ctrl/Cmd (hozzáad vagy kivesz), range: Shift (tartomány az anchortól),
- *   keys: az összes lista kulcsa megjelenési sorrendben
- * @returns {{ sel:string[], anchor:string }}
+ * @param {string} key       a kattintott csomag kulcsa
+ * @param {{ range?:boolean, anchor?:string|null, keys:string[] }} o  keys: az összes kulcs megjelenési sorrendben
+ * @returns {{ sel:string[], anchor:string|null, on:boolean }}  on: a kattintott sor új állapota
  */
-export function clickSelect(sel, key, { toggle = false, range = false, anchor = null, keys }) {
-  const order = (set) => keys.filter((k) => set.has(k));
-  if (!keys.includes(key)) return { sel: order(new Set(sel)), anchor };
+export function clickSelect(sel, key, { range = false, anchor = null, keys }) {
+  if (!keys.includes(key)) return { sel: order(keys, new Set(sel)), anchor, on: false };
+  const on = !sel.includes(key);
+  const span = range && keys.includes(anchor) ? rangeKeys(keys, anchor, key) : [key];
+  return { sel: paint(sel, span, on, keys), anchor: key, on };
+}
 
-  if (range) {
-    const a = keys.includes(anchor) ? anchor : key;
-    const [i, j] = [keys.indexOf(a), keys.indexOf(key)].sort((x, y) => x - y);
-    const span = keys.slice(i, j + 1);
-    const set = new Set(toggle ? [...sel, ...span] : span);
-    return { sel: order(set), anchor: a };
-  }
+/** A két kulcs közti (zárt) tartomány a megjelenési sorrendben. */
+export function rangeKeys(keys, a, b) {
+  const [i, j] = [keys.indexOf(a), keys.indexOf(b)].sort((x, y) => x - y);
+  return i < 0 ? [b] : keys.slice(i, j + 1);
+}
 
-  if (toggle) {
-    const set = new Set(sel);
-    if (set.has(key)) { if (set.size > 1) set.delete(key); } else set.add(key);
-    return { sel: order(set), anchor: key };
-  }
-
-  return { sel: [key], anchor: key };
+/** A megadott csomagok be- (on) vagy kipipálva; a többi marad. Végighúzáshoz és tartományhoz. */
+export function paint(sel, targets, on, keys) {
+  const set = new Set(sel);
+  for (const k of targets) if (keys.includes(k)) { if (on) set.add(k); else set.delete(k); }
+  return order(keys, set);
 }
 
 /**
  * A betöltéskor kívánt kijelölés, mielőtt a reconcile a létező listákhoz igazítja:
- * „Összes lista” módban mind; különben a mostani kijelölés; ha nincs (vagy egyik listája sem létezik már),
- * a legutóbb mentett; ha az sincs (első betöltés, a szülő még nem választott), a táblázatban alapból
+ * „Összes csomag” módban mind; különben a mostani kijelölés; ha nincs (vagy egyik listája sem létezik már),
+ * a legutóbb mentett; ha az sincs (első betöltés, vagy a szülő mindent kivett), a táblázatban alapból
  * kijelöltek (F-L1d). Ha az is üres, a reconcile az első listát adja, mint eddig.
  * @param {{ source:string, selected:string[], last:string[], preset:string[], keys:string[] }} o  listakulcsok
  */
@@ -46,12 +47,14 @@ export function wantedSelection({ source, selected, last, preset, keys }) {
   return [selected, last, preset].find(has) || [];
 }
 
-/** A már nem létező listák kimaradnak. Ha semmi nem marad, az első lista (ha van). */
+/** A már nem létező listák kimaradnak. Ha semmi nem marad, az első lista (ha van): csak betöltéskor. */
 export function reconcile(sel, keys) {
-  const set = new Set(sel);
-  const out = keys.filter((k) => set.has(k));
+  const out = order(keys, new Set(sel));
   return out.length ? out : keys.slice(0, 1);
 }
+
+/** A már nem létező listák kimaradnak; az üres kijelölés üres marad (a szülő választása). */
+export const existing = (sel, keys) => order(keys, new Set(sel));
 
 /**
  * A kijelölt listák sorai a listák sorrendjében, ismétlésekkel (2.14, S-2): ha egy tétel két kijelölt
@@ -63,18 +66,4 @@ export function reconcile(sel, keys) {
 export function itemsOf(lists, sel, keyOf) {
   const set = new Set(sel);
   return lists.filter((l) => set.has(keyOf(l.name))).flatMap((l) => l.items);
-}
-
-/** A tételforrás a kijelölésből: ha minden lista ki van jelölve, 'all', különben 'list'. */
-export function sourceFor(sel, keys) {
-  return keys.length > 0 && keys.every((k) => sel.includes(k)) ? 'all' : 'list';
-}
-
-/**
- * A forrásválasztó megnyomása után a kijelölés.
- * 'all': minden lista. 'list': ha minden ki volt jelölve, csak az első; különben marad.
- */
-export function applySource(source, sel, keys) {
-  if (source === 'all') return keys.slice();
-  return sourceFor(sel, keys) === 'all' ? keys.slice(0, 1) : reconcile(sel, keys);
 }
