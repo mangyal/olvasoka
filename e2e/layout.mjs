@@ -307,6 +307,14 @@ test('Kevert sorrend (2.14, F-1–F-3): jelölőnégyzet + a Nehézség informá
     await page.$eval('#mixedIn', (e) => e.scrollIntoView({ block: 'center' }));
     assert.ok(await page.isVisible('#mixedInfo'), `${label}: a magyarázat mindig látszik`);
     await mixedFits(page, label);
+    // felirat balra, jelölőnégyzet jobbra, a Tételek a körben stepperével egy vonalban
+    const [lab, step] = await Promise.all(['.ctl-mixed .check span', '.ctl-count .stepper'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+    const chkR = await page.$eval('#mixedIn', (e) => e.getBoundingClientRect().toJSON());
+    assert.ok(lab.right <= chkR.left, `${label}: a felirat a jelölőnégyzettől balra`);
+    assert.ok(Math.abs(chkR.right - step.right) <= 1, `${label}: a jelölőnégyzet jobbra igazítva (${chkR.right} / ${step.right})`);
+    // a Szünet felirata ugyanolyan, mint a Tételek a körben és a Kevert sorrend felirata
+    const font = (q) => page.$eval(q, (e) => { const c = getComputedStyle(e); return [c.fontSize, c.color, c.fontWeight]; });
+    assert.deepEqual(await font('.seg-gap legend'), await font('.ctl-count label'), `${label}: Szünet = Tételek a körben`);
     if (opts.hasTouch) {
       const h = await page.$eval('.ctl-mixed .check', (e) => e.getBoundingClientRect().height);
       assert.ok(h >= 44, `${label}: érintési cél ${h} px`);
