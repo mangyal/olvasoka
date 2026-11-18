@@ -178,8 +178,8 @@ dialog p{margin:0 0 12px}
 /* szegmensek (4.3, 4.5) */
 .seg{border:0;margin:0;padding:0;min-width:0}
 .seg legend{padding:0 0 6px}
-/* a Szünet felirata olyan, mint a Tételek a körben és a Kevert sorrend felirata */
-.seg-gap legend{font-size:14px;color:var(--ink)}
+/* a Szünet, a Felvillanás és a Nehézség felirata olyan, mint a Tételek a körben és a Kevert sorrend felirata */
+.seg-gap legend,.ctl-flash .ctl-head label,.ctl-level .ctl-head label{font-size:14px;color:var(--ink)}
 .seg-opts{display:flex;border:1px solid var(--line);border-radius:var(--r-ctl);overflow:hidden;background:var(--field)}
 .seg-opts label{position:relative;flex:1;min-width:0;cursor:pointer}
 .seg-opts label+label span{border-left:1px solid var(--line)}
