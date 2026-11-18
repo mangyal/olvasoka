@@ -1,30 +1,43 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clickSelect, reconcile, itemsOf, sourceFor, applySource, wantedSelection } from '../js/core/selection.js';
+import { clickSelect, paint, rangeKeys, reconcile, existing, itemsOf, wantedSelection } from '../js/core/selection.js';
 import { distinctItems } from '../js/core/items.js';
 import { normalizeState } from '../js/core/settings.js';
 
 const keys = ['a', 'b', 'c', 'd', 'e'];
 
-test('kijelölés: sima kattintás csak azt jelöli ki', () => {
-  assert.deepEqual(clickSelect(['a', 'c'], 'd', { keys }), { sel: ['d'], anchor: 'd' });
+test('kijelölés: kattintás csak a kattintott sor pipáját váltja, a többi marad (3.1)', () => {
+  assert.deepEqual(clickSelect(['a', 'c'], 'd', { keys }), { sel: ['a', 'c', 'd'], anchor: 'd', on: true });
+  assert.deepEqual(clickSelect(['a', 'c'], 'a', { keys }), { sel: ['c'], anchor: 'a', on: false });
+  assert.deepEqual(clickSelect(['c'], 'c', { keys }).sel, [], 'az utolsó is kivehető: üres kijelölés');
+  assert.deepEqual(clickSelect(['d'], 'a', { keys }).sel, ['a', 'd'], 'megjelenési sorrend');
+  assert.deepEqual(clickSelect(['a'], 'zz', { keys }).sel, ['a'], 'ismeretlen kulcs: nem változik');
 });
 
-test('kijelölés: Ctrl hozzáad és kivesz, az utolsó megmarad', () => {
-  let r = clickSelect(['a'], 'c', { toggle: true, keys });
-  assert.deepEqual(r.sel, ['a', 'c']);
-  r = clickSelect(r.sel, 'a', { toggle: true, keys });
-  assert.deepEqual(r.sel, ['c']);
-  r = clickSelect(r.sel, 'c', { toggle: true, keys });
-  assert.deepEqual(r.sel, ['c'], 'legalább egy lista marad');
-  assert.deepEqual(clickSelect(['d'], 'a', { toggle: true, keys }).sel, ['a', 'd'], 'megjelenési sorrend');
+test('kijelölés: Shift + kattintás tartomány az előző kattintott sortól, a kattintott sor új állapotával', () => {
+  assert.deepEqual(clickSelect(['b'], 'd', { range: true, anchor: 'b', keys }), { sel: ['b', 'c', 'd'], anchor: 'd', on: true });
+  assert.deepEqual(clickSelect(keys, 'b', { range: true, anchor: 'd', keys }).sel, ['a', 'e'], 'kivétel visszafelé');
+  assert.deepEqual(clickSelect(['e'], 'c', { range: true, anchor: 'a', keys }).sel, ['a', 'b', 'c', 'e'], 'a tartományon kívüli marad');
+  assert.deepEqual(clickSelect([], 'c', { range: true, anchor: 'zz', keys }).sel, ['c'], 'nincs érvényes előző sor');
+  assert.deepEqual(clickSelect([], 'c', { range: true, anchor: null, keys }).sel, ['c']);
 });
 
-test('kijelölés: Shift tartomány az anchortól', () => {
-  assert.deepEqual(clickSelect(['b'], 'd', { range: true, anchor: 'b', keys }), { sel: ['b', 'c', 'd'], anchor: 'b' });
-  assert.deepEqual(clickSelect(['b', 'c', 'd'], 'a', { range: true, anchor: 'b', keys }).sel, ['a', 'b'], 'visszafelé, csere');
-  assert.deepEqual(clickSelect(['e'], 'c', { range: true, toggle: true, anchor: 'a', keys }).sel, ['a', 'b', 'c', 'e'], 'Ctrl+Shift hozzáad');
-  assert.deepEqual(clickSelect([], 'c', { range: true, anchor: 'zz', keys }).sel, ['c'], 'nincs érvényes anchor');
+test('kijelölés: végighúzás és tartomány segédei', () => {
+  assert.deepEqual(paint(['a'], ['c', 'b'], true, keys), ['a', 'b', 'c']);
+  assert.deepEqual(paint(['a', 'b', 'c'], ['b', 'x'], false, keys), ['a', 'c']);
+  assert.deepEqual(rangeKeys(keys, 'd', 'b'), ['b', 'c', 'd']);
+  assert.deepEqual(rangeKeys(keys, 'x', 'b'), ['b']);
+});
+
+test('kijelölés: Összesből egy csomag kivétele: minden más kijelölve marad (3.1)', () => {
+  // Összes csomag: minden sor pipás, a kattintás a teljes készletből vesz ki
+  assert.deepEqual(clickSelect(keys, 'c', { keys }), { sel: ['a', 'b', 'd', 'e'], anchor: 'c', on: false });
+});
+
+test('kijelölés: a Kijelöltre visszaváltáskor a mentett kijelölés a létező csomagokra szűkül, üresen is', () => {
+  assert.deepEqual(existing(['x', 'c', 'a'], keys), ['a', 'c']);
+  assert.deepEqual(existing(['x'], keys), [], 'üres marad, nem az első csomag');
+  assert.deepEqual(existing([], keys), []);
 });
 
 test('kijelölés: egyeztetés a létező listákkal', () => {
@@ -52,16 +65,6 @@ test('tárolt állapot: v2 → v3', () => {
   assert.equal(normalizeState({ hideHelp: 'igen' }).hideHelp, false);
 });
 
-test('forrás: szinkronban a kijelöléssel', () => {
-  assert.equal(sourceFor(keys, keys), 'all');
-  assert.equal(sourceFor(['e', 'a', 'b', 'c', 'd'], keys), 'all', 'sorrendtől független');
-  assert.equal(sourceFor(['a', 'b'], keys), 'list');
-  assert.equal(sourceFor([], []), 'list', 'nincs lista');
-  assert.deepEqual(applySource('all', ['b'], keys), keys);
-  assert.deepEqual(applySource('list', keys, keys), ['a'], 'mind kijelölve → csak az első');
-  assert.deepEqual(applySource('list', ['b', 'd'], keys), ['b', 'd'], 'részleges kijelölés marad');
-});
-
 test('betöltéskor: mostani → mentett → a táblázat jelölői → az első lista (F-L1d)', () => {
   const pick = (o) => reconcile(wantedSelection({ source: 'list', selected: [], last: [], preset: [], keys, ...o }), keys);
   assert.deepEqual(pick({ preset: ['d', 'b'] }), ['b', 'd'], 'első betöltés: az alapból kijelöltek, megjelenési sorrendben');
@@ -72,6 +75,6 @@ test('betöltéskor: mostani → mentett → a táblázat jelölői → az első
   assert.deepEqual(pick({ preset: ['x'] }), ['a'], 'nem létező jelölt lista: az első');
   assert.deepEqual(pick({}), ['a'], 'jelölő nélkül: az első, mint eddig');
   assert.deepEqual(pick({ preset: keys }), keys);
-  assert.equal(sourceFor(pick({ preset: keys }), keys), 'all', 'mind jelölve → Összes lista');
-  assert.deepEqual(pick({ source: 'all', preset: ['b'] }), keys, 'Összes lista módban mind');
+  assert.deepEqual(pick({ source: 'all', preset: ['b'] }), keys, 'Összes csomag módban mind');
+  assert.deepEqual(pick({ preset: ['b'], last: [] }), ['b'], 'üresen mentett kijelölés (Egyik sem): újratöltéskor a jelölők (döntés 2026-11-18)');
 });

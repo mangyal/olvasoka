@@ -1,7 +1,7 @@
 {
   "name": "Olvasóka",
   "short_name": "Olvasóka",
-  "description": "Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak.",
+  "description": "Olvasásgyakorló elsősöknek és szüleiknek. Betűk, szótagok és szavak, regisztráció nélkül.",
   "lang": "hu",
   "start_url": "./",
   "scope": "./",

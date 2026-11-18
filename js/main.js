@@ -5,20 +5,21 @@ import { createAnalytics } from './data/analytics.js';
 import { fetchLists, fetchPairs, fetchProgressConfig } from './data/remote.js';
 import { createProgressLog } from './data/progress-log.js';
 import { resolve as resolveProgress } from './core/haladas-config.js';
-import { parseByKind, SHEET_EDIT_URL } from './core/source.js';
+import { parseByKind } from './core/source.js';
 import { clampSettings, clampFind, normalizeMode, levelToDegree } from './core/settings.js';
 import { buildTasks, effectiveCards } from './core/find.js';
 import { nameKey } from './core/items.js';
-import { clickSelect, reconcile, sourceFor, applySource, wantedSelection } from './core/selection.js';
+import { clickSelect, paint, reconcile, existing, wantedSelection } from './core/selection.js';
 import { initFont, fontLooksRight } from './font.js';
 import { ENV } from './core/env.js';
 import { VERSION } from './version.js';
-import { createAdmin, MOD } from './ui/admin.js';
+import { createAdmin } from './ui/admin.js';
 import { createPractice } from './ui/practice.js';
 import { createProgressView } from './ui/haladas.js';
 import { createTour } from './ui/tour.js';
 import { TOUR_VERSION, normalizeTour, shouldAutoStart, fitsViewport } from './core/tour.js';
 import { DEFAULTS as PROGRESS_DEFAULTS } from './core/haladas-config.js';
+import { firstRoundKey, initFirstRound, firstRoundData } from './core/first-round.js';
 
 const $ = (id) => document.getElementById(id);
 const el = new Proxy({}, { get: (c, k) => (c[k] ??= $(k)) });
@@ -28,13 +29,39 @@ const stats = createAnalytics({ websiteId: ENV.analyticsId });
 let roundNo = 0;                  // a kör sorszáma az oldal betöltése óta
 
 const store = createStore();
+
+/* ---------- Idő az első körig (docs/kartyacsomagok-specifikacio.md, 7.) ----------
+   Még az első mentés előtt kell eldönteni, van-e már Olvasóka adat a készüléken: régi felhasználótól nem
+   kérünk első kört. Tárolás nélkül nincs esemény. */
+const local = (fn) => { try { return fn(globalThis.localStorage); } catch { return null; } };
+const FIRST_KEY = firstRoundKey(ENV.storageKey);
+const firstRound = (() => {
+  const stored = local((s) => JSON.parse(s.getItem(FIRST_KEY) || 'null'));
+  const legacy = Boolean(local((s) => s.getItem(ENV.storageKey) !== null || s.getItem(ENV.progressKey) !== null));
+  const r = initFirstRound({ stored, legacy, storageOK: store.available, now: Date.now() });
+  if (r.save && !local((s) => { s.setItem(FIRST_KEY, JSON.stringify(r.save)); return true; })) return { ...r, pending: false };
+  return r;
+})();
+let welcomeOutcome = 'none';      // ebben a betöltésben: 'tour' | 'skip' | 'none' (nem jelent meg)
+let tourOutcome = 'none';         // ebben a betöltésben: 'done' | 'skipped' | 'none'
+/** A készüléken legelőször induló kör, a round-start előtt. Ha a jelző nem menthető, nem küld (különben ismétlődne). */
+function trackFirstRound(game) {
+  if (!firstRound.pending) return;
+  firstRound.pending = false;
+  const seen = local((s) => JSON.parse(s.getItem(FIRST_KEY) || 'null'))?.seen ?? Date.now();
+  if (!local((s) => { s.setItem(FIRST_KEY, JSON.stringify({ seen, sent: true })); return true; })) return;
+  stats.track('first-round', firstRoundData({ ms: performance.now(), firstVisit: firstRound.firstVisit, welcome: welcomeOutcome, tour: tourOutcome, game }));
+}
+
 const saved = store.read();
 
 const app = {
   lists: [], problems: [], selected: [], anchor: null,
   preset: [],                       // a táblázatban alapból kijelölt listák neve (F-L1d)
-  // a szülő még nem választott listát (az „Összes lista” is választás): a kijelölés a táblázat jelölőit követi, és nem mentődik (F-L1d)
+  // a szülő még nem választott csomagot (az „Összes csomag” is választás): a kijelölés a táblázat jelölőit követi, és nem mentődik (F-L1d).
+  // Az üresen mentett kijelölés („Egyik sem”) újratöltéskor szintén a táblázat jelölőit kapja (döntés 2026-11-18).
   autoSel: saved.lastLists.length === 0 && saved.settings.source !== 'all',
+  emptied: false,                   // a szülő ebben a munkamenetben mindent kivett: frissítéskor is üres marad
   listsState: 'loading',            // 'loading' | 'ok' | 'stale' | 'error'
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
   mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
@@ -70,6 +97,7 @@ function readSessionTour() {
   try { return normalizeTour(JSON.parse(sessionStorage.getItem(`${ENV.storageKey}_tour`) || 'null')); } catch { return null; }
 }
 function saveTour(how) {
+  tourOutcome = how;
   stats.track('tour-end', { result: how });
   storeTour(how);
 }
@@ -80,30 +108,45 @@ function storeTour(how) {
 }
 const listKeys = () => app.lists.map((l) => nameKey(l.name));
 
-// A kijelölés és a tételforrás mindig együtt változik: minden lista kijelölve ⇔ „Összes lista”.
+/* A látható pipák (app.selected) és a szülő saját kijelölése (app.lastLists) a „Kijelölt csomagok” forrásnál
+   ugyanaz. „Összes csomag” forrásnál minden csomag pipás, a saját kijelölés viszont nem változik: a kapcsolóval
+   visszaváltva az jön vissza (docs/kartyacsomagok-specifikacio.md, 3.1). */
+const isAll = () => app.settings.source === 'all';
 function setSelection(sel) {
-  const keys = listKeys();
   app.selected = sel;
-  if (!app.selected.includes(app.anchor)) app.anchor = app.selected[0] || null;
+  if (!listKeys().includes(app.anchor)) app.anchor = null;
+  // Összesnél, és amíg nincs betöltött csomag, a saját kijelölés nem változik
+  if (isAll() || !app.lists.length) return;
   const set = new Set(sel);
   app.lastLists = app.lists.filter((l) => set.has(nameKey(l.name))).map((l) => l.name);
-  if (keys.length) app.settings = { ...app.settings, source: sourceFor(sel, keys) };
 }
 
 function pickSelected() {
   const keys = listKeys();
-  // „Összes lista” módban egy újonnan megjelent lista is bekerül; mentett kijelölés nélkül a táblázat jelölői (F-L1d)
+  // „Összes csomag” módban egy újonnan megjelent csomag is bekerül; mentett kijelölés nélkül a táblázat jelölői (F-L1d)
+  if (isAll()) { setSelection(keys); return; }
+  if (app.emptied) { setSelection([]); return; }
   const want = wantedSelection(app.autoSel
     ? { source: 'list', selected: [], last: [], preset: app.preset.map(nameKey), keys }
-    : { source: app.settings.source, selected: app.selected, last: app.lastLists.map(nameKey), preset: app.preset.map(nameKey), keys });
+    : { source: 'list', selected: app.selected, last: app.lastLists.map(nameKey), preset: app.preset.map(nameKey), keys });
   setSelection(reconcile(want, keys));
+}
+
+/** A szülő saját kijelölése (kattintás, végighúzás, Egyik sem): Összesből Kijelöltre vált. */
+function choose(sel, anchor = app.anchor) {
+  app.autoSel = false;
+  if (isAll()) app.settings = { ...app.settings, source: 'list' };
+  app.anchor = anchor;
+  setSelection(sel);
+  app.emptied = !sel.length;
+  persist(); admin.render();
 }
 
 // Haladás: a gyakorlás naplója a szülő eszközén (docs/haladas-specifikacio.md). Ha a tárolás nem
 // elérhető, memóriában fut; a gyakorlást semmi nem akasztja meg.
 const progress = createProgressLog({ key: ENV.progressKey, config: resolveProgress(null, { skipDayRules: ENV.skipDayRules }) });
 
-/** A kör listáinak nevei: „Összes lista” módban mind, különben a kijelöltek. */
+/** A kör csomagjainak nevei: „Összes csomag” módban mind, különben a kijelöltek. */
 const roundListNames = () => (app.settings.source === 'all' ? app.lists.map((l) => l.name) : app.lastLists);
 
 const practice = createPractice(el, {
@@ -178,20 +221,20 @@ addEventListener('hashchange', route);
 el.progressBtn.addEventListener('click', () => { if (!practice.active) location.hash = '#haladas'; });
 
 const admin = createAdmin(el, app, {
-  // mod: { toggle, range } – Ctrl/Cmd, illetve Shift kattintás
-  select(name, mod = {}) {
-    const r = clickSelect(app.selected, nameKey(name), { ...mod, anchor: app.anchor, keys: listKeys() });
-    app.anchor = r.anchor; app.autoSel = false;
-    setSelection(r.sel);
-    persist(); admin.render();
+  // kattintás egy csomagra: a pipáját váltja; range (Shift): tartomány az előző kattintott sortól. Visszaadja az új állapotot.
+  select(name, { range = false } = {}) {
+    const r = clickSelect(app.selected, nameKey(name), { range, anchor: app.anchor, keys: listKeys() });
+    choose(r.sel, r.anchor);
+    return r.on;
   },
-  // mobil listaválasztó: Mind / Egyik sem
-  selectAll(all) {
-    const keys = listKeys();
-    app.anchor = all ? keys[0] || null : null; app.autoSel = false;
-    setSelection(all ? keys : []);
-    persist(); admin.render();
+  // egérrel végighúzva: a sor az első sor új állapotát kapja
+  paint(name, on) {
+    const k = nameKey(name);
+    if (app.selected.includes(k) === on && !isAll()) return;
+    choose(paint(app.selected, [k], on, listKeys()));
   },
+  // „Egyik sem”
+  selectNone() { choose([], null); },
   mode(m) {
     app.mode = normalizeMode(m, app.pairs.state === 'failed' ? ['read'] : undefined);
     persist(); admin.render();
@@ -202,8 +245,13 @@ const admin = createAdmin(el, app, {
   },
   setting(patch) {
     app.settings = clampSettings({ ...app.settings, ...patch });
-    if ('source' in patch) app.autoSel = false;
-    if ('source' in patch && app.lists.length) setSelection(applySource(app.settings.source, app.selected, listKeys()));
+    if ('source' in patch) {
+      app.autoSel = false;
+      // Összes: minden pipás; Kijelölt: a szülő legutóbbi saját kijelölése (lehet üres is)
+      const keys = listKeys();
+      setSelection(isAll() ? keys : existing(app.lastLists.map(nameKey), keys));
+      app.emptied = !app.selected.length;
+    }
     persist(); admin.render();
   },
   refresh,
@@ -218,10 +266,12 @@ const admin = createAdmin(el, app, {
       const cards = effectiveCards(app.find.cards, innerWidth, innerHeight);
       const cc = app.pairs.cc;
       const tasks = buildTasks(admin.roundItems(), { cards, tasks: app.find.tasks, level: levelToDegree(app.find.level, cc.levels) }, cc);
+      trackFirstRound('find');
       trackRoundStart('find', cards);   // a ténylegesen mutatott kártyaszám (telefonon legfeljebb 6)
       practice.startFind(tasks, cards, ev);
       return;
     }
+    trackFirstRound('read');
     trackRoundStart('read');
     practice.start(admin.roundItems(), app.settings, ev, { listNames: roundListNames(), undoMs: progress.config.szures.javitott_melle_ms });
   },
@@ -306,7 +356,7 @@ el.dlgFont.addEventListener('close', () => el.helpBtn.focus({ preventScroll: tru
 
 /* ---------- Első lépések (bemutató) ---------- */
 let tourDays = PROGRESS_DEFAULTS.allapot.min_nap;
-const tour = createTour(el, { mod: MOD, minDays: () => tourDays, onEnd: saveTour });
+const tour = createTour(el, { minDays: () => tourDays, onEnd: saveTour });
 // „Bemutató újra” a Súgóban: az 1. lépéstől; a végén a tárolt állapot felülíródik (4.5)
 el.tourAgain.addEventListener('click', () => { el.dlgHelp.close(); tour.start(); });
 
@@ -351,14 +401,12 @@ el.dlgWelcome.addEventListener('click', (e) => {
 el.dlgWelcome.addEventListener('close', () => {
   const { choice, via } = welcomeChoice || { choice: 'skip', via: 'close' };   // Esc
   welcomeChoice = null;
+  welcomeOutcome = choice;
   stats.track('welcome-choice', { choice, via });
   if (choice === 'tour') { tour.start(); return; }
   storeTour('skipped');
   tour.skippedHint();
 });
-// a táblázat szerkesztője; a hozzáférést a Google kezeli (F-L11)
-el.editLink.href = SHEET_EDIT_URL;
-el.listsEdit.href = SHEET_EDIT_URL;
 
 /* ---------- verzió és környezet ---------- */
 // a fejlécben a verzió; a dev környezet feltűnő jelzést kap, hogy ne lehessen összetéveszteni

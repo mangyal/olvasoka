@@ -99,7 +99,7 @@ test('beállítások: ugyanúgy mentődnek és töltődnek vissza; becslés mind
   assert.equal(await page.textContent('#estimate'), '10 tétel · kb. 1 perc');
   await page.click('label:has(#gap1000)');
   await page.click('#countInc');
-  await page.click('label:has(#srcAll)');
+  await page.click('#sidebar label:has(input[value="all"])');
   assert.equal(await page.textContent('#estimate'), '11 tétel · kb. 55 mp');
   await page.$eval('#flashIn', (e) => { e.value = '0'; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change')); });
   assert.equal(await page.textContent('#estimate'), '11 tétel · kézi léptetés');
@@ -111,7 +111,7 @@ test('beállítások: ugyanúgy mentődnek és töltődnek vissza; becslés mind
   await page.waitForFunction(() => !document.getElementById('startBtn').disabled);
   assert.equal(await page.isChecked('#gap1000'), true);
   assert.equal(await page.inputValue('#countIn'), '11');
-  assert.equal(await page.isChecked('#srcAll'), true);
+  assert.equal(await page.isChecked('#sidebar input[value="all"]'), true);
   assert.equal(await page.textContent('#flashOut'), 'kézi');
   await ctx.close();
 });
@@ -262,9 +262,24 @@ test('álló tablet: chip-sor összesítővel, a súgó alsó lap, az Indítás 
   const { page, ctx } = await open(TABLET, { lastLists: [] });
   assert.ok(await page.isVisible('#listChecks'));
   assert.equal(await page.isVisible('#listsBtn'), false);
-  assert.match(await page.textContent('#pickSum'), /^1 lista · \d+ tétel$/);
+  assert.match(await page.textContent('#pickSum'), /^1 csomag · \d+ tétel$/);
   await page.tap('#listChecks label:nth-child(2)');
-  assert.match(await page.textContent('#pickSum'), /^2 lista · \d+ tétel$/);
+  assert.match(await page.textContent('#pickSum'), /^2 csomag · \d+ tétel$/);
+  // 4.2: a chip-sor fölött a kapcsoló, a legend „Kártyacsomagok”; előnézet nincs, a frissítés sora marad
+  assert.equal((await page.textContent('#listPick legend')).trim(), 'Kártyacsomagok');
+  const [sw, chips] = await Promise.all(['#listPick .src-switch', '#listChecks'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  assert.ok(sw.height > 0 && sw.bottom <= chips.top + 1, 'a kapcsoló a chip-sor fölött');
+  assert.equal(await page.isVisible('#listBody'), false, 'nincs előnézet');
+  assert.equal(await page.isVisible('#phonePreview'), false);
+  assert.ok(await page.isVisible('#refreshBtn'));
+  assert.equal(await page.locator('.seg-src, #srcAll').count(), 0, 'a játékpanelen nincs Tételek mező');
+  // Összes csomag: a chipek szürkén bepipálva; egy kivétele Kijelöltre vált
+  await page.tap('#listPick label:has(input[value="all"])');
+  assert.equal(await page.$$eval('#listChecks input', (c) => c.every((x) => x.checked)), true);
+  assert.equal(await page.locator('#listPick.all').count(), 1);
+  await page.tap('#listChecks label:nth-child(1)');
+  assert.equal(await page.isChecked('#listPick input[value="list"]'), true);
+  assert.equal(await page.$$eval('#listChecks input', (c) => c.filter((x) => !x.checked).length), 1);
   assert.ok(await inViewport(page, '#startBtn'));
   await page.tap('#howBtn');
   assert.equal(await page.$eval('#howPop', (d) => d.matches(':modal')), true, 'alsó lap');
@@ -319,31 +334,41 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   assert.ok(await inViewport(page, '#startBtn'));
   await page.tap('#listsBtn');
   assert.equal(await page.$eval('#dlgLists', (d) => d.matches(':modal')), true);
+  assert.equal((await page.textContent('#listsH')).trim(), 'Kártyacsomagok');
+  assert.equal(await page.locator('#listsAll, #listsEdit').count(), 0, 'nincs Mind gomb és szerkesztő link');
   await page.tap('#listsNone');
   assert.equal(await page.isDisabled('#startBtn'), true);
-  assert.match(await page.textContent('#listsSum'), /Nincs kijelölt lista/);
+  assert.equal(await page.textContent('#listsSum'), 'Jelölj ki legalább egy csomagot.');
+  assert.equal(await page.isVisible('#listsNone'), false, 'üres kijelölésnél nincs Egyik sem');
   assert.equal(await page.isEnabled('#listsDone'), true, 'üres kijelölésnél a Kész aktív');
   await page.tap('#listsRows label:nth-child(1)');
   await page.tap('#listsRows label:nth-child(2)');
-  assert.match(await page.textContent('#listsSum'), /^2 lista · \d+ tétel$/);
+  assert.match(await page.textContent('#listsSum'), /^\d+ különböző tétel$/);
+  assert.equal(await page.textContent('#listsCount'), '2 csomag kijelölve');
   assert.equal(await page.isEnabled('#startBtn'), true);
+  assert.ok(await page.$$eval('#listsRows .ls-row', (r) => r.every((x) => x.getBoundingClientRect().height >= 48)), 'a sorok legalább 48 px magasak');
   await page.tap('#listsDone');
   assert.equal(await page.$eval('#dlgLists', (d) => d.open), false);
-  assert.match(await page.textContent('#listsBtnLabel'), /^Listák · \d+ tétel$/);
-  assert.match(await page.textContent('#listsBtnNames'), / · /);
-  await page.tap('#listsBtn'); await page.tap('#listsAll');
-  assert.equal(await page.$$eval('#listsRows input', (c) => c.every((x) => x.checked)), true, 'Mind');
+  assert.match(await page.textContent('#listsBtnLabel'), /^Kijelölt csomagok · \d+ tétel$/);
+  assert.match(await page.textContent('#listsBtnNames'), /, /);
+  // a Mind gombot az Összes csomag váltja ki
+  await page.tap('#listsBtn'); await page.tap('#dlgLists label:has(input[value="all"])');
+  assert.equal(await page.$$eval('#listsRows input', (c) => c.every((x) => x.checked)), true, 'Összes csomag');
+  assert.equal(await page.textContent('#listsCount'), `Mind a ${await page.locator('#listsRows .ls-row').count()} csomag`);
+  assert.match(await page.textContent('#listsBtnLabel'), /^Összes csomag · \d+ tétel$/);
   await page.keyboard.press('Escape');
   assert.equal(await page.$eval('#dlgLists', (d) => d.open), false, 'Esc zár');
   await ctx.close();
 });
 
-/** Az Indítás a jobb oszlopban, a beállítások alatt (döntés 2026-11-09). */
+/** Az Indítás a jobb oszlopban, a beállítások alatt (döntés 2026-11-09). A fülek is a jobb oszlopban, a
+    beállítások fölött; a csomag gomb balra (docs/kartyacsomagok-specifikacio.md, 4.3). */
 async function startOnRight(page) {
-  const [btn, set, tabs] = await Promise.all(['#startBtn', '#panelRead', '#modeTabs'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
+  const [btn, set, tabs, lists] = await Promise.all(['#startBtn', '#panelRead', '#modeTabs', '#listsBtn'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
   assert.ok(btn.left >= set.left - 1 && btn.right <= set.right + 5, 'a jobb oszlopban');
   assert.ok(btn.top >= set.bottom - 1, 'a beállítások alatt');
-  assert.ok(btn.left > tabs.right, 'a fülektől jobbra');
+  assert.ok(tabs.left >= set.left - 1 && tabs.bottom <= set.top + 1, 'a fülek a jobb oszlopban, a beállítások fölött');
+  assert.ok(lists.right <= tabs.left, 'a csomag gomb a bal oszlopban');
 }
 
 test('mobil fekvő (844×390): az Indítás görgetés nélkül látszik, jobb oldalt', async () => {
@@ -369,7 +394,7 @@ test('nagyon alacsony fekvő (740×320): a becslés az Indítás mellett, nem cs
   assert.ok(await inViewport(page, '#startBtn'));
   await startOnRight(page);
   const [est, btn, how] = await Promise.all(['#estimate', '#startBtn', '#howBtn'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
-  assert.ok(est.left > how.right, 'a becslés a súgógombtól jobbra');
+  assert.ok(est.left > how.right || est.top >= how.bottom, 'a becslés nem csúszik a súgógombra');
   assert.ok(est.right <= btn.left && btn.left - est.right <= 24, 'a becslés jobbra zárva az Indítás mellett');
   await ctx.close();
 });
@@ -422,7 +447,7 @@ for (const [w, touch, font] of [[320, true], [320, false], [480, true], [567, tr
     assert.ok(tabs.top >= lists.bottom && set.top >= tabs.bottom);
     assert.deepEqual(await overlaps(page), [], 'nem fedik egymást');
     // minden beállítás elérhető függőleges görgetéssel, a fejléc és a tapadó sáv között
-    for (const q of ['#srcAll', '#flashIn', '#gapOpts', '#countInc', '#howBtn']) {
+    for (const q of ['#pvMore', '#flashIn', '#gapOpts', '#countInc', '#howBtn']) {
       await page.$eval(q, (e) => e.scrollIntoView({ block: 'center' }));
       const ok = await page.$eval(q, (e) => {
         const r = (e.type === 'radio' ? e.parentElement : e).getBoundingClientRect();
@@ -447,7 +472,7 @@ for (const [w, h] of [[320, 568], [360, 800]]) {
 }
 
 // ---------- Súgó: Adatvédelem rész, Betűteszt a gombsorban (docs/analitika-specifikacio.md 5.) ----------
-const PRIVACY = 'A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal és melyik listákból. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.';
+const PRIVACY = 'A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.';
 const rect = (page, q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON());
 /** Megnyitja a Súgót a fejléc gombjával (érintőn koppintással). */
 async function openHelp(page, touch) {
@@ -605,40 +630,42 @@ test('568×256: marad a két oszlopos fekvő elrendezés (valódi telefon fekve)
   await ctx.close();
 });
 
-// ---------- listaválasztó lap: a listák és alattuk a szerkesztő link együtt görgetnek ----------
+// ---------- csomagválasztó lap: a fejléc (cím, kapcsoló) és a Kész mindig látszik, a csomagok görgetnek ----------
 const sheetState = (page) => page.evaluate(() => {
   const sc = document.getElementById('listsScroll').getBoundingClientRect();
   const rows = [...document.querySelectorAll('#listsRows label')].map((r) => r.getBoundingClientRect());
-  const link = document.getElementById('listsEdit').getBoundingClientRect(), done = document.getElementById('listsDone').getBoundingClientRect();
+  const done = document.getElementById('listsDone').getBoundingClientRect();
+  const sw = document.querySelector('#dlgLists .src-switch').getBoundingClientRect(), h = document.getElementById('listsH').getBoundingClientRect();
   const dlg = document.getElementById('dlgLists').getBoundingClientRect();
   return {
     rows: rows.length,
     visibleRows: rows.filter((r) => r.top >= sc.top - 0.5 && r.bottom <= sc.bottom + 0.5).length,
     firstRowFirst: rows.length > 0 && rows[0].top >= sc.top - 0.5 && rows[0].bottom <= sc.bottom + 0.5,
-    linkBelowRows: link.top >= rows.at(-1).bottom - 0.5,
-    linkInScroll: !!document.querySelector('#listsScroll #listsEdit'),
-    linkVisible: link.top >= sc.top - 0.5 && link.bottom <= sc.bottom + 0.5,
-    overflow: document.getElementById('listsScroll').scrollHeight > document.getElementById('listsScroll').clientHeight + 1,
+    columns: new Set(rows.map((r) => Math.round(r.left))).size,
+    switchIn: sw.height > 0 && sw.top >= dlg.top - 0.5 && sw.bottom <= sc.top + 0.5,
+    titleAndSwitchInRow: Math.abs((h.top + h.bottom) / 2 - (sw.top + sw.bottom) / 2) < 8,
     doneIn: done.top >= 0 && done.bottom <= innerHeight + 0.5,
     dlgIn: dlg.top >= 0 && dlg.bottom <= innerHeight + 0.5,
+    centered: Math.abs((dlg.left + dlg.right) / 2 - innerWidth / 2) < 2,
   };
 });
 
 for (const [w, h, touch, minRows, font] of [[823, 287, false, 2], [568, 256, true, 2], [320, 256, true, 2], [320, 256, true, 2, WIDE_FONT], [844, 390, true, 4], [390, 844, true, 5]]) {
-  test(`listalap ${w}×${h}${font ? ' széles betűvel' : ''}: legalább ${minRows} lista látszik, a szerkesztő link alattuk, görgetéssel elérhető`, async () => {
+  test(`csomaglap ${w}×${h}${font ? ' széles betűvel' : ''}: legalább ${minRows} csomag látszik, a cím, a kapcsoló és a Kész is`, async () => {
     const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch }, {}, { font });
     await page.click('#listsBtn');
     await page.waitForFunction(() => document.getElementById('dlgLists').open);
     const st = await sheetState(page);
     assert.ok(st.dlgIn, 'a lap a képernyőn belül');
     assert.ok(st.doneIn, 'a Kész görgetés nélkül látszik');
-    assert.ok(st.firstRowFirst, 'elöl az első lista, nem a link');
-    assert.ok(st.visibleRows >= Math.min(minRows, st.rows), `legalább ${minRows} lista látszik (${st.visibleRows})`);
-    assert.ok(st.linkInScroll && st.linkBelowRows, 'a link a görgető részben, a listák alatt');
-    if (st.overflow) {
-      assert.equal(st.linkVisible, false, 'sok listánál a link csak legörgetve látszik');
-      await page.$eval('#listsScroll', (e) => { e.scrollTop = e.scrollHeight; });
-      assert.equal((await sheetState(page)).linkVisible, true, 'legörgetve a link látszik');
+    assert.ok(st.switchIn, 'a kapcsoló a fejlécben, a csomagok fölött');
+    assert.ok(st.firstRowFirst, 'elöl az első csomag');
+    assert.ok(st.visibleRows >= Math.min(minRows, st.rows), `legalább ${minRows} csomag látszik (${st.visibleRows})`);
+    // fekvő telefon (4.3): középre igazítva, a cím és a kapcsoló egy sorban, a csomagok két oszlopban
+    if (h <= 500 && w > h && w >= 568) {
+      assert.ok(st.centered, 'középre igazítva');
+      assert.ok(st.titleAndSwitchInRow, 'a cím és a kapcsoló egy sorban');
+      assert.equal(st.columns, 2, 'két oszlop');
     }
     await ctx.close();
   });
@@ -776,27 +803,99 @@ test('túl kicsi képernyő: számbevitel közben (felugró billentyűzet) nem j
   await ctx.close();
 });
 
-test('érintős oldalsáv (fekvő iPad): koppintás hozzáad és elvesz, Ctrl nélkül', async () => {
+test('érintős oldalsáv (fekvő iPad): koppintás vált, a végighúzás görget és nem jelöl (3.1)', async () => {
   const { page, ctx } = await open(IPAD_LAND, { lastLists: [] });
   const items = page.locator('.nav-item');
+  const sel = () => page.locator('.nav-item.sel').count();
+  await page.waitForFunction(() => document.querySelectorAll('.nav-item.sel').length === 1);
   await items.nth(1).tap();
   await items.nth(2).tap();
-  assert.equal(await page.locator('.nav-item.sel').count(), 3);
+  assert.equal(await sel(), 3);
   await items.nth(1).tap();
-  assert.equal(await page.locator('.nav-item.sel').count(), 2);
+  assert.equal(await sel(), 2);
+  assert.equal(await page.isVisible('#navHint'), false, 'érintésnél nincs egeres tipp');
+  // végighúzás ujjal: nem jelöl (érintésnél a görgetés marad)
+  const [a, c] = [await items.nth(3).boundingBox(), await items.nth(6).boundingBox()];
+  const cdp = await ctx.newCDPSession(page);
+  const pt = (b) => [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(a) });
+  for (let k = 1; k <= 5; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + a.width / 2, y: a.y + a.height / 2 + (c.y - a.y) * k / 5 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForTimeout(200);
+  assert.equal(await sel(), 2, 'a végighúzás nem jelölt ki');
   await ctx.close();
 });
 
-test('egérrel az oldalsáv a régi: sima kattintás egyet jelöl, Ctrl/Shift többet', async () => {
-  const { page, ctx } = await open(DESKTOP);
+test('egérrel az oldalsáv (3.1): kattintás vált, Shift tartomány, végighúzás; a tipp látszik', async () => {
+  const { page, ctx } = await open(DESKTOP, { lastLists: [] });
   const items = page.locator('.nav-item');
+  const sel = () => page.locator('.nav-item.sel').count();
+  await page.waitForFunction(() => document.querySelectorAll('.nav-item.sel').length === 1);
+  assert.equal(await page.textContent('#navHint'), 'Tipp: egérrel végighúzva több csomagot is kijelölhetsz egyszerre.');
+  assert.ok(await page.isVisible('#navHint'));
   await items.nth(1).click();
-  assert.equal(await page.locator('.nav-item.sel').count(), 1);
-  await items.nth(3).click({ modifiers: ['Shift'] });
-  assert.equal(await page.locator('.nav-item.sel').count(), 3);
-  await items.nth(5).click({ modifiers: ['Control'] });
-  assert.equal(await page.locator('.nav-item.sel').count(), 4);
+  assert.equal(await sel(), 2, 'a kattintás hozzáad, nem cserél');
+  await items.nth(4).click({ modifiers: ['Shift'] });
+  assert.equal(await sel(), 5, '2–5. sor be');
+  await items.nth(0).click();                 // az 1. ki
+  assert.equal(await sel(), 4);
+  // végighúzás a 7. sortól a 9.-ig: mindhárom be; a gomb felengedése után vége
+  const box = async (i) => { const b = await items.nth(i).boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+  await page.mouse.move(...await box(6)); await page.mouse.down();
+  await page.mouse.move(...await box(8), { steps: 6 }); await page.mouse.up();
+  assert.equal(await sel(), 7);
+  // az oszlopból kilépve vége: a visszatérés már nem jelöl
+  await page.mouse.move(...await box(6)); await page.mouse.down();       // a 7. sor ki
+  assert.equal(await sel(), 6);
+  await page.mouse.move(640, 400, { steps: 4 });
+  await page.mouse.move(...await box(7), { steps: 4 }); await page.mouse.up();   // a 8. sor marad
+  assert.equal(await sel(), 6);
   await ctx.close();
+});
+
+test('asztali elrendezés (3.): a három cím azonos stílusú és egy vonalban, nincs Tételek mező és szerkesztő link', async () => {
+  for (const opts of [DESKTOP, SMALL]) {
+    const { page, ctx } = await open(opts);
+    const t = await page.$$eval('#packsH, #previewH, #gamesH', (hs) => hs.map((h) => {
+      const c = getComputedStyle(h), r = h.getBoundingClientRect();
+      return { text: h.textContent.trim(), font: [c.fontSize, c.fontWeight, c.lineHeight, c.color].join(' '), top: r.top, h: r.height };
+    }));
+    assert.deepEqual(t.map((x) => x.text), ['Kártyacsomagok', 'Ezekkel játszotok', 'Játékok']);
+    assert.equal(t[0].font, '20px 650 28px rgb(30, 42, 50)');
+    assert.ok(t.every((x) => x.font === t[0].font), 'azonos stílus');
+    assert.ok(t.every((x) => Math.abs(x.top - t[0].top) < 1 && x.h <= 29), `egy vonalban, egy sorban: ${t.map((x) => x.top)}`);
+    assert.equal(await page.locator('#srcList, #srcAll, #srcListF, #srcAllF, .seg-src, #editLink, #listsEdit, #navHint[hidden] + .label').count(), 0);
+    assert.equal(await page.locator('.sidebar .label').count(), 0, 'nincs régi LISTÁK felirat');
+    assert.match(await page.textContent('#listCount'), /^\d+ különböző tétel · \d+ csomag$/);
+    assert.equal((await page.textContent('.only-note')).trim(), 'A játékban csak ezek a tételek jöhetnek elő, semmi más.');
+    assert.match(await page.textContent('#sourceInfo'), /^Frissítve: \d\d:\d\d$/);
+    await ctx.close();
+  }
+});
+
+test('telefon (4.1): „csak ezek” mondat, két sor előnézet; a „Mind a … tétel” helyben nyit és csuk, a lapot nem nyitja', async () => {
+  for (const opts of [PHONE, PHONE_LAND]) {
+    const { page, ctx } = await open(opts, { lastLists: ['45. oldal', 'Á-A-E'] });
+    await page.waitForFunction(() => document.querySelectorAll('#pvBody .chip').length > 0);
+    assert.ok(await page.isVisible('.pv-note'));
+    assert.match(await page.textContent('#listsBtnNames'), /^45\. oldal, Á-A-E$/);
+    const rows = () => page.$$eval('#pvBody .chip', (cs) => new Set(cs.filter((c) => {
+      const b = document.getElementById('pvBody').getBoundingClientRect(), r = c.getBoundingClientRect();
+      return r.bottom <= b.bottom + 0.5;
+    }).map((c) => Math.round(c.getBoundingClientRect().top))).size);
+    assert.equal(await rows(), opts === PHONE ? 2 : 3, 'összecsukva két (fekve három) sor látszik');
+    const n = (await page.textContent('#pvMore')).match(/^Mind a (\d+) tétel megtekintése$/);
+    assert.ok(n, await page.textContent('#pvMore'));
+    await page.tap('#pvMore');
+    assert.equal(await page.textContent('#pvMore'), 'Kevesebb');
+    assert.equal(await page.getAttribute('#pvMore', 'aria-expanded'), 'true');
+    assert.equal(await page.$eval('#dlgLists', (d) => d.open), false, 'nem nyitja meg a lapot');
+    assert.deepEqual(await page.$$eval('#pvBody h3', (h) => h.map((x) => x.textContent)), ['45. oldal', 'Á-A-E'], 'csomagonként');
+    await page.tap('#pvMore');
+    assert.equal(await page.textContent('#pvMore'), n[0]);
+    assert.ok(await inViewport(page, '#startBtn'));
+    await ctx.close();
+  }
 });
 
 // ---------- Keresd meg! (spec 4a.3, 12.4a; ellenőrzés 27–29.) ----------
@@ -1311,7 +1410,7 @@ test('bemutató: átméretezéskor a célelem és a szöveg az új elrendezéshe
   const { page, ctx } = await open(DESKTOP, { hideHelp: false });
   await page.click('#welcomeTour');
   await page.waitForSelector('.tour-bubble:not([hidden])');
-  assert.match(await page.textContent('#tourText'), /^Kattints egy listára\./);
+  assert.match(await page.textContent('#tourText'), /^Válaszd ki a kártyacsomagokat/);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForFunction(() => /^Koppints ide/.test(document.getElementById('tourText').textContent));
   const g = await tourGeometry(page, '#listsBtn');

@@ -21,7 +21,7 @@ export const T = Object.freeze({
   more: 'Bővebben ▾',
   less: 'Kevesebb ▴',
   showAll: 'Mutasd mindet',
-  perList: 'Listánként',
+  perList: 'Csomagonként',
   grey: `A szürke rész: erről a ${TERM.about} még kevés az adat.`,
   howTitle: 'Honnan tudja ezt az Olvasóka?',
   how: [

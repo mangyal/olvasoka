@@ -3,7 +3,7 @@
 //
 // Determinisztikus: a Google táblázat kérését a teszt fix CSV-vel válaszolja meg (FIXTURE), a service
 // worker ki van kapcsolva, a súgó nem ugrik fel. Ellenőrzi:
-//   - listák kiválasztása: 1 lista, N lista (Ctrl+kattintás), összes lista → a tételek frissülnek
+//   - kártyacsomagok kiválasztása: kattintás vált, végighúzás, Shift-tartomány, Összes csomag → a tételek frissülnek
 //   - felvillanási idő: 0 (kézi), 25 mp és köztes érték; a kijelzés, a becslés és a megmaradás
 //   - időzítős kör: az időjelző látszik és fogy
 //   - kézi kör (0): nincs időjelző, és a tétel magától nem vált
@@ -83,9 +83,17 @@ beforeEach(async () => {
 afterEach(async () => { await ctx?.close(); });
 
 /* ---------- segédek ---------- */
-const navBtn = (name) => page.locator('#listNav .nav-item', { hasText: name });
+const navBtn = (name, p = page) => p.locator('#listNav .nav-item', { hasText: name });
 const chips = () => page.locator('#listBody .chip').allTextContents();
-const pressed = () => page.locator('#listNav .nav-item').evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-pressed')));
+const pressed = () => page.locator('#listNav .nav-item').evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-checked')));
+/** Csak ez az egy csomag legyen kijelölve: Kijelölt csomagok, Egyik sem, majd kattintás a csomagra (3.1). */
+async function only(name, p = page) {
+  await p.locator('#sidebar input[value="list"]').check();
+  if (await p.locator('#navNone').isVisible()) await p.locator('#navNone').click();
+  await navBtn(name, p).click();
+}
+const srcAll = (p = page) => p.locator('#sidebar input[value="all"]');
+const srcList = (p = page) => p.locator('#sidebar input[value="list"]');
 const text = (id) => page.locator(id).textContent();
 const barState = () => page.evaluate(() => ({
   visible: document.getElementById('bar').getAttribute('visibility') === 'visible',
@@ -107,7 +115,7 @@ async function setCount(n) {
   await page.locator('#countIn').press('Enter');
 }
 async function startRound({ flash, count, list = 'Szótagok' }) {
-  await navBtn(list).click();
+  await only(list);
   await page.locator('#gap0').check();
   await setFlash(flash);
   await setCount(count);
@@ -129,90 +137,177 @@ const progress = () => page.evaluate(() => {
 });
 const at = async (n, of) => assert.deepEqual(await progress(), { n, of, dot: n }, `nem a(z) ${n}/${of}. tételen áll`);
 
-/* ---------- listák ---------- */
-test('lista: egy lista kijelölése az ő tételeit mutatja', async () => {
+/* ---------- kártyacsomagok (docs/kartyacsomagok-specifikacio.md, 3.1) ---------- */
+test('csomag: egy csomag kijelölése az ő tételeit mutatja', async () => {
   for (const name of NAMES) {
-    await navBtn(name).click();
-    assert.equal(await text('#listName'), name);
-    assert.equal(await text('#listCount'), `${LISTS[name].length} tétel`);
+    await only(name);
+    assert.equal(await text('#previewH'), 'Ezekkel játszotok');
+    assert.equal(await text('#listCount'), `${LISTS[name].length} különböző tétel · 1 csomag`);
     assert.deepEqual(await chips(), LISTS[name]);
     assert.deepEqual(await pressed(), NAMES.map((n) => String(n === name)));
-    assert.equal(await page.locator('#srcList').isChecked(), true);
+    assert.equal(await text('#navSum'), '1 csomag kijelölve');
+    assert.equal(await srcList().isChecked(), true);
   }
 });
 
-test('lista: Ctrl+kattintással N lista, a tételek uniója', async () => {
-  await navBtn('Betűk').click();
-  await navBtn('Szótagok').click({ modifiers: ['ControlOrMeta'] });
-  assert.equal(await text('#listName'), '2 lista kijelölve');
+test('csomag: kattintás csak a kattintott csomagot váltja; a tételek uniója csomagonként', async () => {
+  await only('Betűk');
+  await navBtn('Szótagok').click();
+  assert.equal(await text('#navSum'), '2 csomag kijelölve');
   const u = union(['Betűk', 'Szótagok']);
-  assert.equal(await text('#listCount'), `${u.length} különböző tétel`);
-  assert.deepEqual(await chips(), [...LISTS['Betűk'], ...LISTS['Szótagok']]); // listánként csoportosítva
-  // Ctrl+kattintás ki is vesz
-  await navBtn('Betűk').click({ modifiers: ['ControlOrMeta'] });
-  assert.equal(await text('#listName'), 'Szótagok');
+  assert.equal(await text('#listCount'), `${u.length} különböző tétel · 2 csomag`);
+  assert.deepEqual(await chips(), [...LISTS['Betűk'], ...LISTS['Szótagok']]); // csomagonként csoportosítva
+  assert.deepEqual(await page.locator('#listBody h3').allTextContents(), ['Betűk', 'Szótagok']);
+  // újabb kattintás kiveszi
+  await navBtn('Betűk').click();
   assert.deepEqual(await chips(), LISTS['Szótagok']);
+  assert.deepEqual(await pressed(), NAMES.map((n) => String(n === 'Szótagok')));
 });
 
-test('lista: az ismétlődő tétel a felületen egyszer látszik, a számok a különböző tételeké (2.14, S-3)', async () => {
-  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Ismétlő,Másik\r\na,a\r\ne,ma\r\na,\r\ne,\r\no,' }));
+test('csomag: az utolsó is kivehető: üres állapot, az Indítás tiltva, Egyik sem eltűnik', async () => {
+  await only('Szavak');
+  await navBtn('Szavak').click();
+  assert.deepEqual(await pressed(), NAMES.map(() => 'false'));
+  assert.equal(await page.locator('#listEmpty').isVisible(), true);
+  assert.equal(await text('#listEmptyText'), 'Jelölj ki legalább egy csomagot bal oldalt.');
+  assert.equal(await page.locator('#startBtn').isDisabled(), true);
+  assert.equal(await text('#startMsg'), 'Jelölj ki legalább egy csomagot.');
+  assert.equal(await page.locator('#navNone').isVisible(), false);
+  assert.equal(await text('#navSum'), '0 csomag kijelölve');
+  // Egyik sem: mindent kivesz
+  await navBtn('Betűk').click(); await navBtn('Szavak').click();
+  await page.locator('#navNone').click();
+  assert.deepEqual(await pressed(), NAMES.map(() => 'false'));
+});
+
+test('csomag: üresen mentett kijelölés újratöltéskor a táblázat jelölőit kapja (döntés 2026-11-18)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Betűk,Szótagok,Szavak\r\nFALSE,TRUE,FALSE\r\na,ma,alma' }));
   await page.reload();
-  await page.locator('#listNav .nav-item').first().waitFor();
-  await navBtn('Ismétlő').click();
-  assert.equal(await text('#listCount'), '3 tétel');
-  assert.deepEqual(await chips(), ['a', 'e', 'o']);
-  assert.equal(await navBtn('Ismétlő').locator('.nav-count').textContent(), '3');
-  // két lista: listánként a különböző tételek; a fejléc a kijelölés különböző tételeit számolja
-  await navBtn('Másik').click({ modifiers: ['ControlOrMeta'] });
-  assert.equal(await text('#listCount'), '4 különböző tétel');
-  assert.deepEqual(await chips(), ['a', 'e', 'o', 'a', 'ma']);
-  assert.equal(await page.locator('#pickSum').textContent(), '2 lista · 4 tétel');
+  await page.locator('#listNav .nav-item[aria-checked="true"]').first().waitFor();
+  await page.locator('#navNone').click();
+  assert.deepEqual(await pressed(), ['false', 'false', 'false']);
+  // a frissítés (Frissítés gomb) a munkamenetben nem írja felül
+  await page.locator('#refreshBtn').click();
+  await page.waitForFunction(() => !document.getElementById('refreshBtn').disabled);
+  assert.deepEqual(await pressed(), ['false', 'false', 'false']);
+  await page.reload();
+  await page.locator('#listNav .nav-item[aria-checked="true"]').first().waitFor();
+  assert.deepEqual(await pressed(), ['false', 'false', 'true'], 'Betűk, Szavak, Szótagok: a jelölő a Szótagokon');
 });
 
-test('lista: a táblázat második sorának jelölője adja az induló kijelölést, amíg a szülő nem választ (F-L1d)', async () => {
+test('csomag: egérrel végighúzva több csomagot jelöl ki, majd vesz ki (3.1)', async () => {
+  await only('Betűk');
+  const box = async (name) => { const b = await navBtn(name).boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+  const [a, b, c] = [await box(NAMES[0]), await box(NAMES[1]), await box(NAMES[2])];
+  // a 2. sorról indulva (nincs kijelölve) a 3.-ig: mindkettő be
+  await page.mouse.move(b.x, b.y); await page.mouse.down();
+  await page.mouse.move(c.x, c.y, { steps: 4 }); await page.mouse.up();
+  assert.deepEqual(await pressed(), ['true', 'true', 'true']);
+  // az 1. sorról indulva (ki van jelölve) a 3.-ig: mind ki
+  await page.mouse.move(a.x, a.y); await page.mouse.down();
+  await page.mouse.move(c.x, c.y, { steps: 6 }); await page.mouse.up();
+  assert.deepEqual(await pressed(), ['false', 'false', 'false']);
+  // felengedés után a mozgatás már nem jelöl
+  await page.mouse.move(a.x, a.y, { steps: 4 });
+  assert.deepEqual(await pressed(), ['false', 'false', 'false']);
+});
+
+test('csomag: Shift + kattintás tartomány az előző kattintott sortól, a kattintott sor új állapotával', async () => {
+  await only(NAMES[0]);
+  await navBtn(NAMES[2]).click({ modifiers: ['Shift'] });
+  assert.deepEqual(await pressed(), ['true', 'true', 'true']);
+  await navBtn(NAMES[1]).click();                       // ki
+  await navBtn(NAMES[0]).click({ modifiers: ['Shift'] });   // az 1. kivétele: 1–2 ki
+  assert.deepEqual(await pressed(), ['false', 'false', 'true']);
+});
+
+test('csomag: a táblázat második sorának jelölője adja az induló kijelölést, amíg a szülő nem választ (F-L1d)', async () => {
   const sheet = (flags) => 'Betűk,Szótagok,Szavak\r\n' + flags + '\r\na,ma,alma\r\ne,me,körte';
   await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: sheet('FALSE,TRUE,TRUE') }));
   await page.reload();
-  await page.locator('#listNav .nav-item[aria-pressed="true"]').nth(1).waitFor();
+  await page.locator('#listNav .nav-item[aria-checked="true"]').nth(1).waitFor();
   assert.deepEqual(await pressed(), ['false', 'true', 'true']);
   assert.deepEqual(await chips(), ['alma', 'körte', 'ma', 'me'], 'a jelölő nem tétel (névsorban: Szavak, Szótagok)');
   // a szülő még nem választott: a táblázat változását követi
   await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: sheet('TRUE,FALSE,FALSE') }));
   await page.reload();
-  await page.waitForFunction(() => document.querySelector('#listNav .nav-item')?.getAttribute('aria-pressed') === 'true'
-    && document.querySelectorAll('#listNav .nav-item[aria-pressed="true"]').length === 1);
+  await page.waitForFunction(() => document.querySelector('#listNav .nav-item')?.getAttribute('aria-checked') === 'true'
+    && document.querySelectorAll('#listNav .nav-item[aria-checked="true"]').length === 1);
   assert.deepEqual(await pressed(), ['true', 'false', 'false']);
   // a szülő választása után már az övé marad
-  await navBtn('Szavak').click();
+  await only('Szavak');
   await page.reload();
   await page.locator('#listNav .nav-item').first().waitFor();
   await page.waitForTimeout(300);
   assert.deepEqual(await pressed(), ['false', 'true', 'false'], 'Betűk, Szavak, Szótagok');
 });
 
-test('lista: a mentett „Összes lista” listanevek nélkül is választás, nem a táblázat jelölője dönt (F-L1d)', async () => {
+test('csomag: a mentett „Összes csomag” csomagnevek nélkül is választás, nem a táblázat jelölője dönt (F-L1d)', async () => {
   await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Betűk,Szótagok,Szavak\r\nTRUE,FALSE,FALSE\r\na,ma,alma' }));
   await page.evaluate(() => localStorage.setItem('olvasoka-dev', JSON.stringify({ v: 4, hideHelp: true, settings: { source: 'all' } })));
   await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#listNav .nav-item[aria-pressed="true"]').length === 3);
+  await page.waitForFunction(() => document.querySelectorAll('#listNav .nav-item[aria-checked="true"]').length === 3);
   assert.deepEqual(await pressed(), ['true', 'true', 'true']);
+  assert.equal(await srcAll().isChecked(), true);
 });
 
-test('lista: „Összes lista” minden listát kijelöl; egy listára kattintva vissza „Kijelölt listák”', async () => {
-  await navBtn('Betűk').click();
-  await page.locator('#srcAll').check();
+test('csomag: Összes csomag mindet mutatja; egy kivétele Kijelöltre vált, a többi kijelölve marad (3.1)', async () => {
+  await only('Betűk');
+  await srcAll().check();
   assert.deepEqual(await pressed(), NAMES.map(() => 'true'));
-  assert.equal(await text('#listName'), `${NAMES.length} lista kijelölve`);
-  assert.equal(await text('#listCount'), `${union(NAMES).length} különböző tétel`);
+  assert.equal(await text('#navSum'), `Mind a ${NAMES.length} csomag`);
+  assert.equal(await page.locator('#navNone').isVisible(), false);
+  assert.equal(await text('#listCount'), `${union(NAMES).length} különböző tétel · ${NAMES.length} csomag`);
   assert.deepEqual(await chips(), NAMES.flatMap((n) => LISTS[n]));
+  assert.equal(await page.locator('#sidebar.all').count(), 1, 'Összesnél szürke');
   await navBtn('Szavak').click();
-  assert.equal(await page.locator('#srcList').isChecked(), true);
-  assert.deepEqual(await chips(), LISTS['Szavak']);
+  assert.equal(await srcList().isChecked(), true);
+  assert.deepEqual(await pressed(), NAMES.map((n) => String(n !== 'Szavak')));
+  assert.equal(await page.locator('#sidebar.all').count(), 0);
+});
+
+test('csomag: Kijelöltre visszaváltva a legutóbbi saját kijelölés jön vissza, újratöltés után is', async () => {
+  await only('Szótagok');
+  await srcAll().check();
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#listNav .nav-item[aria-checked="true"]').length === 3);
+  await srcList().check();
+  assert.deepEqual(await pressed(), NAMES.map((n) => String(n === 'Szótagok')));
+  assert.deepEqual(await chips(), LISTS['Szótagok']);
+});
+
+test('csomag: a kör az Összes csomagból húz, a kijelöléstől függetlenül', async () => {
+  await only('Szavak');
+  await srcAll().check();
+  await page.locator('#gap0').check();
+  await setFlash(0);
+  await setCount(50);
+  await page.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await page.locator('#startBtn').click();
+  await page.locator('#stage').waitFor({ state: 'visible' });
+  const seen = new Set();
+  for (let i = 0; i < 14; i++) { seen.add(await item()); await page.keyboard.press('Space'); await page.waitForTimeout(30); }
+  assert.ok([...seen].some((t) => !LISTS['Szavak'].includes(t)), `más csomag tétele is jön: ${[...seen]}`);
+});
+
+test('csomag: az ismétlődő tétel a felületen egyszer látszik, a számok a különböző tételeké (2.14, S-3)', async () => {
+  await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Ismétlő,Másik\r\na,a\r\ne,ma\r\na,\r\ne,\r\no,' }));
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  await only('Ismétlő');
+  assert.equal(await text('#listCount'), '3 különböző tétel · 1 csomag');
+  assert.deepEqual(await chips(), ['a', 'e', 'o']);
+  assert.equal(await navBtn('Ismétlő').locator('.nav-count').textContent(), '3');
+  // két csomag: csomagonként a különböző tételek; a fejléc a kijelölés különböző tételeit számolja
+  await navBtn('Másik').click();
+  assert.equal(await text('#listCount'), '4 különböző tétel · 2 csomag');
+  assert.deepEqual(await chips(), ['a', 'e', 'o', 'a', 'ma']);
+  assert.equal(await page.locator('#pickSum').textContent(), '2 csomag · 4 tétel');
 });
 
 /* ---------- időzítő ---------- */
 test('felvillanás: 0 (kézi), 25 mp és köztes érték; újratöltés után megmarad', async () => {
-  await navBtn('Betűk').click();
+  await only('Betűk');
   await page.locator('#gap0').check();
   await setCount(10);
   // 10 tétel, 0 szünet: a becslés = 10 × felvillanás
@@ -292,7 +387,7 @@ test('Esc gyakorlásból a szülői nézetbe visz, a kijelölés megmarad', asyn
   await page.keyboard.press('Escape');
   await page.locator('#admin').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#stage').isHidden(), true);
-  assert.equal(await text('#listName'), 'Szavak');
+  assert.deepEqual(await pressed(), NAMES.map((n) => String(n === 'Szavak')));
   assert.equal(await page.locator('#startBtn').isEnabled(), true);
 });
 
@@ -555,7 +650,7 @@ const marked = () => cards().evaluateAll((cs) => cs.map((c) => c.getAttribute('a
 const findTask = () => page.evaluate(() => +(document.getElementById('findGrid').getAttribute('aria-label').match(/^(\d+)\./) || [0, 0])[1]);
 
 async function startFind({ list = 'Szótagok', tasks = 3, cards: n = 4, level } = {}) {
-  await navBtn(list).click();
+  await only(list);
   await page.locator('#tabFind').click();
   await page.locator(`label:has(#cards${n})`).click();
   await page.locator('#tasksIn').fill(String(tasks));
@@ -587,7 +682,7 @@ test('Keresd meg!: alapértékek, becslés, a beállítások megmaradnak (30.)',
 });
 
 test('Keresd meg!: minta a kör tételeiből, „Másik minta” frissíti', async () => {
-  await navBtn('Szótagok').click();
+  await only('Szótagok');
   await page.locator('#tabFind').click();
   await page.waitForSelector('#sample .sample-card');
   const s = await page.locator('#sample .sample-card').allTextContents();
@@ -732,18 +827,22 @@ test('Keresd meg! minta: 320 px-en, 8 kártyás beállítással, háromszótagú
 });
 
 /* ---------- robusztusság ---------- */
-test('akadálymentesség: billentyűzettel kijelölt lista gombján marad a fókusz (az elem nem cserélődik)', async () => {
+test('akadálymentesség: billentyűzettel (Tab, Szóköz) vált a csomag pipája, a fókusz a gombon marad', async () => {
+  await page.locator('#navNone').click();
   const btn = navBtn('Betűk');
+  assert.equal(await btn.getAttribute('role'), 'checkbox');
   await btn.focus();
   const before = await btn.elementHandle();
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
   assert.deepEqual(await pressed(), NAMES.map((n) => String(n === 'Betűk')));
   assert.equal(await before.evaluate((b) => b.isConnected && document.activeElement === b), true, 'a fókusz elveszett');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Space');
   const name = await page.evaluate(() => document.activeElement.textContent);
-  assert.ok(name.startsWith(NAMES[1]), `a fókusz nem a következő listán van: ${name}`);
-  assert.deepEqual(await pressed(), NAMES.map((n, i) => String(i === 1)));
+  assert.ok(name.includes(NAMES[1]), `a fókusz nem a következő csomagon van: ${name}`);
+  assert.deepEqual(await pressed(), NAMES.map((n, i) => String(i < 2)), 'a második is be, az első marad');
+  await page.keyboard.press('Space');
+  assert.deepEqual(await pressed(), NAMES.map((n, i) => String(i === 0)), 'újra Szóköz: ki');
 });
 
 test('tárolás: ha egy későbbi mentés bukik (betelt tárhely), a figyelmeztetés megjelenik (F-S4)', async () => {
@@ -952,7 +1051,7 @@ test('Haladás: tiltott localStorage mellett a gyakorlás hibátlanul működik'
   // tároló nélkül az üdvözlő ablak minden indításkor megjelenik; az Esc kihagyja
   await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
   await p.keyboard.press('Escape');
-  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await only('Szótagok', p);
   await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
   await p.locator('#startBtn').click();
   await p.locator('#stage').waitFor({ state: 'visible' });
@@ -992,7 +1091,7 @@ async function progressPage({ skip = false, seed = null } = {}) {
 
 /** Egy kézi Felolvasás kör a Szótagok listán; `pauseOn`: ezeken a pozíciókon a P kétszer (megállítás, folytatás). */
 async function readRound(p, { count, pauseOn = [] }) {
-  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await only('Szótagok', p);
   await p.locator('#gap0').check();
   await p.locator('#flashIn').focus();
   await p.locator('#flashIn').press('Home');
@@ -1106,7 +1205,7 @@ test('Haladás: újratöltés után is oda visz vissza, ahonnan a tételt megnyi
 
 test('Haladás: gyakorlás közben nem érhető el', async () => {
   const { c, p } = await progressPage();
-  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await only('Szótagok', p);
   await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
   await p.locator('#startBtn').click();
   await p.locator('#stage').waitFor({ state: 'visible' });
@@ -1203,8 +1302,8 @@ test('üdvözlő ablak: üres tárolóval megjelenik; szöveg, fókusz a fő gom
   await p.locator('#dlgWelcome').waitFor({ state: 'visible' });
   assert.equal(await bubbleShown(p), false, 'a bemutató még nem fut');
   assert.equal(await p.textContent('#welcomeH'), 'Szia! Ez az Olvasóka.');
-  assert.equal(await p.textContent('#welcomeText'), 'Közös olvasásgyakorlás a könyv mellé: a gyerek olvas, te figyelsz.');
-  assert.equal(await p.textContent('#welcomeTour'), 'Mutasd meg (30 mp)');
+  assert.equal(await p.textContent('#welcomeText'), 'Olvasásgyakorlás elsősöknek, együtt a szülővel, ahol ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz.');
+  assert.equal(await p.textContent('#welcomeTour'), 'Mutasd meg 30 mp-ben');
   assert.equal(await p.textContent('#welcomeSkip'), 'Kihagyom, kezdjük');
   assert.equal(await p.textContent('.welcome-note'), 'Nincs regisztráció, azonnal kezdhetitek.');
   assert.equal(await p.evaluate(() => document.activeElement.id), 'welcomeTour');
@@ -1251,18 +1350,18 @@ for (const [how, act] of [
   });
 }
 
-test('bemutató: üres tárolóval az 1. lépés jelenik meg; a kiemelt lista kattintható, a sötétítés nem zár', async () => {
+test('bemutató: üres tárolóval az 1. lépés jelenik meg; a kiemelt csomagsor kattintható, a sötétítés nem zár', async () => {
   const { c, p, errors } = await tourPage();
   await viaWelcome(p);
   assert.equal(await tourStepOf(p), 'Első lépések · 1/4');
-  assert.equal(await p.textContent('#tourTitle'), 'Válassz listát');
+  assert.equal(await p.textContent('#tourTitle'), 'Válassz kártyacsomagot');
   assert.equal(await p.getAttribute('.tour-bubble', 'role'), 'dialog');
   assert.equal(await p.getAttribute('.tour-dots', 'aria-label'), '1. lépés a 4-ből');
   assert.equal(await p.evaluate(() => document.activeElement.id), 'tourTitle', 'a fókusz a címen');
-  assert.match(await p.textContent('#tourText'), /Többet is kijelölhetsz Ctrl \+ kattintással\./);
+  assert.match(await p.textContent('#tourText'), /Egérrel végighúzva többet is kijelölhetsz\./);
   // a célelem a bemutató közben is használható
-  await p.locator('#listNav .nav-item', { hasText: 'Szavak' }).click();
-  assert.equal(await p.getAttribute('#listNav .nav-item:has-text("Szavak")', 'aria-pressed'), 'true');
+  await navBtn('Szavak', p).click();
+  assert.equal(await p.getAttribute('#listNav .nav-item:has-text("Szavak")', 'aria-checked'), 'true');
   assert.equal(await tourStepOf(p), 'Első lépések · 1/4', 'a lépés marad');
   // a sötétítésre kattintás semmit nem csinál
   await p.mouse.click(640, 780);
@@ -1431,7 +1530,7 @@ test('bemutató: a Tab a buborék gombjai és a célelem között jár körbe', 
 test('bemutató: a játék indítása bármelyik lépésben = Kész, és a játék indul', async () => {
   const { c, p } = await tourPage();
   await viaWelcome(p);
-  await p.locator('#listNav .nav-item', { hasText: 'Szótagok' }).click();
+  await navBtn('Szótagok', p).click();           // a kiemelt csomagsor kattintható (hozzáad)
   await p.click('#tourNext');                    // 2. lépés
   await p.keyboard.press('Control+Enter');
   await p.locator('#stage').waitFor({ state: 'visible' });
@@ -1444,7 +1543,7 @@ test('bemutató: a játék indítása bármelyik lépésben = Kész, és a ját�
 test('bemutató: a 4. lépésben az Indítás gombra kattintás = Kész', async () => {
   const { c, p } = await tourPage();
   await viaWelcome(p);
-  await p.locator('#listNav .nav-item', { hasText: 'Betűk' }).click();
+  await navBtn('Szótagok', p).click();
   for (let i = 0; i < 3; i++) await p.click('#tourNext');
   await p.click('#startBtn');
   await p.locator('#stage').waitFor({ state: 'visible' });
@@ -1470,10 +1569,10 @@ test('bemutató: a 3. lépésből a Haladás nézet, visszatérve a 4. lépés',
   await c.close();
 });
 
-test('bemutató telefonon: a listalap alatt rejtve, az Esc csak a lapot zárja, utána ugyanaz a lépés', async () => {
+test('bemutató telefonon: a csomaglap alatt rejtve, az Esc csak a lapot zárja, utána ugyanaz a lépés', async () => {
   const { c, p } = await tourPage({ viewport: { width: 390, height: 844 }, touch: true });
   await viaWelcome(p);
-  assert.match(await p.textContent('#tourText'), /^Koppints ide, és pipáld be a listákat\./);
+  assert.match(await p.textContent('#tourText'), /^Koppints ide, és pipáld be a csomagokat\./);
   await p.tap('#listsBtn');
   await p.locator('#dlgLists').waitFor({ state: 'visible' });
   await p.locator('.tour-bubble').waitFor({ state: 'hidden', timeout: 2000 });   // a következő képkockán rejtőzik
@@ -1486,14 +1585,15 @@ test('bemutató telefonon: a listalap alatt rejtve, az Esc csak a lapot zárja, 
   await c.close();
 });
 
-test('bemutató: Macen ⌘ a szövegben', async () => {
+test('bemutató: az 1. lépésben nincs módosító billentyű (Macen sem), csak a végighúzás', async () => {
   const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1280, height: 800 } });
   await c.addInitScript(() => Object.defineProperty(Navigator.prototype, 'platform', { get: () => 'MacIntel' }));
   await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: FIXTURE }));
   const p = await c.newPage();
   await p.goto(base);
   await viaWelcome(p);
-  assert.equal(await p.textContent('#tourText kbd'), '⌘');
+  assert.equal(await p.locator('#tourText kbd').count(), 0);
+  assert.equal(await p.textContent('#tourText'), 'Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban.');
   await c.close();
 });
 
@@ -1584,7 +1684,7 @@ test('mondat (M-9): csak mondatos listánál a Keresd meg! saját üzenetet muta
   await ctx.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: 'Mondatok\r\na ló húz.\r\na fa nő.\r\na ló fut.' }));
   await page.reload();
   await page.locator('#listNav .nav-item').first().waitFor();
-  await navBtn('Mondatok').click();
+  await only('Mondatok');
   await page.locator('#tabFind').click();
   await page.waitForFunction(() => document.getElementById('startMsg').textContent);
   assert.equal(await text('#startMsg'), 'A Keresd meg!-ben mondatok nem szerepelnek. Válassz betűt, szótagot vagy szót is.');

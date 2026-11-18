@@ -27,10 +27,10 @@ const tabbable = (n) => n.matches(TABBABLE) && !n.disabled && n.tabIndex >= 0 &&
 
 /**
  * el: a main.js elem-proxyja (#admin, #haladas, #helpBtn és a célelemek).
- * opts.mod: '⌘' vagy 'Ctrl'; opts.minDays(): a haladas.json min_nap értéke;
+ * opts.minDays(): a haladas.json min_nap értéke;
  * opts.onEnd(how): 'done' | 'skipped' – a tárolás a hívóé.
  */
-export function createTour(el, { mod = 'Ctrl', minDays = () => 3, onEnd = () => {} } = {}) {
+export function createTour(el, { minDays = () => 3, onEnd = () => {} } = {}) {
   let step = 0;                 // 0: nem fut
   let visible = false;          // a rétegek látszanak-e (alsó lap, Haladás nézet alatt nem)
   let targetId = null, target = null;
@@ -77,7 +77,7 @@ export function createTour(el, { mod = 'Ctrl', minDays = () => 3, onEnd = () => 
   const blocked = () => el.admin.hidden || !el.haladas.hidden || Boolean(document.querySelector('dialog[open]'));
 
   function render() {
-    const c = stepContent(step, { target: targetId, touch: TOUCH.matches, mod, minDays: minDays() });
+    const c = stepContent(step, { target: targetId, touch: TOUCH.matches, minDays: minDays() });
     eyebrow.textContent = c.eyebrow;
     title.textContent = c.title;
     text.replaceChildren(...c.lines.flatMap((line, i) => [

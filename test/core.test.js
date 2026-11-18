@@ -30,10 +30,10 @@ test('lists.txt: értelmezés', () => {
   ].join('\r\n'));
   assert.deepEqual(r.lists, [{ name: 'Első', items: ['a', 'a', 'b', 'c', 'd'] }, { name: 'Üres', items: [] }]);
   assert.equal(r.problems.length, 4);
-  assert.match(r.problems[0], /^Az 1\. sor az első lista neve előtt áll/);
+  assert.match(r.problems[0], /^Az 1\. sor az első csomag neve előtt áll/);
   assert.match(r.problems[1], /9\. sor.*túl hosszú/);
   assert.match(r.problems[2], /már szerepel/);
-  assert.match(r.problems[3], /hiányzik a lista neve/);
+  assert.match(r.problems[3], /hiányzik a csomag neve/);
   assert.equal(parseListsText('o\u030B\n').lists.length, 0, 'fejléc nélkül nincs lista');
   assert.equal(parseListsText('# A\no\u030B').lists[0].items[0], 'ő', 'NFC');
   assert.equal(parseListsText('\uFEFF# A\na').lists[0].name, 'A', 'BOM');

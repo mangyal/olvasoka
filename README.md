@@ -1,6 +1,7 @@
 # Olvasóka
 
-Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak. A szülő kiválaszt egy listát, a program
+Olvasásgyakorló elsősöknek és szüleiknek. Betűk, szótagok és szavak, regisztráció nélkül. A szülő kiválaszt
+egy vagy több kártyacsomagot (a táblázatban és a kódban: lista), a program
 egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör végén a gyerek jutalomjátékot választ: lufipukkasztás vagy panda-ugrálás.
 Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
 
@@ -19,7 +20,7 @@ A második sorba igaz/hamis érték (pl. jelölőnégyzet) kerülhet: az igaz li
 még nem választott listát (pl. linkként kapta a programot). Ha a második sorban más áll, az rendes tétel.
 
 Ha a táblázat nem érhető el, a program a repó [`lists.txt`](lists.txt) fájlját használja tartalékként, és a
-listák alatt halványan jelzi: „Tartaléklisták láthatók (a táblázat nem elérhető)”. A `lists.txt` nem frissül magától a táblázatból.
+listák alatt halványan jelzi: „Tartalékcsomagok láthatók (a táblázat nem elérhető)”. A `lists.txt` nem frissül magától a táblázatból.
 
 ### A `lists.txt` (tartalék)
 
@@ -205,7 +206,7 @@ variables → Actions → *Variables* fül → *New repository variable*.
 | Változó | Mire való | Ha nincs beállítva |
 |---|---|---|
 | `PROD_SHEET_CSV_URL` | az éles táblázat „Közzététel az interneten” CSV címe (`…/pub?output=csv`) | a `js/core/config.js` alapértéke |
-| `PROD_SHEET_EDIT_URL` | az éles táblázat szerkesztő címe („Listák szerkesztése” link) | a `js/core/config.js` alapértéke |
+| `PROD_SHEET_EDIT_URL` | az éles táblázat szerkesztő címe (a felületen már nincs rá link, 2026-11-18) | a `js/core/config.js` alapértéke |
 | `DEV_SHEET_CSV_URL` | a dev táblázat CSV címe | az éles cím |
 | `DEV_SHEET_EDIT_URL` | a dev táblázat szerkesztő címe | az éles cím |
 | `DEV_PROGRESS_SKIP_DAY_RULES` | `true`: a Haladás nézet napszabálya (`min_nap`) kimarad (teszteléshez: napvárás nélkül besorol, de a `min_alkalom` alkalomszám ilyenkor is kell) | kikapcsolva |

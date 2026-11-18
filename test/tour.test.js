@@ -89,7 +89,7 @@ test('pickTarget: az első látható a #listNav, #listChecks, #listsBtn sorból'
 
 /* ---------- szövegek (2.) ---------- */
 test('stepContent: felirat, cím, gomb és haladásjelző lépésenként', () => {
-  const titles = ['Válassz listát', 'Válassz játékot', 'Itt látod a haladást', 'Kezdődhet a közös olvasás'];
+  const titles = ['Válassz kártyacsomagot', 'Válassz játékot', 'Itt látod a haladást', 'Kezdődhet a közös olvasás'];
   for (let n = 1; n <= TOUR_STEPS; n++) {
     const c = stepContent(n);
     assert.equal(c.eyebrow, `Első lépések · ${n}/4`);
@@ -100,16 +100,15 @@ test('stepContent: felirat, cím, gomb és haladásjelző lépésenként', () =>
   assert.throws(() => stepContent(5), RangeError);
 });
 
-test('stepContent: az 1. lépés a célelem és az eszköz szerint', () => {
-  const C = 'A játékban csak a kijelölt listák tételei jönnek elő.';
+test('stepContent: az 1. lépés a célelem és az eszköz szerint (docs/kartyacsomagok-specifikacio.md, 5.)', () => {
   const s = (o) => plainText(stepContent(1, o).lines);
-  assert.equal(s({ target: 'listNav', touch: false, mod: 'Ctrl' }), `Kattints egy listára. ${C} Többet is kijelölhetsz Ctrl + kattintással.`);
-  assert.equal(s({ target: 'listNav', touch: false, mod: '⌘' }), `Kattints egy listára. ${C} Többet is kijelölhetsz ⌘ + kattintással.`);
-  assert.equal(s({ target: 'listNav', touch: true, mod: '⌘' }), `Koppints egy listára. ${C}`);
-  assert.equal(s({ target: 'listChecks', touch: true }), `Pipáld be a listákat, amelyekből gyakoroltok. ${C}`);
-  assert.equal(s({ target: 'listsBtn', touch: true }), `Koppints ide, és pipáld be a listákat. ${C}`);
-  // a módosító billentyű <kbd>-ként
-  assert.ok(stepContent(1, { target: 'listNav', mod: '⌘' }).lines[0].some((p) => p.kbd === '⌘'));
+  assert.equal(s({ target: 'listNav', touch: false }), 'Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban.');
+  assert.equal(s({ target: 'listNav', touch: true }), 'Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban.');
+  assert.equal(s({ target: 'listChecks', touch: true }), 'Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő.');
+  assert.equal(s({ target: 'listsBtn', touch: true }), 'Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban.');
+  // a módosító billentyű + kattintás szövegrész megszűnt
+  for (const touch of [false, true]) assert.ok(!stepContent(1, { target: 'listNav', touch }).lines.flat().some((p) => p.kbd), 'nincs <kbd>');
+  assert.doesNotMatch(s({ target: 'listNav' }), /lista|Ctrl|⌘/);
 });
 
 test('stepContent: a 2. lépés három sora, félkövér játéknevekkel', () => {
