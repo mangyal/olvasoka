@@ -214,10 +214,10 @@ Az automatikus indításkor (4.1) a bemutató előtt egy kis, középre igazíto
 | Elem | Szöveg |
 |---|---|
 | Cím | Szia! Ez az Olvasóka. |
-| Szöveg | Olvasásgyakorlás elsősöknek, együtt a szülővel, ahol ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz. |
+| Szöveg | Olvasásgyakorlás elsősöknek a Meixner-módszer alapján, együtt a szülővel. Ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz. |
 | Fő gomb (teljes szélesség) | Mutasd meg 30 mp-ben |
 
-A szöveget és a fő gombot a docs/kartyacsomagok-specifikacio.md 6. pontja írta felül (2026-11-18).
+A szöveget és a fő gombot a docs/kartyacsomagok-specifikacio.md 6. pontja írta felül (2026-11-18). Ugyanaznap a szöveg a Meixner-módszerre utalással bővült, az „ahol” mondat két mondatra vált.
 | Másodlagos (szöveges gomb alatta) | Kihagyom, kezdjük |
 | Apró betű a gombok alatt | Nincs regisztráció, azonnal kezdhetitek. |
 
