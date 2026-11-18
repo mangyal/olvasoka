@@ -47,6 +47,7 @@ test('szövegek: meta leírás mindhárom helyen, „Hangtalan” nélkül', () 
     const meta = f === 'index.html' ? /<meta name="description"[^>]*>/.exec(read(f))[0] : read(f);
     assert.doesNotMatch(meta, /Hangtalan/, f);
   }
+  assert.doesNotMatch(html, /Hangtalan/, 'a Súgó bevezetőjében sincs');
 });
 
 test('szövegek: üdvözlő ablak és Adatvédelem (6.)', () => {
