@@ -113,7 +113,9 @@ export function createTour(el, { minDays = () => 3, onEnd = () => {} } = {}) {
     const size = { w: bubble.offsetWidth, h: bubble.offsetHeight };
     let p;
     if (target) {
-      const hole = grow(target.getBoundingClientRect(), 6);
+      // a gyűrű az ablakon belül marad (pl. a teljes magasságú csomagoszlopnál, 1. lépés)
+      const g = grow(target.getBoundingClientRect(), 6);
+      const hole = { left: Math.max(2, g.left), top: Math.max(2, g.top), right: Math.min(view.w - 2, g.right), bottom: Math.min(view.h - 2, g.bottom) };
       const radius = Math.max(8, (parseFloat(getComputedStyle(target).borderTopLeftRadius) || 0) + 6);
       scrim.style.clipPath = holePath(view, hole, radius);
       Object.assign(ring.style, {

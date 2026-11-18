@@ -31,7 +31,7 @@ kbd{font:12px/1.4 var(--f-ui);border:1px solid var(--line);border-bottom-width:2
 
 .work{display:grid;grid-template-columns:300px minmax(0,1fr) var(--panel-w);min-height:0}
 /* a három oszlop címe (docs/kartyacsomagok-specifikacio.md, 3.): azonos stílus, egy vonalban (mindhárom oszlop 20 px-ről indul) */
-h2.col-title,.ed-head h2.col-title{margin:0;font-size:20px;line-height:28px;font-weight:650;color:var(--ink);text-wrap:balance}
+h2.col-title,.ed-head h2.col-title{margin:0;font-size:18px;line-height:26px;font-weight:600;color:var(--ink);text-wrap:balance}
 /* Kártyacsomagok (3.1) */
 .sidebar{border-right:1px solid var(--line);overflow:auto;padding:20px 16px 20px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
 .src-switch{border-color:var(--accent)}
@@ -363,7 +363,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .lists-btn{display:flex}
   /* telefon (4.1): cím, csomag gomb, „csak ezek” mondat, előnézet; alatta a frissítés sora, majd a Játékok */
   .picker-title{display:block;margin-bottom:10px}
-  h2.col-title{font-size:17px;line-height:24px}
+  h2.col-title{font-size:16px;line-height:22px}
   .phone-preview{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}
   .editor{order:2}
   .panel{order:3}
@@ -410,7 +410,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   /* bal oszlop (4.3): Kártyacsomagok cím, csomag gomb, „csak ezek” mondat, előnézet (legfeljebb 3 sor) */
   .picker{display:flex;flex-direction:column;grid-column:1;grid-row:3/-1;padding:4px 0 12px;order:0;min-height:0;overflow-y:auto}
   .picker-title{display:block;margin-bottom:8px}
-  h2.col-title{font-size:17px;line-height:24px}
+  h2.col-title{font-size:16px;line-height:22px}
   .narrow-pick{display:none}
   .lists-btn{display:flex}
   .phone-preview{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:10px}
@@ -511,10 +511,10 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 /* Kártyák: a címke balra, a szegmens jobbra (E4) */
 .seg-cards{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .seg-cards legend{float:left;padding:0;font-size:14px;color:var(--ink)}
-.seg-cards .seg-opts{width:168px;flex:none}
+.seg-cards .seg-opts{width:150px;flex:none}
+.seg-cards legend{white-space:nowrap}
 .seg-opts label.off span{color:var(--ink-2);background:var(--paper-2);cursor:not-allowed}
 .seg-opts label.off input{cursor:not-allowed}
-.ctl-tasks label{font-size:15px;font-weight:600}
 .ctl-level{display:flex;flex-direction:column;gap:6px}
 .ctl-level input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
 .level-ends{display:flex;justify-content:space-between;padding:0 2px}
@@ -550,7 +550,6 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .settings-find .seg-cards legend{float:none;padding:0 0 6px;font-size:13px;color:var(--ink-2)}
   .settings-find .seg-cards .seg-opts{width:auto}
   .settings-find .ctl-tasks,.settings-find .ctl-level,.settings-find .ctl-sample{grid-column:1/-1;grid-row:auto}
-  .ctl-tasks label{font-size:16px}
   .info-box p{font-size:14px}
 }
 @media (max-width:600px){
