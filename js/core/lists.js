@@ -45,7 +45,7 @@ function createBuilder() {
       cur = null;
       if (!name) { problems.push(`${at}: ${emptyMsg}`); return; }
       const k = nameKey(name);
-      if (names.has(k)) { problems.push(`${at}: a „${name}” lista már szerepel, a második kimaradt.`); return; }
+      if (names.has(k)) { problems.push(`${at}: a „${name}” csomag már szerepel, a második kimaradt.`); return; }
       names.add(k);
       cur = { name, items: [] };
       lists.push(cur);
@@ -98,7 +98,7 @@ export function parseListsText(text) {
     if (!t) return;
     if (t.startsWith('#')) {
       started = true;
-      b.header(t.replace(/^#+/, '').trim(), lineAt(line), 'a # után hiányzik a lista neve, a lista kimaradt.');
+      b.header(t.replace(/^#+/, '').trim(), lineAt(line), 'a # után hiányzik a csomag neve, a csomag kimaradt.');
       return;
     }
     if (!b.open) { if (!started) orphans.push(line); return; }
@@ -107,9 +107,9 @@ export function parseListsText(text) {
 
   if (orphans.length) {
     const r = orphans.length === 1 ? lineAt(orphans[0]) : `${cap(art(orphans[0]))} ${orphans[0]}–${orphans.at(-1)}. sor`;
-    b.problems.unshift(`${r} az első lista neve előtt áll, ezért kimaradt. Írj elé egy # kezdetű sort a lista nevével.`);
+    b.problems.unshift(`${r} az első csomag neve előtt áll, ezért kimaradt. Írj elé egy # kezdetű sort a csomag nevével.`);
   }
-  if (!b.lists.length) b.problems.push('A lists.txt-ben nincs lista. Egy lista egy # kezdetű sorral indul, pl.: # Magánhangzók');
+  if (!b.lists.length) b.problems.push('A lists.txt-ben nincs csomag. Egy csomag egy # kezdetű sorral indul, pl.: # Magánhangzók');
   return b.done();
 }
 
@@ -145,11 +145,11 @@ export function parseSheetCsv(csv) {
     const cells = [];
     for (let r = flag === null ? 1 : 2; r < rows.length; r++) if (rows[r][c]) cells.push(r);
     if (!name && !cells.length) continue;
-    b.header(name, cellAt(c, 0), 'üres, ezért az oszlop kimaradt. Írd be ide a lista nevét.');
+    b.header(name, cellAt(c, 0), 'üres, ezért az oszlop kimaradt. Írd be ide a csomag nevét.');
     if (flag && b.open) preset.push(name);
     for (const r of cells) b.items(rows[r][c], cellAt(c, r));
   }
 
-  if (!b.lists.length) b.problems.push('A táblázatban nincs lista. Az első sorba kerül a lista neve, alá a tételek, oszloponként.');
+  if (!b.lists.length) b.problems.push('A táblázatban nincs csomag. Az első sorba kerül a csomag neve, alá a tételek, oszloponként.');
   return b.done(preset);
 }

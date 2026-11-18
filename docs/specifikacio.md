@@ -1176,7 +1176,7 @@ számbevitel közben (felugró billentyűzet) sem jelenik meg.
 - **U-A8 Keresd meg! fül** (a tervezői vásznon E4, E5, E7–E10). Leírás: „Te felolvasod az egyiket,
   a gyerek megmutatja a képernyőn.” A Tételek forrása alatt sorrendben:
   1. **Kártyák:** 4 · 6 · 8 szegmens. Telefonon (F-K10) a 8 szürke, `aria-disabled`, a címke
-     „Kártyák · telefonon max. 6”.
+     „Kártyák a képernyőn · telefonon max. 6” (2026-11-18 óta a címke „Kártyák a képernyőn”).
   2. **Feladatok száma:** stepper (1–30), félkövér címkével.
   3. **Nehézség:** 5 lépéses csúszka; fölötte jobbra az aktuális fokozat: 1 „jól megkülönböztethető”,
      2 „inkább eltérő”, 3 „vegyes”, 4 „inkább hasonló”, 5 „nagyon hasonló”; alatta a skála két vége

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Olvasóka</title>
-<meta name="description" content="Hangtalan betű-, szótag- és szógyakorló kisiskolásoknak.">
+<meta name="description" content="Olvasásgyakorló elsősöknek és szüleiknek. Betűk, szótagok és szavak, regisztráció nélkül.">
 <meta name="theme-color" content="#2E6B66">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="img/icons/icon.svg" type="image/svg+xml">
@@ -46,54 +46,81 @@
   <div id="warnings" class="warnings" aria-live="polite"></div>
 
   <main class="work">
-    <nav class="sidebar" aria-label="Listák">
-      <div class="label">Listák</div>
+    <!-- MIT: a kártyacsomagok (docs/kartyacsomagok-specifikacio.md, 3.1); ≥ 900 px -->
+    <nav class="sidebar" id="sidebar" aria-labelledby="packsH">
+      <h2 class="col-title" id="packsH">Kártyacsomagok</h2>
+      <div class="seg-opts src-switch" role="radiogroup" aria-label="Melyik csomagokból?">
+          <label><input type="radio" name="srcNav" value="list"><span>Kijelölt csomagok</span></label>
+          <label><input type="radio" name="srcNav" value="all"><span>Összes csomag</span></label>
+        </div>
+      <div class="pack-sum">
+        <span class="muted num" id="navSum"></span>
+        <button type="button" class="btn-text" id="navNone">Egyik sem</button>
+      </div>
       <ul class="nav" id="listNav"></ul>
-      <p class="nav-hint muted" id="navHint" hidden></p>
+      <p class="nav-hint muted" id="navHint">Tipp: egérrel végighúzva több csomagot is kijelölhetsz egyszerre.</p>
     </nav>
 
-    <!-- keskeny nézet: álló tableten pipálható chipek, mobilon lenyíló sor + alsó lap -->
+    <!-- keskeny nézet (4.): álló tableten pipálható chipek, telefonon csomag gomb + előnézet + alsó lap -->
     <div class="picker pad" id="picker" hidden>
+      <h2 class="col-title picker-title" id="pickerH">Kártyacsomagok</h2>
       <fieldset class="narrow-pick" id="listPick">
-        <legend class="label-sm">Listák</legend>
+        <legend class="label-sm">Kártyacsomagok</legend>
+        <div class="seg-opts src-switch" role="radiogroup" aria-label="Melyik csomagokból?">
+          <label><input type="radio" name="srcPick" value="list"><span>Kijelölt csomagok</span></label>
+          <label><input type="radio" name="srcPick" value="all"><span>Összes csomag</span></label>
+        </div>
         <div class="picks" id="listChecks"></div>
         <span class="muted pick-sum num" id="pickSum"></span>
       </fieldset>
       <button type="button" class="lists-btn" id="listsBtn" aria-haspopup="dialog" aria-controls="dlgLists">
         <span class="lists-btn-text">
-          <span class="lists-btn-label num" id="listsBtnLabel">Listák</span>
+          <span class="lists-btn-label num" id="listsBtnLabel">Kártyacsomagok</span>
           <span class="lists-btn-names" id="listsBtnNames"></span>
         </span>
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
+      <div class="phone-preview" id="phonePreview">
+        <p class="pv-note">A játékban csak ezek a tételek jöhetnek elő, semmi más:</p>
+        <div class="pv-body" id="pvBody" aria-label="A kijelölt csomagok tételei"></div>
+        <button type="button" class="btn-text pv-more" id="pvMore" aria-expanded="false" aria-controls="pvBody"></button>
+      </div>
     </div>
 
-    <section class="editor pad">
+    <!-- előnézet (3.2): a játékban csak ezek a tételek jöhetnek elő -->
+    <section class="editor pad" aria-labelledby="previewH">
       <div class="ed-inner">
-        <div id="listView" class="ed-inner" hidden>
+        <div class="preview-only">
           <div class="ed-head">
-            <h2 id="listName"></h2>
+            <h2 class="col-title" id="previewH">Ezekkel játszotok</h2>
             <span class="muted num" id="listCount"></span>
           </div>
-          <div class="list-body" id="listBody" aria-label="A kijelölt listák tételei"></div>
+          <p class="only-note">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>
+            A játékban csak ezek a tételek jöhetnek elő, semmi más.
+          </p>
+          <!-- fenntartott hely: később ide kerül a betűk / szótagok / szavak szűrő (3.2, 7.) -->
+          <div id="listView" hidden>
+            <div class="list-body" id="listBody" aria-label="A kijelölt csomagok tételei"></div>
+          </div>
+          <div class="empty" id="listEmpty"><p id="listEmptyText">Csomagok töltődnek…</p></div>
         </div>
-        <div class="empty" id="listEmpty"><p id="listEmptyText">Listák töltődnek…</p></div>
 
         <div class="source">
-          <span class="muted" id="sourceInfo" aria-live="polite"></span>
-          <button type="button" class="btn" id="refreshBtn">Frissítés</button>
-          <a id="editLink" class="ext" href="#" target="_blank" rel="noopener">Listák szerkesztése a táblázatban ↗</a>
+          <span id="sourceInfo" aria-live="polite"></span>
+          <button type="button" class="btn-text" id="refreshBtn">Frissítés</button>
         </div>
         <details class="fallback muted" id="fallbackInfo" hidden>
-          <summary>Tartaléklisták láthatók (a táblázat nem elérhető)</summary>
+          <summary>Tartalékcsomagok láthatók (a táblázat nem elérhető)</summary>
           <p id="fallbackWhy"></p>
         </details>
       </div>
     </section>
 
     <!-- ================= JOBB PANEL: játék, beállítások, Indítás ================= -->
-    <aside class="panel" id="panel" aria-label="Játék és beállítások">
+    <aside class="panel" id="panel" aria-labelledby="gamesH">
       <div class="panel-scroll" id="panelScroll">
+        <h2 class="col-title" id="gamesH">Játékok</h2>
         <div class="mode-tabs" role="tablist" aria-label="Játék" id="modeTabs">
           <button type="button" class="mode-tab" role="tab" id="tabRead" aria-selected="true" aria-controls="panelRead" tabindex="0" title="Felolvasás">
             <svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 21v-4h1.6a2.2 2.2 0 0 0 2.2-2.2v-1.9l1.5-.5c.4-.1.5-.5.3-.8L12.3 9A5.6 5.6 0 0 0 1.5 9.8c0 2.3.9 3.6 1.6 4.8.4.7.6 1.5.6 2.3V21"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M19.3 7a7.5 7.5 0 0 1 0 10"/></svg>
@@ -116,13 +143,6 @@
         </div>
 
         <div class="settings" role="tabpanel" id="panelRead" aria-labelledby="tabRead">
-          <fieldset class="seg seg-src">
-            <legend>Tételek</legend>
-            <span class="seg-opts">
-              <label><input type="radio" name="src" value="list" id="srcList"><span>Kijelölt listák</span></label>
-              <label><input type="radio" name="src" value="all" id="srcAll"><span>Összes lista</span></label>
-            </span>
-          </fieldset>
           <div class="ctl ctl-flash">
             <span class="ctl-head"><label for="flashIn">Felvillanás</label><output id="flashOut" for="flashIn" class="num"></output></span>
             <input type="range" id="flashIn" min="0" max="25" step="0.5" aria-describedby="flashHint">
@@ -152,15 +172,8 @@
 
         <!-- Keresd meg! beállítások (spec 3.3a, U-A8) -->
         <div class="settings settings-find" role="tabpanel" id="panelFind" aria-labelledby="tabFind" hidden>
-          <fieldset class="seg seg-src">
-            <legend>Tételek</legend>
-            <span class="seg-opts">
-              <label><input type="radio" name="srcF" value="list" id="srcListF"><span>Kijelölt listák</span></label>
-              <label><input type="radio" name="srcF" value="all" id="srcAllF"><span>Összes lista</span></label>
-            </span>
-          </fieldset>
           <fieldset class="seg seg-cards">
-            <legend id="cardsLegend">Kártyák</legend>
+            <legend id="cardsLegend">Kártyák a képernyőn</legend>
             <span class="seg-opts" id="cardOpts"></span>
           </fieldset>
           <div class="ctl ctl-count ctl-tasks">
@@ -251,21 +264,24 @@
   </div>
 </div>
 
-<!-- mobil: listaválasztó alsó lap -->
+<!-- telefon: csomagválasztó alsó lap (4.1, 4.3) -->
 <dialog class="sheet lists-sheet" id="dlgLists" aria-labelledby="listsH">
   <div class="sheet-body">
     <div class="sheet-grip" aria-hidden="true"></div>
     <div class="ls-head">
-      <h2 id="listsH">Listák</h2>
-      <span class="ls-bulk">
-        <button type="button" class="btn-text" id="listsAll">Mind</button>
-        <button type="button" class="btn-text" id="listsNone">Egyik sem</button>
-      </span>
+      <h2 id="listsH">Kártyacsomagok</h2>
+      <div class="seg-opts src-switch" role="radiogroup" aria-label="Melyik csomagokból?">
+          <label><input type="radio" name="srcSheet" value="list"><span>Kijelölt csomagok</span></label>
+          <label><input type="radio" name="srcSheet" value="all"><span>Összes csomag</span></label>
+        </div>
     </div>
-    <!-- a listák és alattuk a szerkesztő link együtt görgetnek; a fejléc és a Kész mindig látszik -->
+    <div class="pack-sum ls-sum">
+      <span class="muted num" id="listsCount"></span>
+      <button type="button" class="btn-text" id="listsNone">Egyik sem</button>
+    </div>
+    <!-- a csomagok görgetnek; a fejléc és a Kész mindig látszik -->
     <div class="ls-scroll" id="listsScroll">
       <div class="ls-rows" id="listsRows"></div>
-      <a class="ext ls-edit" id="listsEdit" href="#" target="_blank" rel="noopener">Listák szerkesztése a táblázatban ↗</a>
     </div>
     <div class="ls-foot">
       <span class="muted num" id="listsSum"></span>
@@ -309,10 +325,10 @@
 
 <dialog id="dlgHelp" class="dlg-help" aria-labelledby="helpH">
   <h2 id="helpH">Olvasóka</h2>
-  <p>Hangtalan olvasásgyakorló kisiskolásoknak, két játékkal. Felolvasás: a gyerek felolvassa a felvillanó tételt. Keresd meg!: te mondasz egy tételt, a gyerek megkeresi.</p>
+  <p>Olvasásgyakorló elsősöknek és szüleiknek, két játékkal. Felolvasás: a gyerek felolvassa a felvillanó tételt. Keresd meg!: te mondasz egy tételt, a gyerek megkeresi.</p>
   <h3>Így használd</h3>
   <ol class="help-steps">
-    <li><span class="only-keys">Válassz listát bal oldalt. Ctrl/⌘+kattintással többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be, melyik listákból gyakoroltok.</span></li>
+    <li><span class="only-keys">Pipáld be a csomagokat bal oldalt. Egérrel végighúzva többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be a csomagokat, amelyekkel játszotok.</span></li>
     <li><span class="only-wide">A jobb oldali panelen</span><span class="only-narrow">Lent</span> válaszd ki a játékot, és állítsd be a kört: hány tétel legyen, milyen gyors vagy milyen nehéz.</li>
     <li>Üljetek le együtt a képernyő elé, és indítsd el a játékot!</li>
     <li><span class="only-keys">Gyakorlás közben <kbd>Space</kbd> a következő tétel, <kbd>Esc</kbd> kilépés. A többi billentyűt az „Így játsszátok” gomb mutatja.</span><span class="only-touch">Felolvasáskor koppints bárhová a következő tételhez. Lent visszaléphetsz vagy megállhatsz, a bal felső ✕-szel kiléphetsz. Kötőjeles tételnél a szótagra koppintva letakarod, újabb koppintásra előjön.</span></li>
@@ -320,7 +336,7 @@
   </ol>
   <p class="muted help-install">Telepítve teljes képernyőn, internet nélkül is fut. iPhone/iPad: Safari › Megosztás › Főképernyőhöz adás. Android: Chrome › Telepítés.</p>
   <h3 id="helpPrivacyH">Adatvédelem</h3>
-  <p class="help-privacy">A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal és melyik listákból. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.</p>
+  <p class="help-privacy">A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.</p>
   <div class="dlg-actions help-actions">
     <button type="button" class="btn-text help-font" id="fontBtn">Betűteszt</button>
     <button type="button" class="btn btn-secondary" id="tourAgain">Bemutató újra</button>
@@ -333,9 +349,9 @@
   <button type="button" class="welcome-x" id="welcomeX" aria-label="Bezárás">✕</button>
   <img class="welcome-icon" src="img/icons/icon.svg" alt="" width="56" height="56">
   <h2 id="welcomeH">Szia! Ez az Olvasóka.</h2>
-  <p id="welcomeText">Közös olvasásgyakorlás a könyv mellé: a gyerek olvas, te figyelsz.</p>
+  <p id="welcomeText">Olvasásgyakorlás elsősöknek, együtt a szülővel, ahol ti választjátok ki, mit gyakoroltok. A gyerek olvas, te figyelsz.</p>
   <div class="welcome-actions">
-    <button type="button" class="btn btn-primary" id="welcomeTour" autofocus>Mutasd meg (30 mp)</button>
+    <button type="button" class="btn btn-primary" id="welcomeTour" autofocus>Mutasd meg 30 mp-ben</button>
     <button type="button" class="btn-text" id="welcomeSkip">Kihagyom, kezdjük</button>
   </div>
   <p class="muted welcome-note">Nincs regisztráció, azonnal kezdhetitek.</p>

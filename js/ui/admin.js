@@ -1,4 +1,5 @@
-// Szülői felület: a listák csak olvashatók; forrásuk a Google táblázat, tartalékként a repó lists.txt-je.
+// Szülői felület. A kártyacsomagok (a kódban: listák) csak olvashatók; forrásuk a Google táblázat,
+// tartalékként a repó lists.txt-je. Elrendezés: docs/kartyacsomagok-specifikacio.md.
 
 import { GAPS, estimate, fmtNum, CARDS, LEVEL_LABELS, findEstimate, levelToDegree } from '../core/settings.js';
 import { nameKey, distinctItems } from '../core/items.js';
@@ -7,8 +8,6 @@ import { canFind, onlySentences, effectiveCards, PHONE_MAX_CARDS } from '../core
 import { createPool, buildGrid } from '../core/grid.js';
 
 export const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
-// érintős elsődleges mutató: az oldalsávban koppintás = hozzáad/elvesz (Ctrl nélkül)
-const COARSE = matchMedia('(hover:none) and (pointer:coarse)');
 // a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)
 const SHEET = matchMedia('(max-width:899px), (hover:none) and (pointer:coarse), (max-height:500px) and (orientation:landscape)');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
@@ -28,6 +27,7 @@ export function createAdmin(el, app, act) {
   /* ---------- segédek ---------- */
   const isSel = (l) => app.selected.includes(nameKey(l.name));
   const selected = () => app.lists.filter(isSel);
+  const allMode = () => app.settings.source === 'all';
 
   /* A tételek egy rendereléshez többször is kellenek; csak akkor számolódnak újra, ha a listák vagy a
      kijelölés megváltozott (mindkettő cserével változik, helyben soha). A visszaadott tömb nem módosítható.
@@ -70,14 +70,14 @@ export function createAdmin(el, app, act) {
   /** A listák szerkezete (név, különböző tételek száma): ha ez nem változik, a listasáv elemei megmaradnak. */
   const listsKey = () => app.lists.map((l) => l.name + SEP + listItems(l).length).join(SEP2);
 
-  /** Jelölőnégyzetes listasor (keskeny nézet és mobil lap). */
+  /** Jelölőnégyzetes csomagsor (álló tablet és a telefonos lap). */
   function checkRow(l, rowClass, nameClass) {
     const lab = document.createElement('label'); lab.className = rowClass;
     const c = document.createElement('input'); c.type = 'checkbox';
     const name = document.createElement('span'); name.textContent = l.name;
     if (nameClass) name.className = nameClass;
     const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = listItems(l).length;
-    c.addEventListener('change', () => act.select(l.name, { toggle: true }));
+    c.addEventListener('change', () => act.select(l.name));
     lab.append(c, name, cnt); return lab;
   }
   /** A jelölőnégyzetek állapota a kijelölésből (a sorok a listák sorrendjében vannak). */
@@ -92,14 +92,14 @@ export function createAdmin(el, app, act) {
     if (findMode() && app.pairs.state === 'loading') return { enabled: false, label: 'Játék töltődik…' };
     if (!app.lists.length) {
       return app.listsState === 'loading'
-        ? { enabled: false, label: 'Listák töltődnek…' }
-        : { enabled: false, msg: 'Nincs elérhető lista.' };
+        ? { enabled: false, label: 'Csomagok töltődnek…' }
+        : { enabled: false, msg: 'Nincs elérhető csomag.' };
     }
-    const all = app.settings.source === 'all';
+    const all = allMode();
     const k = all ? app.lists.length : selected().length;
     const n = roundItems().length;
     if (!n) {
-      return { enabled: false, msg: all ? 'Egyik listában sincs tétel.' : !k ? 'Jelölj ki legalább egy listát.' : k > 1 ? 'A kijelölt listákban nincs tétel.' : 'A listában nincs tétel.' };
+      return { enabled: false, msg: all ? 'Egyik csomagban sincs tétel.' : !k ? 'Jelölj ki legalább egy csomagot.' : k > 1 ? 'A kijelölt csomagokban nincs tétel.' : 'A csomagban nincs tétel.' };
     }
     // K-5: a Keresd meg!-hez kell egy csoport legalább két különböző tétellel
     // M-9: a mondat nem játszható; ha csak mondat van, ezt mondjuk meg, nem a tételszámot
@@ -108,7 +108,7 @@ export function createAdmin(el, app, act) {
         ? 'A Keresd meg!-ben mondatok nem szerepelnek. Válassz betűt, szótagot vagy szót is.'
         : 'A Keresd meg!-hez legalább két különböző tétel kell.' };
     }
-    // a gomb alatt csak hiba vagy figyelmeztetés (a lista- és tételszámot a fejléc mutatja)
+    // a gomb alatt csak hiba vagy figyelmeztetés (a csomag- és tételszámot az előnézet mutatja)
     const fontWarn = app.font.state === 'failed';
     return { enabled: true, msg: fontWarn ? 'A betűk alakja eltérhet.' : '', warn: fontWarn };
   }
@@ -116,9 +116,9 @@ export function createAdmin(el, app, act) {
   /* ---------- renderelés ---------- */
   function renderWarnings() {
     const w = [];
-    if (!app.storageOK) w.push(['storage', 'A beállításaid nem mentődnek el (pl. privát böngészés), és internet nélkül nem lesz lista.']);
+    if (!app.storageOK) w.push(['storage', 'A beállításaid nem mentődnek el (pl. privát böngészés), és internet nélkül nem lesz csomag.']);
     if (app.font.state === 'failed') w.push(['font', 'Nem töltődött be a gyakorló betűtípus – a gyerek nem a tanult betűalakokat fogja látni.']);
-    if (app.loadError && app.lists.length) w.push(['stale', `${app.loadError} A legutóbb letöltött listák látszanak.`]);
+    if (app.loadError && app.lists.length) w.push(['stale', `${app.loadError} A legutóbb letöltött csomagok látszanak.`]);
     app.problems.forEach((p, i) => w.push(['p' + i + p, p]));
     const shown = w.filter(([id]) => !dismissed.has(id));
     rebuild(el.warnings, shown.map(([id, text]) => id + SEP + text).join(SEP2), () => shown.map(([id, text]) => {
@@ -131,59 +131,83 @@ export function createAdmin(el, app, act) {
     }));
   }
 
+  /** A forráskapcsolók (oldalsáv, álló tablet, telefonos lap) állapota. */
+  function syncSwitches() {
+    for (const r of document.querySelectorAll('.src-switch input')) r.checked = r.value === app.settings.source;
+  }
+
   function renderNav() {
     const lk = listsKey();
+    const all = allMode();
+    syncSwitches();
     rebuild(el.listNav, lk, () => app.lists.map((l) => {
       const li = document.createElement('li');
       const b = document.createElement('button'); b.type = 'button'; b.className = 'nav-item';
-      const name = document.createElement('span'); name.textContent = l.name;
+      b.setAttribute('role', 'checkbox');
+      b.dataset.name = l.name;
+      const box = document.createElement('span'); box.className = 'nav-box'; box.setAttribute('aria-hidden', 'true');
+      box.append(tick());
+      const name = document.createElement('span'); name.className = 'nav-name'; name.textContent = l.name;
       const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = listItems(l).length;
-      b.append(name, cnt);
-      b.addEventListener('click', (e) => {
-        const touch = e.pointerType === 'touch' || e.pointerType === 'pen' || (COARSE.matches && e.pointerType !== 'mouse');
-        act.select(l.name, { toggle: e.ctrlKey || e.metaKey || (touch && !e.shiftKey), range: e.shiftKey });
-      });
+      b.append(box, name, cnt);
       li.append(b); return li;
     }));
     el.listNav.querySelectorAll('.nav-item').forEach((b, k) => {
       const sel = isSel(app.lists[k]);
       b.classList.toggle('sel', sel);
-      b.setAttribute('aria-pressed', String(sel));
+      b.setAttribute('aria-checked', String(sel));
     });
-    el.navHint.textContent = COARSE.matches ? 'Koppintással több listát is kijelölhetsz.'
-      : `${MOD}+kattintás: több lista · Shift+kattintás: tartomány`;
+    el.sidebar.classList.toggle('all', all);
+    const sum = selectionSummary();
+    el.navSum.textContent = sum.head;
+    el.navNone.hidden = all || !sum.k;
     el.navHint.hidden = app.lists.length < 2;
 
-    // keskeny nézet: jelölőnégyzetek (érintőképernyőn nincs Ctrl)
+    // álló tablet: jelölőnégyzetes chipek
     rebuild(el.listChecks, lk, () => app.lists.map((l) => checkRow(l, 'pick')));
     syncChecks(el.listChecks);
+    el.listPick.classList.toggle('all', all);
     el.picker.hidden = !app.lists.length;
-    const sum = selectionSummary();
     el.pickSum.textContent = sum.text;
-    el.listsBtnLabel.textContent = sum.n ? `Listák · ${sum.n} tétel` : 'Listák';
-    el.listsBtnNames.textContent = sum.names || 'Nincs kijelölt lista';
+    // telefon: csomag gomb (4.1)
+    el.listsBtnLabel.textContent = `${all ? 'Összes csomag' : 'Kijelölt csomagok'} · ${sum.n} tétel`;
+    el.listsBtnNames.textContent = all ? `Mind a ${app.lists.length} csomag` : (sum.names || 'Nincs kijelölt csomag');
     if (el.dlgLists.open) renderListsSheet();
   }
 
-  /** A kijelölés összesítője: „2 lista · 38 tétel”, a nevek „·”-tal. */
+  /** A kijelölés összesítője. head: „2 csomag kijelölve” / „Mind a 9 csomag”; text: „2 csomag · 38 tétel”. */
   function selectionSummary() {
     const sel = selected();
     const n = selectedItems().length;
-    const text = sel.length ? `${sel.length} lista · ${n} tétel` : 'Nincs kijelölt lista';
-    return { k: sel.length, n, text, names: sel.map((l) => l.name).join(' · ') };
+    const all = allMode();
+    const head = all ? `Mind a ${app.lists.length} csomag` : `${sel.length} csomag kijelölve`;
+    const text = sel.length ? `${all ? head : `${sel.length} csomag`} · ${n} tétel` : 'Nincs kijelölt csomag';
+    return { k: sel.length, n, head, text, names: sel.map((l) => l.name).join(', ') };
   }
 
-  /* ---------- mobil listaválasztó lap (E11) ---------- */
+  /* ---------- telefonos csomagválasztó lap (4.1) ---------- */
   function renderListsSheet() {
+    syncSwitches();
     rebuild(el.listsRows, listsKey(), () => app.lists.map((l) => checkRow(l, 'ls-row', 'ls-name')));
     syncChecks(el.listsRows);
+    el.listsRows.classList.toggle('all', allMode());
     const sum = selectionSummary();
-    el.listsSum.textContent = sum.k ? `${sum.k} lista · ${sum.n} tétel` : 'Nincs kijelölt lista';
+    el.listsCount.textContent = sum.head;
+    el.listsNone.hidden = allMode() || !sum.k;
+    el.listsSum.textContent = sum.k ? `${sum.n} különböző tétel` : 'Jelölj ki legalább egy csomagot.';
   }
   function openLists() {
     renderListsSheet();
     // a görgetési helyzet megmarad, ha egy pipálás újrarajzolja a sorokat
     el.dlgLists.showModal();
+  }
+
+  const SVG = 'http://www.w3.org/2000/svg';
+  /** A pipa ikon (a sor jelölőnégyzetében). */
+  function tick() {
+    const svg = document.createElementNS(SVG, 'svg'); svg.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS(SVG, 'path'); path.setAttribute('d', 'M5 12.5l4.5 4.5L19 7.5');
+    svg.append(path); return svg;
   }
 
   const chipBox = (items) => {
@@ -193,38 +217,57 @@ export function createAdmin(el, app, act) {
     }));
     return d;
   };
+  /** A kijelölt csomagok tételei csomagonként (asztali előnézet és a kinyitott telefonos előnézet). */
+  const groups = (sel) => sel.map((x) => {
+    const g = document.createElement('section'); g.className = 'group';
+    const h = document.createElement('div'); h.className = 'ed-head';
+    const h3 = document.createElement('h3'); h3.textContent = x.name;
+    const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${listItems(x).length} tétel`;
+    h.append(h3, n);
+    g.append(h, chipBox(listItems(x)));
+    return g;
+  });
 
+  /** Előnézet (3.2): „Ezekkel játszotok”, a kijelölt csomagok tételei csomagonként. */
   function renderList() {
     const sel = selected();
-    const l = sel[0];
-    el.listView.hidden = !l;
-    el.listEmpty.hidden = !!l;
-    if (!l) {
-      el.listEmptyText.textContent = app.listsState === 'loading'
-        ? 'Listák töltődnek…'
-        : (app.loadError || (app.lists.length ? 'Válassz ki egy listát a gyakorláshoz.' : 'Még nincs lista.'));
-      return;
+    el.listView.hidden = !sel.length;
+    el.listEmpty.hidden = !!sel.length;
+    el.listCount.textContent = sel.length ? `${selectedItems().length} különböző tétel · ${sel.length} csomag` : '';
+    if (!sel.length) {
+      const none = app.lists.length && app.listsState !== 'loading';
+      el.listEmpty.classList.toggle('dashed', !!none);
+      el.listEmptyText.textContent = app.listsState === 'loading' && !app.lists.length
+        ? 'Csomagok töltődnek…'
+        : (app.lists.length ? 'Jelölj ki legalább egy csomagot bal oldalt.' : (app.loadError || 'Még nincs csomag.'));
+    } else {
+      // a tétel-kártyák (akár több száz) csak a kijelölt csomagok tartalmának változásakor épülnek újra
+      rebuild(el.listBody, previewKey(sel), () => groups(sel));
     }
-    // a tétel-kártyák (akár több száz) csak a kijelölt listák tartalmának változásakor épülnek újra
-    const key = sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
-    if (sel.length === 1) {
-      el.listName.textContent = l.name;
-      el.listCount.textContent = `${listItems(l).length} tétel`;
-      rebuild(el.listBody, key, () => [chipBox(listItems(l))]);
-      return;
-    }
-    el.listName.textContent = `${sel.length} lista kijelölve`;
-    el.listCount.textContent = `${selectedItems().length} különböző tétel`;
-    rebuild(el.listBody, key, () => sel.map((x) => {
-      const g = document.createElement('section'); g.className = 'group';
-      const h = document.createElement('div'); h.className = 'ed-head';
-      const h3 = document.createElement('h3'); h3.textContent = x.name;
-      const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${listItems(x).length} tétel`;
-      h.append(h3, n);
-      g.append(h, chipBox(listItems(x)));
-      return g;
-    }));
+    renderPhonePreview(sel);
   }
+  const previewKey = (sel) => sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
+
+  /* Telefonos előnézet (4.1): kis kártyák két sorban, a többi levágva; „Mind a {k} tétel megtekintése”
+     helyben kinyitja (csomagonként), „Kevesebb” becsukja. Nem nyitja meg a lapot. */
+  let pvOpen = false;
+  const PV_MAX = 80;                // összecsukva ennyinél több kártya úgysem látszik két sorban
+  function renderPhonePreview(sel = selected()) {
+    const items = selectedItems();
+    el.phonePreview.classList.toggle('open', pvOpen);
+    el.pvMore.hidden = !items.length;
+    el.pvMore.textContent = pvOpen ? 'Kevesebb' : `Mind a ${items.length} tétel megtekintése`;
+    el.pvMore.setAttribute('aria-expanded', String(pvOpen));
+    const key = (pvOpen ? 'o' : 'c') + SEP2 + previewKey(sel);
+    rebuild(el.pvBody, key, () => {
+      if (!items.length) {
+        const p = document.createElement('p'); p.className = 'pv-empty muted'; p.textContent = 'Jelölj ki legalább egy csomagot.';
+        return [p];
+      }
+      return pvOpen ? groups(sel) : [chipBox(items.slice(0, PV_MAX))];
+    });
+  }
+  el.pvMore.addEventListener('click', () => { pvOpen = !pvOpen; renderPhonePreview(); });
 
   function renderSource() {
     const t = app.fetchedAt ? new Date(app.fetchedAt) : null;
@@ -234,11 +277,11 @@ export function createAdmin(el, app, act) {
                : t.toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))
       : '';
     el.sourceInfo.textContent =
-      app.listsState === 'loading' ? 'Listák frissítése…'
+      app.listsState === 'loading' ? 'Csomagok frissítése…'
       : app.listsState === 'ok' ? `Frissítve: ${when}`
       : t ? `Nincs kapcsolat · utoljára frissítve: ${when}` : '';
     el.refreshBtn.disabled = app.listsState === 'loading';
-    // F-L13: diszkrét jelzés, ha a listák a tartalék lists.txt-ből jöttek
+    // F-L13: diszkrét jelzés, ha a csomagok a tartalék lists.txt-ből jöttek
     const fb = app.kind === 'txt';
     el.fallbackInfo.hidden = !fb;
     if (fb) el.fallbackWhy.textContent = app.fallback || 'A táblázat a legutóbbi letöltéskor nem volt elérhető.';
@@ -249,8 +292,6 @@ export function createAdmin(el, app, act) {
     el.flashIn.value = s.flashMs / 1000;
     el.flashOut.textContent = flashLabel(s.flashMs);
     for (const r of el.gapOpts.querySelectorAll('input')) r.checked = +r.value === s.gapMs;
-    el.srcList.checked = s.source !== 'all';
-    el.srcAll.checked = s.source === 'all';
     el.countIn.value = s.count;
     el.mixedIn.checked = s.mixed;
     renderEstimate();
@@ -291,11 +332,9 @@ export function createAdmin(el, app, act) {
 
   function renderFind() {
     const f = app.find;
-    el.srcListF.checked = app.settings.source !== 'all';
-    el.srcAllF.checked = app.settings.source === 'all';
     // F-K10: telefonon a 8 szürke és nem választható; a tárolt beállítás nem változik
     const phone = phoneCards(8) < 8;
-    el.cardsLegend.textContent = phone ? `Kártyák · telefonon max. ${PHONE_MAX_CARDS}` : 'Kártyák';
+    el.cardsLegend.textContent = phone ? `Kártyák a képernyőn · telefonon max. ${PHONE_MAX_CARDS}` : 'Kártyák a képernyőn';
     for (const r of el.cardOpts.querySelectorAll('input')) {
       const n = +r.value, off = phone && n > PHONE_MAX_CARDS;
       r.checked = n === phoneCards(f.cards);
@@ -361,7 +400,8 @@ export function createAdmin(el, app, act) {
     el.flashOut.textContent = flashLabel(app.settings.flashMs); renderEstimate();
   });
   el.flashIn.addEventListener('change', () => act.setting({ flashMs: app.settings.flashMs }));
-  for (const r of [el.srcList, el.srcAll]) r.addEventListener('change', () => { if (r.checked) act.setting({ source: r.value }); });
+  // Kijelölt csomagok | Összes csomag (3.1): mindhárom kapcsoló ugyanazt a beállítást váltja (settings.source)
+  for (const r of document.querySelectorAll('.src-switch input')) r.addEventListener('change', () => { if (r.checked) act.setting({ source: r.value }); });
   const setCount = (v) => act.setting({ count: Number.isFinite(+v) && String(v).trim() !== '' ? +v : app.settings.count });
   el.countIn.addEventListener('change', () => setCount(el.countIn.value));
   el.countIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setCount(el.countIn.value); } });
@@ -400,7 +440,6 @@ export function createAdmin(el, app, act) {
     });
     return lab;
   }));
-  for (const r of [el.srcListF, el.srcAllF]) r.addEventListener('change', () => { if (r.checked) act.setting({ source: r.value }); });
   const setTasks = (v) => act.find({ tasks: Number.isFinite(+v) && String(v).trim() !== '' ? +v : app.find.tasks });
   el.tasksIn.addEventListener('change', () => setTasks(el.tasksIn.value));
   el.tasksIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setTasks(el.tasksIn.value); } });
@@ -474,14 +513,55 @@ export function createAdmin(el, app, act) {
   }, true);
   SHEET.addEventListener('change', () => closeHow(false));
 
-  /* ---------- mobil listaválasztó lap ---------- */
+  /* ---------- csomagsorok az oldalsávban (3.1) ----------
+     Kattintás: a sor pipáját váltja; Shift + kattintás: tartomány az előző kattintott sortól. Egérrel (és
+     tollal) végighúzva a lenyomott sor új állapotát kapja minden sor, amelyen az egér áthalad; felengedéskor
+     vagy az oszlopból kilépve vége. Érintésnél a végighúzás görget, a koppintás vált (a click). A billentyűzet
+     (Tab, Szóköz) a gomb natív click eseményét adja (detail = 0). */
+  const rowAt = (x, y) => document.elementFromPoint(x, y)?.closest('#listNav .nav-item') || null;
+  let drag = null;                  // { on, id } egérrel végighúzás közben
+  let mouseDown = -Infinity;        // az utolsó egeres lenyomás ideje: az utána jövő click már kezelve van
+  el.listNav.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('.nav-item');
+    if (!b || e.button !== 0 || (e.pointerType !== 'mouse' && e.pointerType !== 'pen')) return;
+    e.preventDefault();             // ne jelöljön ki szöveget; a fókusz kézzel kerül a sorra
+    if (b.hasPointerCapture?.(e.pointerId)) b.releasePointerCapture(e.pointerId);   // toll: implicit elfogás
+    mouseDown = performance.now();
+    const on = act.select(b.dataset.name, { range: e.shiftKey });
+    el.listNav.querySelector(`.nav-item[data-name="${CSS.escape(b.dataset.name)}"]`)?.focus({ preventScroll: true });
+    drag = { on, id: e.pointerId };
+    document.addEventListener('pointermove', dragMove, true);
+    document.addEventListener('pointerup', dragEnd, true);
+    document.addEventListener('pointercancel', dragEnd, true);
+  });
+  function dragMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const r = el.sidebar.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom || !e.buttons) { dragEnd(); return; }
+    const b = rowAt(e.clientX, e.clientY);
+    if (b) act.paint(b.dataset.name, drag.on);
+  }
+  function dragEnd() {
+    drag = null;
+    document.removeEventListener('pointermove', dragMove, true);
+    document.removeEventListener('pointerup', dragEnd, true);
+    document.removeEventListener('pointercancel', dragEnd, true);
+  }
+  el.listNav.addEventListener('click', (e) => {
+    const b = e.target.closest('.nav-item');
+    if (!b) return;
+    // egérrel a lenyomás már váltott; a billentyűzet (detail = 0) és az érintés itt vált
+    if (e.detail > 0 && performance.now() - mouseDown < 3000) { mouseDown = -Infinity; return; }
+    act.select(b.dataset.name, { range: e.shiftKey && e.detail > 0 });
+  });
+  el.navNone.addEventListener('click', () => act.selectNone());
+
+  /* ---------- telefonos csomagválasztó lap ---------- */
   el.listsBtn.addEventListener('click', openLists);
   el.listsDone.addEventListener('click', () => el.dlgLists.close());
   el.dlgLists.addEventListener('click', (e) => { if (e.target === el.dlgLists) el.dlgLists.close(); });
   el.dlgLists.addEventListener('close', () => el.listsBtn.focus());
-  el.listsAll.addEventListener('click', () => act.selectAll(true));
-  el.listsNone.addEventListener('click', () => act.selectAll(false));
-  COARSE.addEventListener('change', () => renderNav());
+  el.listsNone.addEventListener('click', () => act.selectNone());
 
   /** Esc: először a nyitott popover zár (a modális lapokat a böngésző zárja). */
   function key(e) {

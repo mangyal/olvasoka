@@ -7,7 +7,7 @@ export const TOUR_STEPS = 4;
 /** Magától csak ennél nagyobb ablakban indul (a „túl kicsi képernyő” határa, WCAG 1.4.10; döntés 2026-11-13). */
 export const TOUR_MIN = Object.freeze({ w: 320, h: 256 });
 /** Az 1. lépés célelemei, ebben a sorrendben: az első látható nyer (2.1). */
-export const LIST_TARGETS = Object.freeze(['listNav', 'listChecks', 'listsBtn']);
+export const LIST_TARGETS = Object.freeze(['sidebar', 'listChecks', 'listsBtn']);
 /** A 2–4. lépés célelemei. */
 export const STEP_TARGETS = Object.freeze({ 2: 'modeTabs', 3: 'progressBtn', 4: 'startBtn' });
 
@@ -43,19 +43,19 @@ export const targetFor = (step, visible) => (step === 1 ? pickTarget(visible) : 
 /**
  * A buborék tartalma. A szöveg sorok tömbje, egy sor darabok tömbje:
  * { t: 'szöveg' } | { b: 'félkövér' } | { kbd: 'Ctrl' }. Így a felület szövegként építi fel (nincs innerHTML).
- * target: az 1. lépés célelemének azonosítója; touch: érintéses eszköz; mod: '⌘' vagy 'Ctrl';
+ * target: az 1. lépés célelemének azonosítója; touch: érintéses eszköz;
  * minDays: a haladas.json min_nap értéke (a napszabály-kapcsolótól függetlenül; döntés 2026-11-13).
  */
-export function stepContent(step, { target = 'listNav', touch = false, mod = 'Ctrl', minDays = 3 } = {}) {
+export function stepContent(step, { target = 'sidebar', touch = false, minDays = 3 } = {}) {
   const t = (s) => ({ t: s });
-  const common = 'A játékban csak a kijelölt listák tételei jönnek elő.';
   let title, lines;
   if (step === 1) {
-    title = 'Válassz listát';
-    if (target === 'listChecks') lines = [[t(`Pipáld be a listákat, amelyekből gyakoroltok. ${common}`)]];
-    else if (target === 'listsBtn') lines = [[t(`Koppints ide, és pipáld be a listákat. ${common}`)]];
-    else if (touch) lines = [[t(`Koppints egy listára. ${common}`)]];
-    else lines = [[t(`Kattints egy listára. ${common} Többet is kijelölhetsz `), { kbd: mod }, t(' + kattintással.')]];
+    // docs/kartyacsomagok-specifikacio.md, 5.
+    title = 'Válassz kártyacsomagot';
+    if (target === 'listChecks') lines = [[t('Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő.')]];
+    else if (target === 'listsBtn') lines = [[t('Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban.')]];
+    else if (touch) lines = [[t('Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban.')]];
+    else lines = [[t('Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban.')]];
   } else if (step === 2) {
     title = 'Válassz játékot';
     lines = [

@@ -69,6 +69,6 @@ test('statisztika: a dev és a helyi futtatás nem kapja az éles azonosítót',
 test('statisztika: a főprogram tételt nem küld (csak a megengedett eseményadatok)', () => {
   const main = readFileSync(new URL('../js/main.js', import.meta.url), 'utf8');
   const calls = [...main.matchAll(/stats\.track\('([^']+)'/g)].map((m) => m[1]).sort();
-  assert.deepEqual(calls, ['progress-open', 'reward-pick', 'round-end', 'round-start', 'tour-end', 'welcome-choice']);
+  assert.deepEqual(calls, ['first-round', 'progress-open', 'reward-pick', 'round-end', 'round-start', 'tour-end', 'welcome-choice']);
   assert.doesNotMatch(main, /stats\.track\([^)]*(roundItems|items|seq|progress\.root)/);
 });
