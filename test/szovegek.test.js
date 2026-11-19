@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const LISTA = /(?<!Event)[Ll]ist[aáàeé]/;    // az addEventListener nem szöveg
-const DESC = 'Olvasásgyakorló elsősöknek és szüleiknek. Betűk, szótagok és szavak, regisztráció nélkül.';
+const DESC = 'Meixner-féle olvasásgyakorló elsősöknek. Betűk, szótagok és szavak, regisztráció nélkül.';
 
 /** Az index.html látható szövegei és a felolvasónak szóló attribútumai (megjegyzések nélkül). */
 function htmlTexts(html) {
@@ -36,6 +36,14 @@ test('szövegek: a felület szövegeiben nem maradt „lista”', () => {
 
 test('szövegek: a statisztika értéke szándékosan marad, hogy a régi és új adat összevethető legyen', () => {
   assert.match(read('js/main.js'), /'\(összes lista\)'/);
+});
+
+test('szövegek: Open Graph linkelőnézet (cím, leírás, abszolút kép-URL)', () => {
+  const html = read('index.html');
+  const og = (p) => new RegExp(`<meta property="og:${p}" content="([^"]*)">`).exec(html)?.[1];
+  assert.equal(og('title'), 'Olvasóka');
+  assert.equal(og('description'), DESC);
+  assert.match(og('image'), /^https:\/\/mangyal\.github\.io\/olvasoka\/img\/icons\/icon-512\.png$/);
 });
 
 test('szövegek: meta leírás mindhárom helyen, „Hangtalan” nélkül', () => {

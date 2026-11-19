@@ -1,6 +1,6 @@
 # Olvasóka
 
-Olvasásgyakorló elsősöknek és szüleiknek. Betűk, szótagok és szavak, regisztráció nélkül. A szülő kiválaszt
+Meixner-féle olvasásgyakorló elsősöknek. Betűk, szótagok és szavak, regisztráció nélkül. A szülő kiválaszt
 egy vagy több kártyacsomagot (a táblázatban és a kódban: lista), a program
 egyesével felvillantja a tételeket, a gyerek hangosan kimondja őket, a kör végén a gyerek jutalomjátékot választ: lufipukkasztás vagy panda-ugrálás.
 Nincs hang, nincs pontozás; a kiejtést a mellette ülő szülő figyeli.
