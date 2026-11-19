@@ -223,7 +223,7 @@ A szöveget és a fő gombot a docs/kartyacsomagok-specifikacio.md 6. pontja ír
 
 Működés:
 - `Mutasd meg`: bezárja az ablakot, és az 1. lépéstől indítja a bemutatót. A tárolás a bemutató végén történik (4.3).
-- `Kihagyom, kezdjük`, a ✕, az `Esc` és a háttérre kattintás egyaránt: `how: "skipped"` tárolás, majd a kihagyás utáni üzenet (4.4), a fókusz a Súgó gombra kerül.
+- `Kihagyom, kezdjük`, az `Esc` és a háttérre kattintás egyaránt (✕ gomb nincs, 2026-11-19): `how: "skipped"` tárolás, majd a kihagyás utáni üzenet (4.4), a fókusz a Súgó gombra kerül.
 - A lap bezárása vagy újratöltése az ablak nyitva tartása alatt: semmi nem tárolódik, legközelebb újra megjelenik.
 
 Megjelenés: natív `<dialog>` (`showModal`), szélesség legfeljebb 400 px, az app ikonja felül (420 px-nél alacsonyabb ablakban elmarad). A fókusz megnyitáskor a fő gombon van, az ablakon belül marad. Minden gomb legalább 44 px magas (a fő és a másodlagos 48 px).

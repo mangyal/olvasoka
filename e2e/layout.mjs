@@ -1384,7 +1384,9 @@ for (const [name, opts, list] of [
     const wb = await page.$eval('#dlgWelcome', (d) => d.getBoundingClientRect().toJSON());
     assert.ok(wb.left >= 0 && wb.top >= 0 && wb.right <= opts.viewport.width + 0.5 && wb.bottom <= opts.viewport.height + 0.5,
       `az üdvözlő ablak az ablakon belül (${JSON.stringify(wb)})`);
-    for (const id of ['#welcomeTour', '#welcomeSkip', '#welcomeX']) {
+    // csak a két gomb, ✕ nincs (2026-11-19)
+    assert.deepEqual(await page.$$eval('#dlgWelcome button', (bs) => bs.map((b) => b.id)), ['welcomeTour', 'welcomeSkip']);
+    for (const id of ['#welcomeTour', '#welcomeSkip']) {
       const h = await page.$eval(id, (e) => e.getBoundingClientRect().height);
       assert.ok(h >= 44, `${id} legalább 44 px magas`);
     }
