@@ -377,8 +377,8 @@ function autoStartTour() {
 }
 
 /* ---------- Üdvözlő ablak (10.): a bemutató előtt, egyszer ---------- */
-// „Mutasd meg”: indul a bemutató (a tárolás a végén, mint eddig). „Kihagyom, kezdjük”, ✕, Esc vagy a
-// háttérre kattintás: kihagyott bemutatóként tárolódik, és jön a „Súgóban újra elindíthatod” üzenet.
+// „Mutasd meg”: indul a bemutató (a tárolás a végén, mint eddig). „Kihagyom, kezdjük”, Esc vagy a
+// háttérre kattintás (✕ gomb nincs, 2026-11-19): kihagyott bemutatóként tárolódik, és jön a „Súgóban újra elindíthatod” üzenet.
 // Statisztika: welcome-choice { choice: 'tour' | 'skip', via: 'button' | 'close' }.
 let welcomeChoice = null;
 function openWelcome() {
@@ -391,7 +391,6 @@ function chooseWelcome(choice, via) {
 }
 el.welcomeTour.addEventListener('click', () => chooseWelcome('tour', 'button'));
 el.welcomeSkip.addEventListener('click', () => chooseWelcome('skip', 'button'));
-el.welcomeX.addEventListener('click', () => chooseWelcome('skip', 'close'));
 // a háttérre kattintás: a dialog saját területén kívül (a ::backdrop a dialog elemre kattintásnak számít)
 el.dlgWelcome.addEventListener('click', (e) => {
   if (e.target !== el.dlgWelcome) return;

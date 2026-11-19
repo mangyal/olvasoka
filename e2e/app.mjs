@@ -1333,7 +1333,6 @@ test('üdvözlő ablak: „Kihagyom, kezdjük” = kihagyott bemutató, jön az 
 });
 
 for (const [how, act] of [
-  ['✕', (p) => p.click('#welcomeX')],
   ['Esc', (p) => p.keyboard.press('Escape')],
   ['a háttérre kattintás', (p) => p.mouse.click(20, 20)],
 ]) {
