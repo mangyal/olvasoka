@@ -4,6 +4,7 @@
 import { buildReadSequence } from '../core/sequence.js';
 import { startRound, step, canPrev, remainingMs } from '../core/round.js';
 import { coverUnits, rulerGeometry } from '../core/cover.js';
+import { gesture } from '../core/swipe.js';
 import { roundLayouts, layoutFor } from '../core/fit.js';
 import { isSentence } from '../core/items.js';
 import { progressModel, dotState } from '../core/progress.js';
@@ -19,7 +20,6 @@ const KID_KEYS = { Space: 'SPACE', ArrowRight: 'NEXT', ArrowLeft: 'PREV', KeyP: 
 // Keresd meg! (4a.4): P és ↓ itt nem csinál semmit; a Tab és az Enter a kártyák között natív
 const FIND_KEYS = { Space: 'NEXT', ArrowRight: 'NEXT', ArrowLeft: 'PREV' };
 const SVG = 'http://www.w3.org/2000/svg';
-const DRAG = 12;                    // F-P16, F-P19: ennél nagyobb húzás nem lép és nem takar
 
 /**
  * @param {object} el  a DOM elemei
@@ -362,16 +362,21 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
     if (mode === 'reward') reward.pointerDown(e);
     const mouse = e.pointerType === 'mouse';
     tapPt = mode === 'practice' && !e.target.closest('.cbtn') && (!mouse || e.button === 0)
-      ? { x: e.clientX, y: e.clientY, mouse } : null;
+      ? { x: e.clientX, y: e.clientY, t: performance.now(), mouse } : null;
   });
-  // F-P16: érintőképernyőn egy koppintás bárhol = következő (mint a ▶); húzásra nem lép.
+  // F-P16: érintőképernyőn egy koppintás bárhol = következő (mint a ▶).
   // F-P18/F-P19: többszótagú tételen a szótag területére kattintás/koppintás takar; egérrel máshol semmi.
+  // F-P16a: érintéssel (és tollal) balra húzás = következő (▶), jobbra húzás = előző (◀); egérrel nincs.
+  //   A húzás sosem takar, akkor sem, ha a tételen indul; a tétel nem követi az ujjat (F-P2).
   el.stage.addEventListener('pointerup', (e) => {
     const p = tapPt; tapPt = null;
-    if (!p || mode !== 'practice' || Math.hypot(e.clientX - p.x, e.clientY - p.y) > DRAG) return;
-    const i = unitAt(p.x, p.y);
-    if (i >= 0) dispatch('COVER', { i, n: curUnits().length });
-    else if (!p.mouse) dispatch('NEXT');
+    if (!p || mode !== 'practice') return;
+    const g = gesture({ dx: e.clientX - p.x, dy: e.clientY - p.y, dt: performance.now() - p.t });
+    if (g === 'TAP') {
+      const i = unitAt(p.x, p.y);
+      if (i >= 0) dispatch('COVER', { i, n: curUnits().length });
+      else if (!p.mouse) dispatch('NEXT');
+    } else if (g && !p.mouse) dispatch(g);
   });
   el.stage.addEventListener('pointercancel', () => { tapPt = null; });
   const ctl = (btn, fn) => {
