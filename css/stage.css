@@ -1,5 +1,9 @@
 /* ---------- gyerek nézetek ---------- */
 .stage{position:fixed;inset:0;overflow:hidden;background-color:var(--paper);transition:background-color var(--d-sky) ease-in-out;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+/* F-P16a: a Felolvasásban a vízszintes húzás az alkalmazásé (lapozás), nem a böngészőé; a csípő-nagyítás marad.
+   Nyitott gyakorlásnál a böngésző „vissza” túlgörgetése (Android Chrome) sem indul. */
+.stage[data-mode="practice"]{touch-action:pinch-zoom}
+html:has(#stage:not([hidden])[data-mode="practice"]),html:has(#stage:not([hidden])[data-mode="practice"]) body{overscroll-behavior:none}
 .stage.sky{background-color:var(--sky)}
 .stage.back,.stage.back .deco,.stage.back .vignette{transition-duration:600ms}
 .deco{position:absolute;fill:var(--paper-2);pointer-events:none;transition:opacity var(--d-sky) ease-in-out}

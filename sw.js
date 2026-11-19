@@ -70,6 +70,7 @@ const ASSETS = [
   'js/core/sequence.js',
   'js/core/settings.js',
   'js/core/source.js',
+  'js/core/swipe.js',
   'js/core/tour.js',
   'js/data/analytics.js',
   'js/data/progress-codec.js',

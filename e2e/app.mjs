@@ -1689,3 +1689,102 @@ test('mondat (M-9): csak mondatos listánál a Keresd meg! saját üzenetet muta
   assert.equal(await text('#startMsg'), 'A Keresd meg!-ben mondatok nem szerepelnek. Válassz betűt, szótagot vagy szót is.');
   assert.equal(await page.locator('#startBtn').isDisabled(), true);
 });
+
+/* ---------- lapozás húzással a Felolvasásban (F-P16a) ---------- */
+const SWIPE_CSV = 'Kötőjeles\r\nma-ma\r\nke-fe\r\nsá-ra\r\npi-pa\r\nli-la';
+/** Telefon érintéssel, kézi léptetésű (vagy megadott felvillanású) Felolvasás-kör a Kötőjeles csomagból. */
+async function swipePage({ flashMs = 0, count = 5 } = {}) {
+  const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: SWIPE_CSV }));
+  await c.addInitScript((s) => {
+    if (!sessionStorage.getItem('seeded')) { localStorage.setItem('olvasoka-dev', JSON.stringify(s)); sessionStorage.setItem('seeded', '1'); }
+  }, { v: 4, hideHelp: true, lastLists: ['Kötőjeles'], settings: { mode: 'read', flashMs, gapMs: 0, count } });
+  const p = await c.newPage();
+  const errors = [];
+  p.on('pageerror', (e) => errors.push(e.message));
+  await p.goto(base);
+  await p.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 10000 });
+  await p.tap('#startBtn');
+  await p.locator('#stage').waitFor({ state: 'visible' });
+  await p.waitForFunction(() => document.getElementById('itemText').textContent);
+  const cdp = await c.newCDPSession(p);
+  /** Ujjal húzás (x0, y0) → (x1, y1), egyenletes lépésekben. */
+  const drag = async (x0, y0, x1, y1, steps = 6) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
+    for (let k = 1; k <= steps; k++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + (x1 - x0) * k / steps, y: y0 + (y1 - y0) * k / steps }] });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await p.waitForTimeout(80);
+  };
+  const at = () => p.evaluate(() => +((document.getElementById('progress').getAttribute('aria-label') || '').match(/^(\d+)\./) || [0, 0])[1]);
+  const rulers = () => p.locator('#stage .ruler').count();
+  /** A tétel közepe (a szótag-takarás területe) és egy pont alatta, a tételen kívül. */
+  const spots = () => p.evaluate(() => {
+    const r = document.getElementById('itemText').getBoundingClientRect();
+    return { on: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, off: { x: innerWidth / 2, y: Math.min(innerHeight - 140, r.bottom + 90) } };
+  });
+  return { c, p, errors, drag, at, rulers, spots };
+}
+
+test('lapozás húzással (F-P16a): balra a következő, jobbra az előző; az elsőn jobbra nincs hatása', async () => {
+  const { c, p, errors, drag, at, spots } = await swipePage();
+  const { off } = await spots();
+  assert.equal(await at(), 1);
+  await drag(off.x - 80, off.y, off.x + 80, off.y);       // jobbra az elsőn
+  assert.equal(await at(), 1, 'az elsőn nincs előző');
+  await drag(off.x + 80, off.y, off.x - 80, off.y);       // balra
+  assert.equal(await at(), 2);
+  await drag(off.x + 80, off.y, off.x - 80, off.y);
+  assert.equal(await at(), 3);
+  await drag(off.x - 80, off.y, off.x + 80, off.y);       // jobbra
+  assert.equal(await at(), 2);
+  // függőleges és rövid, lassú húzás: semmi
+  await drag(off.x, off.y - 100, off.x, off.y + 100);
+  await drag(off.x + 15, off.y, off.x - 15, off.y, 10);
+  assert.equal(await at(), 2);
+  assert.equal(await p.locator('#dlgLists[open], #dlgHelp[open]').count(), 0);
+  assert.deepEqual(errors, []);
+  await c.close();
+});
+
+test('lapozás húzással: a tételen indulva sem takar, a koppintás viszont takar (F-P18)', async () => {
+  const { c, p, drag, at, rulers, spots } = await swipePage();
+  const { on } = await spots();
+  await p.touchscreen.tap(on.x, on.y);                      // koppintás a szótagra: takar, nem lép
+  assert.equal(await at(), 1);
+  assert.equal(await rulers(), 1);
+  await drag(on.x + 60, on.y, on.x - 60, on.y);             // húzás a tételen: lép, nem takar újabbat
+  assert.equal(await at(), 2);
+  assert.equal(await rulers(), 0);
+  await drag(on.x - 60, on.y, on.x + 60, on.y);             // vissza: a korábbi takarás visszaáll (5.3), új nem jön
+  assert.equal(await at(), 1);
+  assert.equal(await rulers(), 1);
+  await c.close();
+});
+
+test('lapozás húzással: szünetben is lapoz és folytat (F-P7a); az utolsón balra a jutalom jön', async () => {
+  const { c, p, drag, at, spots } = await swipePage({ flashMs: 10000, count: 3 });
+  const { off } = await spots();
+  await p.tap('#cPlay');
+  assert.equal(await p.locator('#pauseInd.on').count(), 1, 'szünet');
+  await drag(off.x + 80, off.y, off.x - 80, off.y);
+  assert.equal(await at(), 2);
+  assert.equal(await p.locator('#pauseInd.on').count(), 0, 'a kör folytatódik');
+  await drag(off.x + 80, off.y, off.x - 80, off.y);
+  assert.equal(await at(), 3);
+  await drag(off.x + 80, off.y, off.x - 80, off.y);
+  await toChooser(p, 3000);
+  await c.close();
+});
+
+test('lapozás húzással: egérrel húzva nem lapoz', async () => {
+  await startRound({ flash: 0, count: 5 });
+  const first = await item();
+  await page.mouse.move(800, 600); await page.mouse.down();
+  await page.mouse.move(500, 600, { steps: 6 }); await page.mouse.up();
+  await page.mouse.move(500, 600); await page.mouse.down();
+  await page.mouse.move(800, 600, { steps: 6 }); await page.mouse.up();
+  assert.equal(await item(), first);
+  await at(1, 5);
+});
