@@ -455,6 +455,15 @@ A véletlenszám-forrás paraméter, a tesztek seedelt `rng`-t használnak (`tes
   csak a gombot működteti; 12 px-nél nagyobb húzás nem lép. Egérkattintásra nincs hatása.
   **Kivétel (2.8):** többszótagú tételnél a tétel takarási területén (F-P19) belüli koppintás nem lép,
   hanem takar (F-P18). Egyszótagú tételnél és a szünetben (`gap`) a koppintás mindenhol NEXT.
+- **F-P16a** **Lapozás húzással** (2026-11-19): érintőképernyőn (és tollal) a gyakorlónézetben balra húzás
+  ugyanaz, mint a ▶ (`NEXT`), jobbra húzás ugyanaz, mint a ◀ (`PREV`), F-P6, F-P7 és F-P7a szerint
+  (szünetben is lapoz és folytat; az elsőn jobbra nincs hatása; az utolsón balra jutalom). Lapozás: legalább
+  48 px vízszintesen, vagy gyors pöccintésnél (≤ 250 ms) legalább 24 px; a vízszintes elmozdulás legalább a
+  függőleges másfélszerese. A 12 px alatti mozdulat koppintás (F-P16); a többi húzás semmit nem csinál.
+  A húzás sosem takar, akkor sem, ha a tételen indul. A döntés felemeléskor születik, a tétel nem követi
+  az ujjat (F-P2). Egérrel nincs lapozás. Csak a Felolvasásban; a Keresd meg!-ben nincs (F-K8: a lapozás a
+  szülőé). A vízszintes húzást a böngésző nem kapja meg (`touch-action: pinch-zoom` a gyakorlónézeten).
+  Számítás: `js/core/swipe.js`.
 
 ### 4.4 Billentyűk
 

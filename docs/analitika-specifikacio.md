@@ -23,7 +23,7 @@ Az oldalmegtekintést az Umami magától rögzíti. Ezen felül:
 | `round-end` | kör vége vagy kilépés közben | `game`, `round`, `completed` (`false`: kilépett a kör közben) |
 | `reward-pick` | a gyerek jutalomjátékot választ | `reward` (`lufi` / `panda`), `round` |
 | `tour-end` | az Első lépések bemutató vége (csak ha a „Mutasd meg”-gel vagy a Súgóból elindult) | `result` (`done` / `skipped`) |
-| `welcome-choice` | döntés az üdvözlő ablakban (első indítás, a bemutató előtt) | `choice` (`tour`: „Mutasd meg”, `skip`: „Kihagyom, kezdjük” vagy bezárás), `via` (`button` / `close`: ✕, Esc vagy a háttérre kattintás) |
+| `welcome-choice` | döntés az üdvözlő ablakban (első indítás, a bemutató előtt) | `choice` (`tour`: „Mutasd meg”, `skip`: „Kihagyom, kezdjük” vagy bezárás), `via` (`button` / `close`: Esc vagy a háttérre kattintás) |
 | `progress-open` | a Haladás nézet megnyílik | nincs |
 | `first-round` | a készüléken legelőször induló kör, a `round-start` előtt (docs/kartyacsomagok-specifikacio.md, 7.) | `sec` (egész másodperc az oldal betöltésétől az Indításig), `firstVisit` (ez az oldalbetöltés volt a készüléken az első), `welcome` (`tour` / `skip` / `none`: ebben a betöltésben nem jelent meg), `tour` (`done` / `skipped` / `none`, ebben a betöltésben), `game` (`read` / `find`) |
 
