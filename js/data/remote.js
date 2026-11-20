@@ -28,22 +28,19 @@ export async function get(url, timeoutMs = 8000) {
 
 export const fetchLists = () => loadLists((url) => get(url));
 
-/** A Keresd meg! konfigurációja (parok.json), ellenőrizve és futásra készen; hibánál dob. */
-export async function fetchPairs() {
-  const { text } = await get(PAIRS_URL);
+/** Egy JSON konfiguráció letöltve és ellenőrizve; hibánál a felhasználónak szóló üzenettel dob.
+ *  @param {(cfg: any) => string[]} validate  a talált hibák (üres: rendben) */
+async function fetchJson(url, validate) {
+  const { text } = await get(url);
   let cfg;
-  try { cfg = JSON.parse(text); } catch { throw new Error('A parok.json nem érvényes JSON.'); }
-  const p = validateConfig(cfg);
-  if (p.length) throw new Error(`A parok.json hibás: ${p.join('; ')}`);
-  return compileConfig(cfg);
-}
-
-/** A Haladás küszöbei (haladas.json), ellenőrizve; hibánál dob (a hívó az alapértékekkel fut tovább). */
-export async function fetchProgressConfig() {
-  const { text } = await get(PROGRESS_URL);
-  let cfg;
-  try { cfg = JSON.parse(text); } catch { throw new Error('A haladas.json nem érvényes JSON.'); }
-  const p = validateProgress(cfg);
-  if (p.length) throw new Error(`A haladas.json hibás: ${p.join('; ')}`);
+  try { cfg = JSON.parse(text); } catch { throw new Error(`${label(url)} nem érvényes JSON.`); }
+  const p = validate(cfg);
+  if (p.length) throw new Error(`${label(url)} hibás: ${p.join('; ')}`);
   return cfg;
 }
+
+/** A Keresd meg! konfigurációja (parok.json), ellenőrizve és futásra készen; hibánál dob. */
+export const fetchPairs = async () => compileConfig(await fetchJson(PAIRS_URL, validateConfig));
+
+/** A Haladás küszöbei (haladas.json), ellenőrizve; hibánál dob (a hívó az alapértékekkel fut tovább). */
+export const fetchProgressConfig = () => fetchJson(PROGRESS_URL, validateProgress);

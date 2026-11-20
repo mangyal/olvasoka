@@ -20,6 +20,8 @@ const HOW_TITLE = { read: 'Felolvasás – így játsszátok', find: 'Keresd meg
 const phoneCards = (n) => effectiveCards(n, innerWidth, innerHeight);
 
 const SEP = '\u0001', SEP2 = '\u0002';
+/** A számmező értéke számként; üres vagy nem szám esetén a régi érték marad. */
+const numOr = (v, old) => (Number.isFinite(+v) && String(v).trim() !== '' ? +v : old);
 
 export function createAdmin(el, app, act) {
   const dismissed = new Set();
@@ -402,7 +404,7 @@ export function createAdmin(el, app, act) {
   el.flashIn.addEventListener('change', () => act.setting({ flashMs: app.settings.flashMs }));
   // Kijelölt csomagok | Összes csomag (3.1): mindhárom kapcsoló ugyanazt a beállítást váltja (settings.source)
   for (const r of document.querySelectorAll('.src-switch input')) r.addEventListener('change', () => { if (r.checked) act.setting({ source: r.value }); });
-  const setCount = (v) => act.setting({ count: Number.isFinite(+v) && String(v).trim() !== '' ? +v : app.settings.count });
+  const setCount = (v) => act.setting({ count: numOr(v, app.settings.count) });
   el.countIn.addEventListener('change', () => setCount(el.countIn.value));
   el.countIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setCount(el.countIn.value); } });
   el.countDec.addEventListener('click', () => setCount(app.settings.count - 1));
@@ -440,7 +442,7 @@ export function createAdmin(el, app, act) {
     });
     return lab;
   }));
-  const setTasks = (v) => act.find({ tasks: Number.isFinite(+v) && String(v).trim() !== '' ? +v : app.find.tasks });
+  const setTasks = (v) => act.find({ tasks: numOr(v, app.find.tasks) });
   el.tasksIn.addEventListener('change', () => setTasks(el.tasksIn.value));
   el.tasksIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setTasks(el.tasksIn.value); } });
   el.tasksDec.addEventListener('click', () => setTasks(app.find.tasks - 1));

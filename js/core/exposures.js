@@ -155,6 +155,9 @@ export function keepEnds(xs, n = 20) {
   return xs.length <= n ? xs : [...xs.slice(0, n / 2), ...xs.slice(-n / 2)];
 }
 
+/** A napi tételösszesítő azonosítója (készülék × gyerek × tétel × nap); a napló ezzel keresi vissza. */
+export const dailyId = (deviceId, child, item, day) => `${deviceId}|${child}|${item}|${day}`;
+
 /**
  * Napi tételösszesítők (tétel × nap) a megjelenésekből.
  * @param {object[]} exposures  bármennyi kör megjelenései
@@ -166,7 +169,7 @@ export function keepEnds(xs, n = 20) {
 export function dailyRecords(exposures, { deviceId, child, fastFlashMs }) {
   const groups = new Map();
   for (const e of [...exposures].sort((x, y) => x.t - y.t)) {
-    const id = `${deviceId}|${child}|${e.item}|${e.day}`;
+    const id = dailyId(deviceId, child, e.item, e.day);
     if (!groups.has(id)) groups.set(id, []);
     groups.get(id).push(e);
   }

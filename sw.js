@@ -60,6 +60,7 @@ const ASSETS = [
   'js/core/haladas-texts.js',
   'js/core/items.js',
   'js/core/progress.js',
+  'js/core/random.js',
   'js/core/rewards.js',
   'js/core/list-identity.js',
   'js/core/lists.js',
