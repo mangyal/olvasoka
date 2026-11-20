@@ -15,7 +15,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      # rögzített eszközverziók a package-lock.json-ból (ESLint, TypeScript, Playwright)
+      - run: npm ci
       - run: node --test
+      # hibakeresés (eslint.config.js) és típusellenőrzés a rögzített hibaszámhoz képest (tsconfig.json)
+      - run: npm run lint
+      - run: npm run typecheck
 
   # Elrendezés-teszt headless Chrome-mal (e2e/layout.mjs): a design spec elfogadási kritériumai
   # desktopon, tableten és mobilon. Hálózat nélkül fut: a listák a repó lists.txt-jéből jönnek.
@@ -26,7 +32,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm i --no-save playwright
+          cache: npm
+      # a Playwright verziója a package-lock.json-ban rögzített; a böngésző ehhez a verzióhoz töltődik le
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run layout
 
@@ -39,6 +47,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm i --no-save playwright
+          cache: npm
+      # a Playwright verziója a package-lock.json-ban rögzített; a böngésző ehhez a verzióhoz töltődik le
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e

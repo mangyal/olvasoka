@@ -150,10 +150,22 @@ A Haladás nézet: [`docs/haladas-specifikacio.md`](docs/haladas-specifikacio.md
 ## Fejlesztés
 
 ```sh
-node --test                 # tesztek (Node 20+)
-npm run layout              # elrendezés-teszt headless Chrome-mal (e2e/layout.mjs; előbb: npm i --no-save playwright && npx playwright install chromium)
+npm ci                      # a fejlesztői eszközök a package-lock.json-ban rögzített verzióval (Node 22+)
+node --test                 # tesztek
+npm run lint                # ESLint (eslint.config.js)
+npm run typecheck           # típusellenőrzés: új típushiba nem kerülhet be (tsconfig.json, typecheck-baseline.json)
+npx playwright install chromium   # egyszer, az e2e tesztek böngészője
+npm run layout              # elrendezés-teszt headless Chrome-mal (e2e/layout.mjs)
 python3 -m http.server      # helyi futtatás: http://localhost:8000
 ```
+
+**Eszközök és verziók.** A fejlesztői eszközök (ESLint, TypeScript, Playwright) pontos verziója a
+`package.json`-ban és a `package-lock.json`-ban rögzített; a CI `npm ci`-vel ugyanezt telepíti. Frissítés
+külön PR-ban: `npm i -D -E playwright@<verzió>`, és a tesztek zöldek legyenek.
+
+**Típusellenőrzés.** Egyelőre csak a `js/core`, laza módban. A meglévő hibák számát fájlonként a
+`typecheck-baseline.json` rögzíti: több nem lehet, kevesebb igen. Ha javítottál, rögzítsd:
+`npm run typecheck -- --update`.
 
 Az oldal csak HTTP-n keresztül fut: fájlként (dupla kattintással) megnyitva a böngésző nem tölti be
 a modulokat és a `lists.txt`-t. A tesztek minden pushnál GitHub Actionsben is lefutnak.
@@ -193,7 +205,7 @@ infra) bekerültek-e a `dev`-be. Ha nem, issue-t nyit egy linkkel a `main` → `
 Chrome-mal megnyitja az élő oldalt (`e2e/smoke.mjs`), és ellenőrzi: a `/` éles (nincs DEV címke), a
 `/dev` és a `/dev/` a dev oldalra visz (DEV címke, telepített éles service workerrel is), mindkettőn
 van verziószám, és a dev verziója ≥ az élesé. Ha piros: a GitHub e-mailt küld; ha a dev régebbi,
-nézd meg a *Dev szinkron* issue-t. Helyben: `npm i --no-save playwright && npx playwright install chromium && npm run smoke`.
+nézd meg a *Dev szinkron* issue-t. Helyben: `npm ci && npx playwright install chromium && npm run smoke`.
 
 A main-be csak `dev`, `hotfix/*` vagy `infra/*` ágból mehet PR (`.github/workflows/release-check.yml`).
 Az `infra/*` a workflow-k és a kiadási eszközök módosítására való: mivel egy push a saját ágának
