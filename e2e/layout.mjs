@@ -3,7 +3,7 @@
 // így a listák mindig a repó lists.txt-jéből jönnek (a teszt nem függ a hálózattól).
 //
 // CI-ban a Tesztek workflow futtatja minden pushra és PR-ra. Helyben:
-//   npm i --no-save playwright && npx playwright install chromium && npm run layout
+//   npm ci && npx playwright install chromium && npm run layout
 //   (vagy saját Chrome-mal: CHROME=/usr/bin/google-chrome npm run layout)
 
 import { test, before, after } from 'node:test';
@@ -1016,8 +1016,7 @@ async function openProgress(opts, hash = '#haladas', seed = seedRoot(SEED)) {
   return { page, ctx, errors };
 }
 
-/** Az elemek felső éle, és hogy a nézet vízszintesen nem görget. */
-const tops = (page, sel) => page.$$eval(sel, (es) => es.map((e) => Math.round(e.getBoundingClientRect().top)));
+/** A nézet vízszintesen nem görget. */
 const noHScroll = (page) => page.$eval('#haladas', (e) => e.scrollWidth <= e.clientWidth);
 /** Minden látható link és gomb legalább 44 px magas. */
 const smallTargets = (page) => page.$$eval('#haladas a, #haladas button', (es) => es

@@ -464,8 +464,8 @@ test('félbemaradt kör (bezárt lap): a következő induláskor lezárul', () =
   const clock = { t: T0 };
   const a = createProgressLog({ key: 'k', storage, now: () => clock.t, newId: ids });
   a.beginRound({ seq: [0, 1], items: ['ma', 'me'], listNames: ['L'], flashMs: 0, gapMs: 0, count: 2 });
-  let s = startRound([0, 1], 0, 0, 0);
-  clock.t = T0 + 2000; const b = step(s, 'NEXT', 2000); a.step(s, 'NEXT', b); s = b;
+  const s = startRound([0, 1], 0, 0, 0);
+  clock.t = T0 + 2000; const b = step(s, 'NEXT', 2000); a.step(s, 'NEXT', b);
   clock.t = T0 + 2500; a.visibility(true, 1);           // a lap elrejtődik, majd bezárul
   const again = createProgressLog({ key: 'k', storage, now: () => clock.t, newId: ids });
   assert.equal(again.root.rounds[0].folded, true);

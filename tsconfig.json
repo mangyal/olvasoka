@@ -1,0 +1,17 @@
+{
+  // Típusellenőrzés (npm run typecheck): a JS-t a JSDoc-megjegyzések alapján ellenőrzi, kódot nem ír.
+  // 1. lépés: csak a js/core (tiszta logika), laza módban. A meglévő hibákat a typecheck-baseline.json
+  // rögzíti; új hiba nem kerülhet be. Következő lépések: hibák javítása, js/data, js/ui, végül strict.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "include": ["js/core/**/*.js"]
+}
