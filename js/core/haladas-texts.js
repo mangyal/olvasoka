@@ -53,8 +53,7 @@ export const CARDS = Object.freeze({
 });
 export const CARD_ORDER = Object.freeze(['fluent', 'unsure', 'practice', 'lowdata']);
 
-/** Szám a ragjával: „3-at”, „5-ször”. */
-const acc = (n) => `${n}-${accSuffix(n)}`;
+/** Szám a ragjával: „5-ször”. */
 const times = (n) => `${n}-${timesSuffix(n)}`;
 /** „a 76-ból”, „az 5-ből” */
 const from = (n) => `${art(n)} ${n}-${fromSuffix(n)}`;

@@ -38,6 +38,6 @@ export async function loadLists(get) {
     const { text } = await get(TXT_URL);
     return { ...parseListsText(text), text, kind: 'txt', fallback };
   } catch (e) {
-    throw new Error(`${fallback} A tartalék lists.txt sem érhető el: ${e.message}`);
+    throw new Error(`${fallback} A tartalék lists.txt sem érhető el: ${e.message}`, { cause: e });
   }
 }
