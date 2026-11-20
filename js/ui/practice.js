@@ -66,16 +66,22 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   const chooser = createChooser({ root: el.chooser, onPick: (name) => { if (mode === 'choose') { onReward(name); playReward(name, true); } } });
   const findView = createFindView({ grid: el.findGrid }, { onMark: (i) => findDispatch('MARK', i) });
 
+  /** A játékképernyő megjelenítése egy kör indulásakor: a fókusz le a szülői felületről, és ha a kör
+   *  érintéssel indult, a ✕ végig látszik (F-P10). @param {'practice'|'find'} m */
+  function showStage(m, ev) {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    mode = m;
+    if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
+    el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = m; el.stage.hidden = false;
+  }
+
   /* ---------- kör ---------- */
   /** @param {{ listNames?: string[], undoMs?: number }} [opt]  a Haladás naplójához */
   /** roundItems: a kör sorai, ismétlésekkel (2.14); settings.mixed: „Kevert sorrend” (F-8, F-9) */
   function start(roundItems, settings, ev, { listNames = [], undoMs } = {}) {
     items = roundItems;
     const seq = buildReadSequence(items, settings.count, { mixed: settings.mixed });
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    mode = 'practice';
-    if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
-    el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'practice'; el.stage.hidden = false;
+    showStage('practice', ev);
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
     st = startRound(seq, settings.flashMs, settings.gapMs, performance.now(), { undoMs });
     progress?.beginRound({ seq: st.seq, items, listNames, flashMs: settings.flashMs, gapMs: settings.gapMs, count: settings.count,
@@ -90,10 +96,7 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   /* ---------- Keresd meg! kör (4a.) ---------- */
   /** @param {string[][]} tasks  a kör feladatai; @param {number} cards  a beállított (F-K10 utáni) kártyaszám */
   function startFind(tasks, cards, ev) {
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    mode = 'find';
-    if (ev && ev.pointerType && ev.pointerType !== 'mouse') touch = true;
-    el.stage.className = 'stage' + (touch ? ' touch' : ''); el.stage.dataset.mode = 'find'; el.stage.hidden = false;
+    showStage('find', ev);
     fst = newFind(tasks);
     findCards = cards;
     el.findGrid.hidden = false;

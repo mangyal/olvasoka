@@ -16,6 +16,7 @@
 
 import { itemKey } from './items.js';
 import { groupOf, compareRank } from './groups.js';
+import { shuffleInPlace, pickWeighted } from './random.js';
 
 /** Seedelhető PRNG a determinisztikus tesztekhez. */
 export function mulberry32(a) {
@@ -29,21 +30,7 @@ export function mulberry32(a) {
 
 /** 0…L-1 indexek Fisher–Yates keveréssel. */
 export function shuffledIdx(L, rng = Math.random) {
-  const a = Array.from({ length: L }, (_, i) => i);
-  for (let i = L - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/** Egy súlyozott húzás: a weights arányában választott index. */
-function pick(weights, rng) {
-  let sum = 0;
-  for (const w of weights) sum += w;
-  let r = rng() * sum;
-  for (let i = 0; i < weights.length; i++) { r -= weights[i]; if (r < 0) return i; }
-  return weights.length - 1;
+  return shuffleInPlace(Array.from({ length: L }, (_, i) => i), rng);
 }
 
 /**
@@ -69,7 +56,7 @@ export function arrangeBlock(idx, keys, rng = Math.random) {
     const open = items.filter((rs) => rs.length && rs !== prev);
     const forced = open.filter((rs) => rs.length >= half);
     const from = forced.length ? forced : open;
-    const rs = from[pick(from.map((x) => x.length), rng)];
+    const rs = from[pickWeighted(from.map((x) => x.length), rng)];
     out.push(rs.pop());
     prev = rs;
   }
