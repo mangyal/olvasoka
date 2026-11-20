@@ -8,9 +8,18 @@
     "start": "python3 -m http.server 8000",
     "smoke": "node --test e2e/smoke.mjs",
     "layout": "node --test e2e/layout.mjs",
-    "e2e": "node --test e2e/app.mjs"
+    "e2e": "node --test e2e/app.mjs",
+    "lint": "eslint .",
+    "typecheck": "node .github/scripts/typecheck.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
+    "playwright": "1.65.1",
+    "typescript": "7.0.2"
   }
 }

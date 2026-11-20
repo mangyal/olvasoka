@@ -162,9 +162,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Playwright (csak a teszthez, a repóba nem kerül)
+          cache: npm
+      - name: Playwright (a package-lock.json-ban rögzített verzió)
         run: |
-          npm install --no-save --no-package-lock playwright@1.63.0
+          npm ci
           npx playwright install --with-deps chromium
       - name: Füstteszt
         env:
