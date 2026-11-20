@@ -18,8 +18,8 @@ export async function get(url, timeoutMs = 8000) {
     if (!res.ok) throw new Error(`${label(url)} nem érhető el (HTTP ${res.status}).`);
     return { text: await res.text(), type: res.headers.get('content-type') || '' };
   } catch (e) {
-    if (e.name === 'AbortError') throw new Error(`${label(url)} letöltése túl sokáig tartott.`);
-    if (e instanceof TypeError) throw new Error(`${label(url)} nem tölthető le. Ellenőrizd az internetkapcsolatot.`);
+    if (e.name === 'AbortError') throw new Error(`${label(url)} letöltése túl sokáig tartott.`, { cause: e });
+    if (e instanceof TypeError) throw new Error(`${label(url)} nem tölthető le. Ellenőrizd az internetkapcsolatot.`, { cause: e });
     throw e;
   } finally {
     clearTimeout(t);
