@@ -19,7 +19,7 @@ Az oldalmegtekintést az Umami magától rögzíti. Ezen felül:
 
 | Esemény | Mikor | Adatok |
 |---|---|---|
-| `round-start` | kör indul | `game` (`read` / `find`), `round` (a kör sorszáma az oldal betöltése óta), `lists` (a kijelölt listák nevei ` \| `-vel, vagy `(összes lista)`), `listCount`, `colorMode` (`none` / `sound`), `markMode` (`none` / `outline`; docs/megjelenes-specifikacio.md N-3); Felolvasás: `count`, `flashMs`, `mixed`; Keresd meg!: `cards` (ténylegesen mutatott), `tasks`, `level` |
+| `round-start` | kör indul | `game` (`read` / `find`), `round` (a kör sorszáma az oldal betöltése óta), `lists` (a kijelölt listák nevei ` \| `-vel, vagy `(összes lista)`), `listCount`, `colorMode` (`none` / `sound`), `markMode` (`none` / `outline`), `filtered` (a tételszűrő kizárt-e tételt a körből; docs/megjelenes-specifikacio.md N-3); Felolvasás: `count`, `flashMs`, `mixed`; Keresd meg!: `cards` (ténylegesen mutatott), `tasks`, `level` |
 | `round-end` | kör vége vagy kilépés közben | `game`, `round`, `completed` (`false`: kilépett a kör közben) |
 | `reward-pick` | a gyerek jutalomjátékot választ | `reward` (`lufi` / `panda`), `round` |
 | `tour-end` | az Első lépések bemutató vége (csak ha a „Mutasd meg”-gel vagy a Súgóból elindult) | `result` (`done` / `skipped`) |

@@ -353,7 +353,7 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   assert.equal(await page.isEnabled('#listsDone'), true, 'üres kijelölésnél a Kész aktív');
   await page.tap('#listsRows label:nth-child(1)');
   await page.tap('#listsRows label:nth-child(2)');
-  assert.match(await page.textContent('#listsSum'), /^\d+ különböző tétel$/);
+  assert.match(await page.textContent('#listsSum'), /^\d+ tétel$/);
   assert.equal(await page.textContent('#listsCount'), '2 csomag kijelölve');
   assert.equal(await page.isEnabled('#startBtn'), true);
   assert.ok(await page.$$eval('#listsRows .ls-row', (r) => r.every((x) => x.getBoundingClientRect().height >= 48)), 'a sorok legalább 48 px magasak');
@@ -881,7 +881,7 @@ test('asztali elrendezés (3., megjelenés L-1): a címek azonos stílusúak; a 
     assert.ok(t[2].top > card.bottom, 'az Ezekkel játszotok a kártya alatt');
     assert.equal(await page.locator('#srcList, #srcAll, #srcListF, #srcAllF, .seg-src, #editLink, #listsEdit, #navHint[hidden] + .label').count(), 0);
     assert.equal(await page.locator('.sidebar .label').count(), 0, 'nincs régi LISTÁK felirat');
-    assert.match(await page.textContent('#listCount'), /^\d+ különböző tétel · \d+ csomag$/);
+    assert.match(await page.textContent('#listCount'), /^\d+ tétel · \d+ csomag$/);
     assert.equal((await page.textContent('.only-note')).trim(), 'A játékban csak ezek a tételek jöhetnek elő, semmi más.');
     assert.match(await page.textContent('#sourceInfo'), /^Frissítve: \d\d:\d\d$/);
     await ctx.close();
@@ -1613,6 +1613,106 @@ for (const [name, opts] of [['320×256 érintő', { viewport: { width: 320, heig
     assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
     await page.locator('#lookRow').click();
     assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    await ctx.close();
+  });
+}
+
+/* ---------- Tételszűrő (docs/megjelenes-specifikacio.md, L-2–L-5, L-7, elfogadás 13) ---------- */
+const TWO = { lastLists: ['36. oldal', '45. oldal'] };
+
+test('szűrő asztali (L-2): a chipsor az „A játékban csak ezek…” mondat alatt, a lista fölött; görgetéskor a számlálóval együtt tapad', async () => {
+  const { page, ctx } = await open(DESKTOP, { lastLists: ['36. oldal', '37. oldal', '39. oldal', '40. oldal', '45. oldal'] });
+  const r = (id) => page.$eval(id, (e) => e.getBoundingClientRect().toJSON());
+  const [note, row, list] = [await r('.play-head .only-note'), await r('#tfRow'), await r('#listView')];
+  assert.ok(note.bottom <= row.top && row.bottom <= list.top, 'mondat → chipek → lista');
+  assert.equal(await page.isVisible('#tfNote'), false, 'asztalon a tablet mondata nem látszik');
+  await page.$eval('.editor', (e) => { e.scrollTop = e.scrollHeight; });
+  const [ed, head, count] = [await r('.editor'), await r('#playHead'), await r('#listCount')];
+  assert.ok(Math.abs(head.top - ed.top) < 1, `a fejléc tapad: ${head.top} / ${ed.top}`);
+  assert.ok(count.top >= ed.top && count.bottom <= head.bottom, 'a számláló is látszik');
+  const chipH = await page.$$eval('#tfRow .tf-main', (bs) => bs.map((b) => b.getBoundingClientRect().height));
+  assert.ok(chipH.every((h) => h >= 36), `${chipH}`);
+  await ctx.close();
+});
+
+test('szűrő álló tablet (L-3): számláló, tördelt chipek és a mondat a Megjelenés alatt; 44 px-es chipek', async () => {
+  const { page, ctx } = await open(TABLET, TWO);
+  const g = await page.evaluate(() => {
+    const r = (id) => document.getElementById(id).getBoundingClientRect();
+    return {
+      parent: document.getElementById('playHead').parentElement.id,
+      order: r('look').bottom <= r('playHead').top && r('playHead').bottom <= r('panel').top,
+      note: getComputedStyle(document.getElementById('tfNote')).display !== 'none' && document.getElementById('tfNote').textContent,
+      only: getComputedStyle(document.querySelector('.play-head .only-note')).display,
+      wrap: getComputedStyle(document.getElementById('tfRow')).flexWrap,
+      h: [...document.querySelectorAll('#tfRow .tf-main, #tfRow .tf-caret')].map((b) => b.getBoundingClientRect().height),
+    };
+  });
+  assert.equal(g.parent, 'picker');
+  assert.ok(g.order, 'Megjelenés → Ezekkel játszotok → Játékok');
+  assert.equal(g.note, 'A játékban csak a bekapcsolt típusok tételei jöhetnek elő.');
+  assert.equal(g.only, 'none');
+  assert.equal(g.wrap, 'wrap');
+  assert.ok(g.h.every((h) => h >= 44), `${g.h}`);
+  assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+  await ctx.close();
+});
+
+for (const [name, opts] of [['390×844', PHONE], ['320×568', { viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }]]) {
+  test(`szűrő telefon ${name} (L-4, L-5, L-7): egy görgethető chipsor; a ▾ lebegő listát nyit sötétített háttérrel, kívülre koppintás zár`, async () => {
+    const { page, ctx } = await open(opts, TWO);
+    const g = await page.evaluate(() => {
+      const row = document.getElementById('tfRow'), rs = [...row.querySelectorAll('.tf-chip')].map((c) => c.getBoundingClientRect());
+      const r = (id) => document.getElementById(id).getBoundingClientRect();
+      return {
+        oneLine: new Set(rs.map((x) => Math.round(x.top))).size === 1,
+        overflowX: getComputedStyle(row).overflowX,
+        h: [...row.querySelectorAll('.tf-main, .tf-caret')].map((b) => b.getBoundingClientRect().height),
+        order: r('look').bottom <= r('playHead').top && r('playHead').bottom <= r('phonePreview').top,
+        page: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    assert.ok(g.oneLine, 'egy sor');
+    assert.equal(g.overflowX, 'auto', 'a chipsor saját görgetése');
+    assert.ok(g.h.every((h) => h >= 44), `${g.h}`);
+    assert.ok(g.order, 'Megjelenés → Ezekkel játszotok + chipek → előnézet');
+    assert.equal(g.page, false, 'az oldal nem görget vízszintesen');
+    await page.tap('#tfRow .tf-caret');
+    assert.ok(await page.isVisible('#tfBackdrop'), 'sötétített háttér');
+    const pop = await page.$eval('#tfPop', (p) => ({ r: p.getBoundingClientRect().toJSON(), rows: [...p.querySelectorAll('.tf-sub')].map((x) => x.getBoundingClientRect().height), head: p.querySelector('.tf-pop-head').textContent }));
+    assert.equal(pop.head, 'Betűk részletei');
+    assert.ok(pop.rows.every((h) => h >= 48), `${pop.rows}`);
+    assert.ok(pop.r.left >= 0 && pop.r.right <= opts.viewport.width && pop.r.bottom <= opts.viewport.height, 'a lista a képernyőn');
+    await page.tap('#tfPop .tf-sub:nth-of-type(2)');
+    assert.equal(await page.textContent('#tfRow .tf-chip:first-child .tf-label'), 'Betűk · 1/2');
+    await page.touchscreen.tap(opts.viewport.width / 2, 40);
+    assert.equal(await page.isVisible('#tfPop'), false);
+    assert.equal(await page.isVisible('#tfBackdrop'), false);
+    await ctx.close();
+  });
+}
+
+for (const [w, h] of [[844, 390], [568, 320]]) {
+  test(`szűrő fekvő telefon ${w}×${h} (L-6): a bal oszlopban; a lebegő lista a képernyőn, az Indítás látszik`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true }, TWO);
+    assert.equal(await page.$eval('#playHead', (e) => e.parentElement.id), 'picker');
+    await page.locator('#tfRow').scrollIntoViewIfNeeded();
+    await page.tap('#tfRow .tf-caret');
+    const r = await page.$eval('#tfPop', (p) => p.getBoundingClientRect().toJSON());
+    assert.ok(r.top >= 0 && r.bottom <= h && r.right <= page.viewportSize().width, `a lista a képernyőn: ${JSON.stringify(r)}`);
+    assert.ok(await inViewport(page, '#startBtn'));
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    await ctx.close();
+  });
+}
+
+for (const [name, opts] of [['320×256 érintő', { viewport: { width: 320, height: 256 }, hasTouch: true, isMobile: true }], ['320×256 desktop (400%)', { viewport: { width: 320, height: 256 } }]]) {
+  test(`szűrő ${name} (elfogadás 13): a fejléc és a chipsor nem lóg ki`, async () => {
+    const { page, ctx } = await open(opts, TWO);
+    const out = await page.evaluate(() => [...document.querySelectorAll('#playHead, #playHead .ed-head, #playHead .ed-head *')]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.left < -0.5 || r.right > innerWidth + 0.5); }).map((e) => e.id || e.className));
+    assert.deepEqual(out, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await ctx.close();
   });
 }
