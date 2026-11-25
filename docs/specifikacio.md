@@ -729,9 +729,10 @@ Nincs pontszám, idő, felirat (a számlálón kívül), hang, büntetés, újra
 
 ### 6.1 Betűtípus
 - **F-F1** A gyakorló betű **Arial** (`Arial, 'Arimo', Helvetica, sans-serif`). Ugyanez a tétel-előnézetben
-  és a betűtesztben, hogy a szülő ugyanazt az alakot lássa, mint a gyerek.
-- **F-F2 Betöltés-kapu:** ha a gépen van Arial (canvas-méréssel felismerve), az „Indítás” azonnal aktív.
-  Ha nincs, az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
+  és a betűtesztben, hogy a szülő ugyanazt az alakot lássa, mint a gyerek. Ligatúra (fi, fl) sehol: minden betű külön látszik.
+- **F-F2 Betöltés-kapu:** ha a gépen van Arial (canvas-méréssel felismerve: az m, W, a, i szélessége egyezik az Ariaéval,
+  mert Androidon az „Arial” név a Robotóra mutat), az „Indítás” azonnal aktív.
+  Ha nincs, a betűsor Arimo-elsőre vált (`'Arimo', Arial, …`), és az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
   legfeljebb 5 mp-ig. Sikertelen betöltésnél aktív, figyelmeztetéssel: „A betűk alakja eltérhet.”
   Ha az Arimo később mégis megjön, a figyelmeztetés eltűnik.
 - **F-F3 Betűteszt** (a Súgó ablak gombsorában, balra; telefonon legalul): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,

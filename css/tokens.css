@@ -17,6 +17,8 @@
   color-scheme:light;
 }
 html,body{height:100%}
+/* Olvasásgyakorlásban minden betű külön látszik: ligatúra (fi, fl) sehol, akkor sem, ha nem az Arial/Arimo jelenik meg */
+html{font-variant-ligatures:none;font-feature-settings:"liga" 0,"clig" 0}
 body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--f-ui);overflow:hidden}
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
