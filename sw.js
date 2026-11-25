@@ -77,6 +77,7 @@ const ASSETS = [
   'js/core/source.js',
   'js/core/swipe.js',
   'js/core/tour.js',
+  'js/core/type-filter.js',
   'js/data/analytics.js',
   'js/data/progress-codec.js',
   'js/data/progress-log.js',

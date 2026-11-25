@@ -93,6 +93,11 @@ Meixner-féle színezése (magánhangzó kék, zöngés mássalhangzó piros, z�
 Mindkét játékra és az előnézetre érvényes, és megmarad. Hogy éppen mit mutat, azt a Minta sor
 mutatja a kijelölt csomagok tételeivel.
 
+Az „Ezekkel játszotok” alatti **Betűk · Szótagok · Szavak · Mondatok** gombokkal (a ▾ alatt magánhangzók /
+mássalhangzók, illetve CV, VC és egyéb szótagok) kiválasztható, mely tételtípusok jöhetnek elő a kijelölt
+csomagokból. Csak a csomagokban meglévő típusok gombja látszik. A szűrő mindkét játékra érvényes, megmarad, és
+a felület minden száma (csomagok, előnézet, számláló) a szűrés utáni tételeket számolja.
+
 A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább. A tételek közti szünet 0, 0,5, 1, 2 vagy 3 mp.
 Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
 szótagra, vagy nyomd a `↓`-t (egész → csak az 1. szótag → … → csak az utolsó → egész). Az első takarás
@@ -128,6 +133,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   marks.js            nagybetű-jelölés a listában ({m}i-ki): leválasztás és ellenőrzés
   hangok.js           betűszínezés: a hangok.json ellenőrzése, betűk és megjelenítési darabok
   look.js             Megjelenés: a Minta tételei és a telefonos összegzés
+  type-filter.js      tételszűrő: típusok, chipek állapota, szűrés
   csv.js              CSV-olvasó
   source.js           forrás: táblázat, tartalékként lists.txt
   tour.js             Első lépések: megjelenítési feltétel, célelem, szövegek, a buborék helye

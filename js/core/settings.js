@@ -1,6 +1,7 @@
 // Beállítások és a helyben tárolt állapot sémája. Tiszta modul.
 
 import { normalizeTour } from './tour.js';
+import { clampFilter } from './type-filter.js';
 
 /** A „Szünet a tételek között” választható értékei (ms). */
 export const GAPS = [0, 500, 1000, 2000, 3000];
@@ -78,6 +79,7 @@ export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ?
  * mode: a kiválasztott játék ('read' | 'find').
  * find: a Keresd meg! beállításai (clampFind); a mező csak hozzáadás, ezért a v marad 4.
  * look: a Megjelenés (clampLook); szintén csak hozzáadás, hiányzó mezőnél mindkettő 'none'.
+ * typeFilter: a tételszűrő kikapcsolt típuskulcsai (type-filter.js, SZR-6); hiányzó mezőnél [] (nincs szűrés).
  * settings.mixed (2.14): szintén csak hozzáadás; hiányzó vagy érvénytelen érték: false.
  * hideHelp: a régi „Ne jelenjen meg újra” jelölő; már csak olvassuk (aki bepipálta, annak a bemutató sem indul magától).
  * tour: az Első lépések bemutató állapota (js/core/tour.js): null | { v, how: 'done'|'skipped', at };
@@ -88,7 +90,7 @@ export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ?
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), look: clampLook(null), lastLists: [], hideHelp: false, tour: null, cache: null };
+  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), look: clampLook(null), typeFilter: [], lastLists: [], hideHelp: false, tour: null, cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -98,6 +100,7 @@ export function normalizeState(o) {
     settings: clampSettings(o.settings),
     find: clampFind(o.find),
     look: clampLook(o.look),
+    typeFilter: clampFilter(o.typeFilter),
     lastLists,
     hideHelp: o.hideHelp === true,
     tour: normalizeTour(o.tour),

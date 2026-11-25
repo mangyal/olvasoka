@@ -8,6 +8,7 @@ import { createProgressLog } from './data/progress-log.js';
 import { resolve as resolveProgress } from './core/haladas-config.js';
 import { parseByKind } from './core/source.js';
 import { clampSettings, clampFind, clampLook, normalizeMode, levelToDegree } from './core/settings.js';
+import { clampFilter } from './core/type-filter.js';
 import { buildTasks, effectiveCards } from './core/find.js';
 import { nameKey } from './core/items.js';
 import { clickSelect, paint, reconcile, existing, wantedSelection } from './core/selection.js';
@@ -68,6 +69,7 @@ const app = {
   mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
   settings: saved.settings, find: saved.find, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
   look: saved.look,                 // Megjelenés (docs/megjelenes-specifikacio.md, MJ-1–MJ-3)
+  typeFilter: saved.typeFilter,     // tételszűrő: a kikapcsolt típuskulcsok (SZR-6)
   // Első lépések (docs/bemutato-specifikacio.md, 5.); ha a helyi tárolás nem írható, a munkamenetből
   tour: saved.tour || readSessionTour(),
   pairs: { state: 'loading', cc: null },  // a Keresd meg! konfigurációja (parok.json); 'failed': a fül inaktív
@@ -90,7 +92,7 @@ function persist() {
   const mode = app.pairs.state === 'ok' ? app.mode : saved.mode;
   // amíg a szülő nem választott listát, a kijelölés (és vele a tételforrás) nem mentődik: legközelebb is a táblázat jelölői döntenek
   const sel = app.autoSel ? { lastLists: [], settings: { ...app.settings, source: 'list' } } : { lastLists: app.lastLists, settings: app.settings };
-  return store.write({ v: 4, mode: normalizeMode(mode), settings: sel.settings, find: app.find, look: app.look, lastLists: sel.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
+  return store.write({ v: 4, mode: normalizeMode(mode), settings: sel.settings, find: app.find, look: app.look, typeFilter: app.typeFilter, lastLists: sel.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
 }
 
 /* Első lépések: ha a localStorage nem írható (pl. privát ablak), a sessionStorage-ba kerül, hogy a
@@ -163,9 +165,9 @@ function trackRoundStart(game, cards) {
   roundNo += 1;
   const all = app.settings.source === 'all';
   const names = roundListNames();
-  // colorMode, markMode: a Megjelenés (N-3); a játék a `game` mezőben
+  // colorMode, markMode: a Megjelenés; filtered: a tételszűrő kizárt-e tételt (N-3); a játék a `game` mezőben
   const base = { game, round: roundNo, lists: all ? '(összes lista)' : names.join(' | '), listCount: names.length,
-    colorMode: app.look.color, markMode: app.look.mark };
+    colorMode: app.look.color, markMode: app.look.mark, filtered: admin.roundFiltered() };
   stats.track('round-start', game === 'find'
     ? { ...base, cards, tasks: app.find.tasks, level: app.find.level }
     : { ...base, count: app.settings.count, flashMs: app.settings.flashMs, mixed: app.settings.mixed });
@@ -251,6 +253,11 @@ const admin = createAdmin(el, app, {
   look(patch) {
     app.look = clampLook({ ...app.look, ...patch });
     applyLook(app.look);
+    persist(); admin.render();
+  },
+  // tételszűrő: mindkét játékra érvényes, megmarad (SZR-5, SZR-6)
+  typeFilter(off) {
+    app.typeFilter = clampFilter(off);
     persist(); admin.render();
   },
   setting(patch) {

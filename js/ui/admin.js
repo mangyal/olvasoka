@@ -9,12 +9,15 @@ import { createPool, buildGrid } from '../core/grid.js';
 import { marksOf } from '../core/marks.js';
 import { sampleItems, miniSample, lookSummary } from '../core/look.js';
 import { itemSpan, fillHtml } from './glyphs.js';
+import { filterRows, typeCounts, chipModel, toggleChip, toggleSub, countText } from '../core/type-filter.js';
 
 export const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 // a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)
 const SHEET = matchMedia('(max-width:899px), (hover:none) and (pointer:coarse), (max-height:500px) and (orientation:landscape)');
 // a Megjelenés helye: keskeny nézetben (álló tablet, telefon, fekvő telefon) a csomagválasztó alatt, máshol az előnézet fölött
 const NARROW = matchMedia('(max-width:899px), (max-height:500px) and (orientation:landscape)');
+// telefon (álló és fekvő): a szűrő altípusai lebegő listában, sötétített háttérrel (L-5)
+const PHONE = matchMedia('(max-width:600px), (max-height:500px) and (orientation:landscape)');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
 const DESC = {
   read: 'A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.',
@@ -40,31 +43,55 @@ export function createAdmin(el, app, act) {
      kijelölés megváltozott (mindkettő cserével változik, helyben soha). A visszaadott tömb nem módosítható.
      Sor: a lista egy bejegyzése, ismétlésekkel (a kör ezekből húz, 2.14 S-2). A felület mindenhol a
      különböző tételeket mutatja (S-3). */
-  let selMemo = { lists: null, selected: null, rows: [], items: [], marks: new Map() };
-  let allMemo = { lists: null, rows: [], marks: new Map() };
-  const distinctOf = new WeakMap();
+  /* Tételszűrő (SZR-5, D-3): a szűrés a csomagválasztás után jön; a felület mindenhol a szűrés utáni
+     különböző tételeket mutatja és számolja. A szűrő (app.typeFilter) cserével változik, helyben soha. */
+  const off = () => app.typeFilter;
+  let selMemo = { lists: null, selected: null, filter: null, rowsAll: [], itemsAll: [], rows: [], items: [], marks: new Map() };
+  let allMemo = { lists: null, filter: null, rowsAll: [], rows: [], marks: new Map() };
+  const distinctOf = new WeakMap(), filteredOf = new WeakMap();
   /** Egy lista különböző tételei, első előfordulásuk sorrendjében (a lista objektumához tárolva). */
   function listItems(l) {
     if (!distinctOf.has(l)) distinctOf.set(l, distinctItems(l.items));
     return distinctOf.get(l);
   }
+  /** Egy lista szűrés utáni különböző tételei (a felület ezt mutatja és számolja, D-3). */
+  function shownItems(l) {
+    const f = filteredOf.get(l);
+    if (f && f.filter === off()) return f.items;
+    const items = filterRows(listItems(l), off());
+    filteredOf.set(l, { filter: off(), items });
+    return items;
+  }
   function selMemoNow() {
-    if (selMemo.lists !== app.lists || selMemo.selected !== app.selected) {
-      const rows = itemsOf(app.lists, app.selected, nameKey);
+    if (selMemo.lists !== app.lists || selMemo.selected !== app.selected || selMemo.filter !== off()) {
+      const same = selMemo.lists === app.lists && selMemo.selected === app.selected;
+      const rowsAll = same ? selMemo.rowsAll : itemsOf(app.lists, app.selected, nameKey);
+      const itemsAll = same ? selMemo.itemsAll : distinctItems(rowsAll);
       // NB-5a: a kijelölt csomagokban jelölt tétel mindenhol jelölt alakban látszik
-      selMemo = { lists: app.lists, selected: app.selected, rows, items: distinctItems(rows), marks: marksOf(selected()) };
+      selMemo = { lists: app.lists, selected: app.selected, filter: off(), rowsAll, itemsAll,
+        rows: filterRows(rowsAll, off()), items: filterRows(itemsAll, off()), marks: same ? selMemo.marks : marksOf(selected()) };
     }
     return selMemo;
   }
-  /** A kijelölt listák különböző tételei (felület). */
+  /** A kijelölt listák különböző tételei a szűrés után (felület). */
   const selectedItems = () => selMemoNow().items;
-  /** A kör sorai (ismétlésekkel): a kijelölt listákéi vagy, „Összes lista” forrásnál, az összesé. */
+  /** A kijelölt listák különböző tételei szűrés nélkül (a szűrő chipjei és a számláló teljes értéke). */
+  const selectedItemsAll = () => selMemoNow().itemsAll;
+  /** A kör sorai (ismétlésekkel), a szűrés után: a kijelölt listákéi vagy, „Összes lista” forrásnál, az összesé. */
   function roundItems() {
     if (app.settings.source !== 'all') return selMemoNow().rows;
     return allMemoNow().rows;
   }
+  /** A kör sorai szűrés nélkül. */
+  const roundRowsAll = () => (app.settings.source !== 'all' ? selMemoNow().rowsAll : allMemoNow().rowsAll);
+  /** A szűrő kizárt-e tételt a körből (Umami: filtered, N-3). */
+  const roundFiltered = () => roundItems().length < roundRowsAll().length;
   function allMemoNow() {
-    if (allMemo.lists !== app.lists) allMemo = { lists: app.lists, rows: app.lists.flatMap((l) => l.items), marks: marksOf(app.lists) };
+    if (allMemo.lists !== app.lists || allMemo.filter !== off()) {
+      const same = allMemo.lists === app.lists;
+      const rowsAll = same ? allMemo.rowsAll : app.lists.flatMap((l) => l.items);
+      allMemo = { lists: app.lists, filter: off(), rowsAll, rows: filterRows(rowsAll, off()), marks: same ? allMemo.marks : marksOf(app.lists) };
+    }
     return allMemo;
   }
   /** A kör tételeinek nagybetű-jelölései (tételkulcs → jelölés), a kör forrása szerint (NB-5a). */
@@ -86,7 +113,7 @@ export function createAdmin(el, app, act) {
     return true;
   }
   /** A listák szerkezete (név, különböző tételek száma): ha ez nem változik, a listasáv elemei megmaradnak. */
-  const listsKey = () => app.lists.map((l) => l.name + SEP + listItems(l).length).join(SEP2);
+  const listsKey = () => app.lists.map((l) => l.name + SEP + shownItems(l).length).join(SEP2);
 
   /** Jelölőnégyzetes csomagsor (álló tablet és a telefonos lap). */
   function checkRow(l, rowClass, nameClass) {
@@ -94,7 +121,7 @@ export function createAdmin(el, app, act) {
     const c = document.createElement('input'); c.type = 'checkbox';
     const name = document.createElement('span'); name.textContent = l.name;
     if (nameClass) name.className = nameClass;
-    const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = listItems(l).length;
+    const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = shownItems(l).length;
     c.addEventListener('change', () => act.select(l.name));
     lab.append(c, name, cnt); return lab;
   }
@@ -115,10 +142,11 @@ export function createAdmin(el, app, act) {
     }
     const all = allMode();
     const k = all ? app.lists.length : selected().length;
-    const n = roundItems().length;
-    if (!n) {
+    if (!roundRowsAll().length) {
       return { enabled: false, msg: all ? 'Egyik csomagban sincs tétel.' : !k ? 'Jelölj ki legalább egy csomagot.' : k > 1 ? 'A kijelölt csomagokban nincs tétel.' : 'A csomagban nincs tétel.' };
     }
+    // SZR-7: a szűrő mindent kizárt; a becslés helyén mondjuk meg, a lista helyén a teendőt
+    if (!roundItems().length) return { enabled: false, msg: '', emptyFilter: true };
     // K-5: a Keresd meg!-hez kell egy csoport legalább két különböző tétellel
     // M-9: a mondat nem játszható; ha csak mondat van, ezt mondjuk meg, nem a tételszámot
     if (findMode() && !canFind(roundItems())) {
@@ -166,7 +194,7 @@ export function createAdmin(el, app, act) {
       const box = document.createElement('span'); box.className = 'nav-box'; box.setAttribute('aria-hidden', 'true');
       box.append(tick());
       const name = document.createElement('span'); name.className = 'nav-name'; name.textContent = l.name;
-      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = listItems(l).length;
+      const cnt = document.createElement('span'); cnt.className = 'nav-count'; cnt.textContent = shownItems(l).length;
       b.append(box, name, cnt);
       li.append(b); return li;
     }));
@@ -212,7 +240,7 @@ export function createAdmin(el, app, act) {
     const sum = selectionSummary();
     el.listsCount.textContent = sum.head;
     el.listsNone.hidden = allMode() || !sum.k;
-    el.listsSum.textContent = sum.k ? `${sum.n} különböző tétel` : 'Jelölj ki legalább egy csomagot.';
+    el.listsSum.textContent = sum.k ? `${sum.n} tétel` : 'Jelölj ki legalább egy csomagot.';
   }
   function openLists() {
     renderListsSheet();
@@ -235,23 +263,29 @@ export function createAdmin(el, app, act) {
     return d;
   };
   /** A kijelölt csomagok tételei csomagonként (asztali előnézet és a kinyitott telefonos előnézet). */
-  const groups = (sel) => sel.map((x) => {
+  // D-3: csak a szűrés utáni tételek; a szűrés után üres csomag nem látszik
+  const groups = (sel) => sel.filter((x) => shownItems(x).length).map((x) => {
     const g = document.createElement('section'); g.className = 'group';
     const h = document.createElement('div'); h.className = 'ed-head';
     const h3 = document.createElement('h3'); h3.textContent = x.name;
-    const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${listItems(x).length} tétel`;
+    const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${shownItems(x).length} tétel`;
     h.append(h3, n);
-    g.append(h, chipBox(listItems(x)));
+    g.append(h, chipBox(shownItems(x)));
     return g;
   });
+  const EMPTY_FILTER = 'A szűrő minden tételt kizárt. Kapcsolj be legalább egy típust.';
 
   /** Előnézet (3.2): „Ezekkel játszotok”, a kijelölt csomagok tételei csomagonként. */
   function renderList() {
     const sel = selected();
-    el.listView.hidden = !sel.length;
-    el.listEmpty.hidden = !!sel.length;
-    el.listCount.textContent = sel.length ? `${selectedItems().length} különböző tétel · ${sel.length} csomag` : '';
-    if (!sel.length) {
+    const none = sel.length > 0 && !selectedItems().length && selectedItemsAll().length > 0;   // SZR-7
+    el.listView.hidden = !sel.length || none;
+    el.listEmpty.hidden = !!sel.length && !none;
+    el.listCount.textContent = sel.length ? countText(selectedItems().length, selectedItemsAll().length, sel.length) : '';
+    if (none) {
+      el.listEmpty.classList.add('dashed');
+      el.listEmptyText.textContent = EMPTY_FILTER;
+    } else if (!sel.length) {
       const none = app.lists.length && app.listsState !== 'loading';
       el.listEmpty.classList.toggle('dashed', !!none);
       el.listEmptyText.textContent = app.listsState === 'loading' && !app.lists.length
@@ -263,7 +297,7 @@ export function createAdmin(el, app, act) {
     }
     renderPhonePreview(sel);
   }
-  const previewKey = (sel) => glyphVer + SEP2 + marksKey(selMarks()) + SEP2 + sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
+  const previewKey = (sel) => glyphVer + SEP2 + off().join() + SEP2 + marksKey(selMarks()) + SEP2 + sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
 
   /* Telefonos előnézet (4.1): kis kártyák két sorban, a többi levágva; „Mind a {k} tétel megtekintése”
      helyben kinyitja (csomagonként), „Kevesebb” becsukja. Nem nyitja meg a lapot. */
@@ -278,7 +312,8 @@ export function createAdmin(el, app, act) {
     const key = (pvOpen ? 'o' : 'c') + SEP2 + previewKey(sel);
     rebuild(el.pvBody, key, () => {
       if (!items.length) {
-        const p = document.createElement('p'); p.className = 'pv-empty muted'; p.textContent = 'Jelölj ki legalább egy csomagot.';
+        const p = document.createElement('p'); p.className = 'pv-empty muted';
+        p.textContent = selectedItemsAll().length ? EMPTY_FILTER : 'Jelölj ki legalább egy csomagot.';
         return [p];
       }
       return pvOpen ? groups(sel) : [chipBox(items.slice(0, PV_MAX))];
@@ -324,6 +359,11 @@ export function createAdmin(el, app, act) {
     const e = estimate(app.settings);
     el.estCount.textContent = e.count;
     el.estTime.textContent = e.time;
+  }
+  /** SZR-7: üres szűrőnél a becslés helyén ez áll (mindkét játéknál). */
+  function renderEstimateEmpty(empty) {
+    el.estimate.classList.toggle('empty', empty);
+    if (empty) { el.estCount.textContent = 'Nincs tétel a szűrőben'; el.estTime.textContent = ''; }
   }
 
   /* ---------- játékfülek és a Keresd meg! beállításai (U-A8) ---------- */
@@ -396,6 +436,7 @@ export function createAdmin(el, app, act) {
     el.startMsg.textContent = st.msg || '';
     el.startMsg.className = 'start-msg' + (st.warn ? ' wrn' : '');
     el.panelStart.classList.toggle('has-msg', !!st.msg);
+    renderEstimateEmpty(!!st.emptyFilter);
   }
 
   /* ---------- Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6, MI-1–MI-3) ---------- */
@@ -424,9 +465,107 @@ export function createAdmin(el, app, act) {
     rebuild(el.lookMini, glyphVer + SEP2 + mini + SEP + (marks.get(mini) || []).map((r) => r.start).join(), () => [fillHtml(document.createElement('span'), mini, marks.get(mini))]);
   }
 
+  /* ---------- Tételszűrő (SZR-1–SZR-8, L-2–L-5) ---------- */
+  let subOpen = null;               // a nyitott altípus-lista chipjének azonosítója
+  /** A fejléc helye: keskeny nézetben a Megjelenés alatt, máshol az előnézet tetején. */
+  function placeHead() {
+    if (NARROW.matches) { if (el.look.nextElementSibling !== el.playHead) el.look.after(el.playHead); }
+    else if (el.previewOnly.firstElementChild !== el.playHead) el.previewOnly.prepend(el.playHead);
+  }
+  const caretSvg = () => {
+    const svg = document.createElementNS(SVG, 'svg'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('icon');
+    const path = document.createElementNS(SVG, 'path'); path.setAttribute('d', 'M6 9l6 6 6-6');
+    svg.append(path); return svg;
+  };
+  function renderFilter() {
+    const model = chipModel(typeCounts(selectedItemsAll()), off());
+    el.typeFilter.hidden = !model.length;
+    el.tfNote.hidden = !model.length;
+    // a chipek szerkezete (melyik chip, van-e ▾) csak a csomagok változásakor épül újra; az állapot helyben frissül,
+    // így koppintás után a fókusz a gombon marad
+    rebuild(el.tfRow, model.map((c) => c.id + (c.hasSub ? '▾' : '')).join(), () => model.map((c) => {
+      const wrap = document.createElement('span'); wrap.className = 'tf-chip'; wrap.dataset.id = c.id;
+      const main = document.createElement('button'); main.type = 'button'; main.className = 'tf-main';
+      const tickBox = document.createElement('span'); tickBox.className = 'tf-tick'; tickBox.setAttribute('aria-hidden', 'true'); tickBox.append(tick());
+      const label = document.createElement('span'); label.className = 'tf-label';
+      const n = document.createElement('span'); n.className = 'tf-n num';
+      main.append(tickBox, label, n);
+      main.addEventListener('click', () => {
+        const cur = chipModel(typeCounts(selectedItemsAll()), off()).find((x) => x.id === c.id);
+        if (cur) act.typeFilter(toggleChip(off(), cur));
+      });
+      wrap.append(main);
+      if (c.hasSub) {
+        const caret = document.createElement('button'); caret.type = 'button'; caret.className = 'tf-caret';
+        caret.setAttribute('aria-label', `${c.name} részletei`);
+        caret.setAttribute('aria-controls', 'tfPop');
+        caret.append(caretSvg());
+        caret.addEventListener('click', () => { subOpen = subOpen === c.id ? null : c.id; renderFilter(); });
+        wrap.append(caret);
+      }
+      return wrap;
+    }));
+    for (const c of model) {
+      const wrap = el.tfRow.querySelector(`.tf-chip[data-id="${c.id}"]`);
+      wrap.dataset.state = c.state;
+      const main = wrap.querySelector('.tf-main');
+      main.setAttribute('aria-pressed', c.state === 'on' ? 'true' : c.state === 'part' ? 'mixed' : 'false');
+      main.querySelector('.tf-label').textContent = c.label;
+      main.querySelector('.tf-n').textContent = c.n;
+      wrap.querySelector('.tf-caret')?.setAttribute('aria-expanded', String(subOpen === c.id));
+    }
+    renderSubs(model.find((c) => c.id === subOpen && c.hasSub));
+  }
+  /** Az altípusok listája (SZR-2, L-5): asztalon a chip alatt, telefonon lebegő lista sötétített háttérrel. */
+  function renderSubs(c) {
+    if (!c) subOpen = null;
+    el.tfPop.hidden = !c;
+    el.tfBackdrop.hidden = !c || !PHONE.matches;
+    if (!c) { el.tfPop.replaceChildren(); return; }
+    rebuild(el.tfPop, c.id + SEP + c.subs.map((s) => s.key).join(), () => {
+      const h = document.createElement('p'); h.className = 'tf-pop-head'; h.textContent = `${c.name} részletei`;
+      return [h, ...c.subs.map((s) => {
+        const lab = document.createElement('label'); lab.className = 'tf-sub'; lab.dataset.key = s.key;
+        const box = document.createElement('input'); box.type = 'checkbox';
+        const t = document.createElement('span'); t.className = 'tf-sub-label'; t.textContent = s.label;
+        const n = document.createElement('span'); n.className = 'tf-n num';
+        box.addEventListener('change', () => act.typeFilter(toggleSub(off(), s.key)));
+        lab.append(box, t, n); return lab;
+      })];
+    });
+    el.tfPop.setAttribute('aria-label', `${c.name} részletei`);
+    for (const s of c.subs) {
+      const lab = el.tfPop.querySelector(`.tf-sub[data-key="${s.key}"]`);
+      lab.querySelector('input').checked = s.on;
+      lab.querySelector('.tf-n').textContent = s.n;
+    }
+    // helyzet: a ▾ alatt (asztal, tablet); telefonon a chipsor alatt, teljes szélességben (css)
+    const caret = el.tfRow.querySelector(`.tf-chip[data-id="${c.id}"] .tf-caret`);
+    const box = el.typeFilter.getBoundingClientRect(), chip = caret.closest('.tf-chip').getBoundingClientRect();
+    el.tfPop.style.setProperty('--pop-left', `${Math.max(0, Math.round(chip.left - box.left))}px`);
+    el.tfPop.style.setProperty('--pop-top', `${Math.round(chip.bottom - box.top + 6)}px`);
+    // telefon: lebegő lista a chipsor szélességében (fekvőben a bal oszlopban), alatta; ha ott nem fér el, fölötte
+    if (PHONE.matches) {
+      const h = el.tfPop.offsetHeight;
+      let top = chip.bottom + 6;
+      if (top + h > innerHeight - 8) top = Math.max(8, chip.top - 6 - h);
+      el.tfPop.style.setProperty('--pop-fixed', `${Math.round(top)}px`);
+      el.tfPop.style.setProperty('--pop-x', `${Math.round(box.left)}px`);
+      el.tfPop.style.setProperty('--pop-w', `${Math.round(box.width)}px`);
+    }
+  }
+  function closeSubs(focusCaret = false) {
+    if (!subOpen) return;
+    const id = subOpen;
+    subOpen = null;
+    renderFilter();
+    if (focusCaret) el.tfRow.querySelector(`.tf-chip[data-id="${id}"] .tf-caret`)?.focus();
+  }
+
   function render(force = false) {
     if (force) glyphVer++;
-    placeLook(); renderLook();
+    placeLook(); renderLook(); placeHead(); renderFilter();
     renderWarnings(); renderNav(); renderList(); renderSource(); renderMode(); renderSettings();
     if (findMode()) renderFind();
     renderStart();
@@ -458,7 +597,17 @@ export function createAdmin(el, app, act) {
   for (const r of el.look.querySelectorAll('input[name=lookColor]')) r.addEventListener('change', () => { if (r.checked) act.look({ color: r.value }); });
   for (const r of el.look.querySelectorAll('input[name=lookMark]')) r.addEventListener('change', () => { if (r.checked) act.look({ mark: r.value }); });
   el.lookRow.addEventListener('click', () => { lookOpen = !lookOpen; renderLook(); });
-  NARROW.addEventListener('change', () => { placeLook(); });
+  NARROW.addEventListener('change', () => { placeLook(); placeHead(); });
+  PHONE.addEventListener('change', () => closeSubs());
+  // az altípus-lista: kívülre koppintás vagy Esc zárja (L-5)
+  document.addEventListener('pointerdown', (e) => {
+    if (subOpen && !el.tfPop.contains(e.target) && !e.target.closest?.('.tf-caret')) closeSubs();
+  }, true);
+  el.tfPop.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSubs(true); } });
+  el.tfRow.addEventListener('keydown', (e) => { if (e.key === 'Escape' && subOpen) { e.preventDefault(); e.stopPropagation(); closeSubs(true); } });
+  // a chipsor görgetésekor (telefon) és átméretezéskor a lista a helyén marad
+  el.tfRow.addEventListener('scroll', () => { if (subOpen) renderFilter(); }, { passive: true });
+  addEventListener('resize', () => { if (subOpen) renderFilter(); });
   el.modKey.textContent = MOD;
 
   /* ---------- módfülek (4.1): Felolvasás · Keresd meg! ---------- */
@@ -623,5 +772,5 @@ export function createAdmin(el, app, act) {
   el.startBtn.addEventListener('click', (e) => act.start(e));
   el.fontBtn.addEventListener('click', act.fontTest);
 
-  return { render, roundItems, roundMarks, key, closeHow: () => closeHow(false), canStart: () => startState().enabled };
+  return { render, roundItems, roundMarks, roundFiltered, key, closeHow: () => closeHow(false), canStart: () => startState().enabled };
 }
