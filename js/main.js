@@ -2,11 +2,12 @@
 
 import { createStore } from './data/store.js';
 import { createAnalytics } from './data/analytics.js';
-import { fetchLists, fetchPairs, fetchProgressConfig } from './data/remote.js';
+import { fetchLists, fetchPairs, fetchProgressConfig, fetchSounds } from './data/remote.js';
+import { setClasses, applyLook } from './ui/glyphs.js';
 import { createProgressLog } from './data/progress-log.js';
 import { resolve as resolveProgress } from './core/haladas-config.js';
 import { parseByKind } from './core/source.js';
-import { clampSettings, clampFind, normalizeMode, levelToDegree } from './core/settings.js';
+import { clampSettings, clampFind, clampLook, normalizeMode, levelToDegree } from './core/settings.js';
 import { buildTasks, effectiveCards } from './core/find.js';
 import { nameKey } from './core/items.js';
 import { clickSelect, paint, reconcile, existing, wantedSelection } from './core/selection.js';
@@ -66,6 +67,7 @@ const app = {
   loadError: '', fetchedAt: saved.cache?.fetchedAt || 0,
   mode: saved.mode,                 // a kiválasztott játék: 'read' | 'find'
   settings: saved.settings, find: saved.find, lastLists: saved.lastLists, hideHelp: saved.hideHelp,
+  look: saved.look,                 // Megjelenés (docs/megjelenes-specifikacio.md, MJ-1–MJ-3)
   // Első lépések (docs/bemutato-specifikacio.md, 5.); ha a helyi tárolás nem írható, a munkamenetből
   tour: saved.tour || readSessionTour(),
   pairs: { state: 'loading', cc: null },  // a Keresd meg! konfigurációja (parok.json); 'failed': a fül inaktív
@@ -88,7 +90,7 @@ function persist() {
   const mode = app.pairs.state === 'ok' ? app.mode : saved.mode;
   // amíg a szülő nem választott listát, a kijelölés (és vele a tételforrás) nem mentődik: legközelebb is a táblázat jelölői döntenek
   const sel = app.autoSel ? { lastLists: [], settings: { ...app.settings, source: 'list' } } : { lastLists: app.lastLists, settings: app.settings };
-  return store.write({ v: 4, mode: normalizeMode(mode), settings: sel.settings, find: app.find, lastLists: sel.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
+  return store.write({ v: 4, mode: normalizeMode(mode), settings: sel.settings, find: app.find, look: app.look, lastLists: sel.lastLists, hideHelp: app.hideHelp, tour: app.tour, cache });
 }
 
 /* Első lépések: ha a localStorage nem írható (pl. privát ablak), a sessionStorage-ba kerül, hogy a
@@ -161,7 +163,9 @@ function trackRoundStart(game, cards) {
   roundNo += 1;
   const all = app.settings.source === 'all';
   const names = roundListNames();
-  const base = { game, round: roundNo, lists: all ? '(összes lista)' : names.join(' | '), listCount: names.length };
+  // colorMode, markMode: a Megjelenés (N-3); a játék a `game` mezőben
+  const base = { game, round: roundNo, lists: all ? '(összes lista)' : names.join(' | '), listCount: names.length,
+    colorMode: app.look.color, markMode: app.look.mark };
   stats.track('round-start', game === 'find'
     ? { ...base, cards, tasks: app.find.tasks, level: app.find.level }
     : { ...base, count: app.settings.count, flashMs: app.settings.flashMs, mixed: app.settings.mixed });
@@ -243,6 +247,12 @@ const admin = createAdmin(el, app, {
     app.find = clampFind({ ...app.find, ...patch });
     persist(); admin.render();
   },
+  // Megjelenés: mindkét játékra és az előnézetre érvényes, megmarad (MJ-3)
+  look(patch) {
+    app.look = clampLook({ ...app.look, ...patch });
+    applyLook(app.look);
+    persist(); admin.render();
+  },
   setting(patch) {
     app.settings = clampSettings({ ...app.settings, ...patch });
     if ('source' in patch) {
@@ -268,12 +278,13 @@ const admin = createAdmin(el, app, {
       const tasks = buildTasks(admin.roundItems(), { cards, tasks: app.find.tasks, level: levelToDegree(app.find.level, cc.levels) }, cc);
       trackFirstRound('find');
       trackRoundStart('find', cards);   // a ténylegesen mutatott kártyaszám (telefonon legfeljebb 6)
-      practice.startFind(tasks, cards, ev);
+      practice.startFind(tasks, cards, ev, { marks: admin.roundMarks() });
       return;
     }
     trackFirstRound('read');
     trackRoundStart('read');
-    practice.start(admin.roundItems(), app.settings, ev, { listNames: roundListNames(), undoMs: progress.config.szures.javitott_melle_ms });
+    practice.start(admin.roundItems(), app.settings, ev, { listNames: roundListNames(), undoMs: progress.config.szures.javitott_melle_ms,
+      marks: admin.roundMarks(), look: app.look });
   },
   fontTest() {
     const ok = fontLooksRight(app.font);
@@ -320,6 +331,17 @@ async function loadPairs() {
     app.mode = 'read';
   }
   if (!practice.active) admin.render();
+}
+
+/* ---------- Betűszínezés (hangok.json) ---------- */
+// Hiányzó vagy hibás fájlnál a beépített besorolás marad (D-5), a konzolra figyelmeztet.
+async function loadSounds() {
+  try {
+    setClasses(await fetchSounds());
+    if (!practice.active) admin.render(true);
+  } catch (e) {
+    console.warn('Megjelenés: a hangok.json nem használható, a beépített besorolással színez.', e.message);
+  }
 }
 
 /* ---------- Haladás küszöbei (haladas.json) ---------- */
@@ -417,6 +439,7 @@ if (ENV.env === 'dev') {
 }
 
 /* ---------- indulás ---------- */
+applyLook(app.look);
 pickSelected();
 admin.render();
 route();                          // ha a cím #haladas…, rögtön a Haladás nézet
@@ -425,6 +448,7 @@ initFont((late) => { app.font = late; if (!practice.active) admin.render(); })
   .then((f) => { app.font = f; if (!practice.active) admin.render(); });
 refresh();
 loadPairs();
+loadSounds();
 loadProgressConfig();
 
 // PWA: offline indulás (sw.js). Csak https-en vagy localhoston; hiba esetén a program ugyanúgy fut.

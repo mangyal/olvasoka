@@ -87,6 +87,12 @@ CV szótagok (`fa`), egyéb szótagok, a szavak szótagszám szerint, végül a 
 a betűk, szótagok és szavak összekeverve jönnek. Ugyanaz a tétel sosem jön kétszer egymás után.
 A Keresd meg! egy feladata mindig csak egy csoport tételeiből áll.
 
+A **Megjelenés** résznél (asztalon az előnézet fölött, telefonon a csomag gomb alatti sorban) a betűk
+Meixner-féle színezése (magánhangzó kék, zöngés mássalhangzó piros, zöngétlen zöld; a besorolás a
+`hangok.json`-ban) és a listában `{m}i-ki` alakban jelölt nagybetűk körvonalas jelölése kapcsolható be.
+Mindkét játékra és az előnézetre érvényes, és megmarad. Hogy éppen mit mutat, azt a Minta sor
+mutatja a kijelölt csomagok tételeivel.
+
 A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább. A tételek közti szünet 0, 0,5, 1, 2 vagy 3 mp.
 Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
 szótagra, vagy nyomd a `↓`-t (egész → csak az 1. szótag → … → csak az utolsó → egész). Az első takarás
@@ -109,6 +115,7 @@ Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
 index.html          markup
 lists.txt           a listák
 parok.json          Keresd meg!: hasonló betűpárok, költségek, nehézségi görbe (docs/keresd-meg-heurisztika.md)
+hangok.json         betűszínezés: magánhangzók, zöngés és zöngétlen mássalhangzók (docs/megjelenes-specifikacio.md SZ-3)
 haladas.json        Haladás: a szűrés és a csoportok küszöbei (docs/haladas-specifikacio.md, 7.)
 css/                tokens · szülői felület · gyakorló és jutalom nézet · Haladás · bemutató
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
@@ -119,6 +126,8 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   items.js            tételek tisztítása
   lists.js            a lists.txt és a táblázat értelmezése
   marks.js            nagybetű-jelölés a listában ({m}i-ki): leválasztás és ellenőrzés
+  hangok.js           betűszínezés: a hangok.json ellenőrzése, betűk és megjelenítési darabok
+  look.js             Megjelenés: a Minta tételei és a telefonos összegzés
   csv.js              CSV-olvasó
   source.js           forrás: táblázat, tartalékként lists.txt
   tour.js             Első lépések: megjelenítési feltétel, célelem, szövegek, a buborék helye

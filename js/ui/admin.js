@@ -6,10 +6,15 @@ import { nameKey, distinctItems } from '../core/items.js';
 import { itemsOf } from '../core/selection.js';
 import { canFind, onlySentences, effectiveCards, PHONE_MAX_CARDS } from '../core/find.js';
 import { createPool, buildGrid } from '../core/grid.js';
+import { marksOf } from '../core/marks.js';
+import { sampleItems, miniSample, lookSummary } from '../core/look.js';
+import { itemSpan, fillHtml } from './glyphs.js';
 
 export const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 // a súgó itt alsó lap (modális), máshol a panel melletti popover (design spec 6.)
 const SHEET = matchMedia('(max-width:899px), (hover:none) and (pointer:coarse), (max-height:500px) and (orientation:landscape)');
+// a Megjelenés helye: keskeny nézetben (álló tablet, telefon, fekvő telefon) a csomagválasztó alatt, máshol az előnézet fölött
+const NARROW = matchMedia('(max-width:899px), (max-height:500px) and (orientation:landscape)');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
 const DESC = {
   read: 'A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.',
@@ -35,8 +40,8 @@ export function createAdmin(el, app, act) {
      kijelölés megváltozott (mindkettő cserével változik, helyben soha). A visszaadott tömb nem módosítható.
      Sor: a lista egy bejegyzése, ismétlésekkel (a kör ezekből húz, 2.14 S-2). A felület mindenhol a
      különböző tételeket mutatja (S-3). */
-  let selMemo = { lists: null, selected: null, rows: [], items: [] };
-  let allMemo = { lists: null, rows: [] };
+  let selMemo = { lists: null, selected: null, rows: [], items: [], marks: new Map() };
+  let allMemo = { lists: null, rows: [], marks: new Map() };
   const distinctOf = new WeakMap();
   /** Egy lista különböző tételei, első előfordulásuk sorrendjében (a lista objektumához tárolva). */
   function listItems(l) {
@@ -46,7 +51,8 @@ export function createAdmin(el, app, act) {
   function selMemoNow() {
     if (selMemo.lists !== app.lists || selMemo.selected !== app.selected) {
       const rows = itemsOf(app.lists, app.selected, nameKey);
-      selMemo = { lists: app.lists, selected: app.selected, rows, items: distinctItems(rows) };
+      // NB-5a: a kijelölt csomagokban jelölt tétel mindenhol jelölt alakban látszik
+      selMemo = { lists: app.lists, selected: app.selected, rows, items: distinctItems(rows), marks: marksOf(selected()) };
     }
     return selMemo;
   }
@@ -55,9 +61,19 @@ export function createAdmin(el, app, act) {
   /** A kör sorai (ismétlésekkel): a kijelölt listákéi vagy, „Összes lista” forrásnál, az összesé. */
   function roundItems() {
     if (app.settings.source !== 'all') return selMemoNow().rows;
-    if (allMemo.lists !== app.lists) allMemo = { lists: app.lists, rows: app.lists.flatMap((l) => l.items) };
-    return allMemo.rows;
+    return allMemoNow().rows;
   }
+  function allMemoNow() {
+    if (allMemo.lists !== app.lists) allMemo = { lists: app.lists, rows: app.lists.flatMap((l) => l.items), marks: marksOf(app.lists) };
+    return allMemo;
+  }
+  /** A kör tételeinek nagybetű-jelölései (tételkulcs → jelölés), a kör forrása szerint (NB-5a). */
+  const roundMarks = () => (app.settings.source !== 'all' ? selMemoNow().marks : allMemoNow().marks);
+  /** A felület jelölései: a kijelölt csomagokéi. */
+  const selMarks = () => selMemoNow().marks;
+  /** A jelölések kulcsa az újrarajzoláshoz: a zárójel hozzáadása a tételt nem változtatja, a rajzot igen. */
+  const marksKey = (m) => [...m].map(([k, v]) => k + SEP + v.map((r) => `${r.start}.${r.end}`).join()).join(SEP2);
+  let glyphVer = 0;                 // a hangok.json betöltése után minden tétel újrarajzolódik
 
   /* Egy DOM-rész csak akkor épül újra, ha a tartalma (kulcsa) megváltozott; különben a hívó csak az
      állapotát (kijelölés, pipa) frissíti. Így kattintás után a fókusz a gombon/jelölőnégyzeten marad
@@ -214,9 +230,8 @@ export function createAdmin(el, app, act) {
 
   const chipBox = (items) => {
     const d = document.createElement('div'); d.className = 'chips';
-    d.append(...items.map((t) => {
-      const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; return c;
-    }));
+    const marks = selMarks();
+    d.append(...items.map((t) => itemSpan(t, marks.get(t), 'chip')));
     return d;
   };
   /** A kijelölt csomagok tételei csomagonként (asztali előnézet és a kinyitott telefonos előnézet). */
@@ -248,7 +263,7 @@ export function createAdmin(el, app, act) {
     }
     renderPhonePreview(sel);
   }
-  const previewKey = (sel) => sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
+  const previewKey = (sel) => glyphVer + SEP2 + marksKey(selMarks()) + SEP2 + sel.map((x) => x.name + SEP + x.items.join(SEP)).join(SEP2);
 
   /* Telefonos előnézet (4.1): kis kártyák két sorban, a többi levágva; „Mind a {k} tétel megtekintése”
      helyben kinyitja (csomagonként), „Kevesebb” becsukja. Nem nyitja meg a lapot. */
@@ -360,7 +375,7 @@ export function createAdmin(el, app, act) {
     const items = roundItems();
     const n = phoneCards(app.find.cards);
     const itemsKey = items.join(SEP);
-    const key = [cc ? 1 : 0, n, app.find.level, itemsKey].join('|');
+    const key = [cc ? 1 : 0, n, app.find.level, glyphVer, marksKey(roundMarks()), itemsKey].join('|');
     if (!force && key === sampleKey) return;
     sampleKey = key;
     if (!cc || !canFind(items)) { el.sampleBox.hidden = true; el.sample.replaceChildren(); return; }
@@ -368,8 +383,9 @@ export function createAdmin(el, app, act) {
     if (poolMemo.cc !== cc || poolMemo.key !== itemsKey) poolMemo = { cc, key: itemsKey, pool: createPool(items, cc) };
     const pool = poolMemo.pool;
     const g = buildGrid(pool, n, levelToDegree(app.find.level, cc.levels), Math.random);
+    const marks = roundMarks();
     el.sample.replaceChildren(...g.items.map((t) => {
-      const c = document.createElement('span'); c.className = 'sample-card'; c.textContent = t; c.title = t; return c;
+      const c = itemSpan(t, marks.get(t), 'sample-card'); c.title = t; return c;
     }));
   }
 
@@ -382,7 +398,35 @@ export function createAdmin(el, app, act) {
     el.panelStart.classList.toggle('has-msg', !!st.msg);
   }
 
-  function render() {
+  /* ---------- Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6, MI-1–MI-3) ---------- */
+  let lookOpen = false;             // telefonon: a Megjelenés sor kinyitva (L-4)
+  /** A blokk helye: keskeny nézetben a csomagválasztó (és a telefonos csomag gomb) alatt, máshol az előnézet fölött. */
+  function placeLook() {
+    const narrow = NARROW.matches;
+    if (narrow && el.look.parentElement !== el.picker) el.listsBtn.after(el.look);
+    else if (!narrow && el.look.parentElement !== el.edInner) el.edInner.prepend(el.look);
+  }
+  function renderLook() {
+    const look = app.look;
+    for (const r of el.look.querySelectorAll('input[name=lookColor]')) r.checked = r.value === look.color;
+    for (const r of el.look.querySelectorAll('input[name=lookMark]')) r.checked = r.value === look.mark;
+    el.lookLegend.hidden = look.color !== 'sound';
+    el.lookTip.hidden = !(look.color === 'sound' && look.mark === 'outline');
+    el.lookRowSum.textContent = lookSummary(look);
+    el.look.classList.toggle('open', lookOpen);
+    el.lookRow.setAttribute('aria-expanded', String(lookOpen));
+    // MI-1–MI-3: a kijelölt csomagok tételeiből, típusonként az első; tétel nélkül a sor nem látszik
+    const items = selectedItems(), marks = selMarks();
+    const sample = sampleItems(items, marks);
+    el.lookSampleL.hidden = el.lookSample.hidden = !sample.length;
+    rebuild(el.lookSample, glyphVer + SEP2 + marksKey(marks) + SEP2 + sample.join(SEP), () => sample.map((t) => itemSpan(t, marks.get(t), 'look-card')));
+    const mini = miniSample(items, marks);
+    rebuild(el.lookMini, glyphVer + SEP2 + mini + SEP + (marks.get(mini) || []).map((r) => r.start).join(), () => [fillHtml(document.createElement('span'), mini, marks.get(mini))]);
+  }
+
+  function render(force = false) {
+    if (force) glyphVer++;
+    placeLook(); renderLook();
     renderWarnings(); renderNav(); renderList(); renderSource(); renderMode(); renderSettings();
     if (findMode()) renderFind();
     renderStart();
@@ -411,6 +455,10 @@ export function createAdmin(el, app, act) {
   el.countInc.addEventListener('click', () => setCount(app.settings.count + 1));
   el.mixedIn.addEventListener('change', () => act.setting({ mixed: el.mixedIn.checked }));
   el.refreshBtn.addEventListener('click', act.refresh);
+  for (const r of el.look.querySelectorAll('input[name=lookColor]')) r.addEventListener('change', () => { if (r.checked) act.look({ color: r.value }); });
+  for (const r of el.look.querySelectorAll('input[name=lookMark]')) r.addEventListener('change', () => { if (r.checked) act.look({ mark: r.value }); });
+  el.lookRow.addEventListener('click', () => { lookOpen = !lookOpen; renderLook(); });
+  NARROW.addEventListener('change', () => { placeLook(); });
   el.modKey.textContent = MOD;
 
   /* ---------- módfülek (4.1): Felolvasás · Keresd meg! ---------- */
@@ -575,5 +623,5 @@ export function createAdmin(el, app, act) {
   el.startBtn.addEventListener('click', (e) => act.start(e));
   el.fontBtn.addEventListener('click', act.fontTest);
 
-  return { render, roundItems, key, closeHow: () => closeHow(false), canStart: () => startState().enabled };
+  return { render, roundItems, roundMarks, key, closeHow: () => closeHow(false), canStart: () => startState().enabled };
 }

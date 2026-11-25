@@ -101,7 +101,43 @@
 
     <!-- előnézet (3.2): a játékban csak ezek a tételek jöhetnek elő -->
     <section class="editor pad" aria-labelledby="previewH">
-      <div class="ed-inner">
+      <div class="ed-inner" id="edInner">
+        <!-- Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6). Asztalon itt; keskeny nézetben (< 900 px,
+             fekvő telefon) a js a csomagválasztó alá teszi. Telefonon összecsukott sor, koppintásra helyben nyílik. -->
+        <section class="look" id="look" aria-labelledby="lookH">
+          <button type="button" class="look-row" id="lookRow" aria-expanded="false" aria-controls="lookBody">
+            <span class="look-row-text">
+              <span class="look-row-label">Megjelenés</span>
+              <span class="look-row-sum" id="lookRowSum"></span>
+            </span>
+            <span class="look-mini" id="lookMini" aria-hidden="true"></span>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="look-body" id="lookBody">
+            <h2 class="col-title" id="lookH">Megjelenés</h2>
+            <div class="look-grid">
+              <span class="look-label" id="lookColorL">Betűk színezése</span>
+              <div class="look-ctl">
+                <div class="seg-opts look-seg" role="radiogroup" aria-labelledby="lookColorL">
+                  <label><input type="radio" name="lookColor" value="none"><span>Nincs</span></label>
+                  <label><input type="radio" name="lookColor" value="sound"><span>Hangok szerint</span></label>
+                </div>
+                <span class="look-note look-legend" id="lookLegend"><span><b class="g g-v">a</b> magánhangzó</span> <span><b class="g g-d">m</b> zöngés</span> <span><b class="g g-u">t</b> zöngétlen</span></span>
+              </div>
+              <span class="look-label" id="lookMarkL">Nagybetűk jelölése</span>
+              <div class="look-ctl">
+                <div class="seg-opts look-seg" role="radiogroup" aria-labelledby="lookMarkL">
+                  <label><input type="radio" name="lookMark" value="none"><span>Nincs</span></label>
+                  <label><input type="radio" name="lookMark" value="outline"><span>Körvonal</span></label>
+                </div>
+                <span class="look-note" id="lookTip">Színezésnél a körvonal a betű színét kapja.</span>
+              </div>
+              <span class="look-label look-sample-label" id="lookSampleL">Minta</span>
+              <div class="look-sample" id="lookSample" aria-labelledby="lookSampleL"></div>
+            </div>
+          </div>
+        </section>
+
         <div class="preview-only">
           <div class="ed-head">
             <h2 class="col-title" id="previewH">Ezekkel játszotok</h2>
