@@ -19,9 +19,10 @@ const DIGRAPHS = ['cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
 /** Normalizált alak a betűkre bontáshoz: NFC, kisbetű, kötőjel nélkül. A tételek azonosságát nem ez, hanem az itemKey dönti el. */
 export const normalize = (s) => String(s).normalize('NFC').toLocaleLowerCase('hu').replace(/-/g, '').trim();
 
-const MULTI = ['dzs', ...DIGRAPHS];
+/** A többjegyű betűk (a háromjegyű előbb). */
+export const MULTI = ['dzs', ...DIGRAPHS];
 /** A t i. helyétől induló többjegyű betű, ha van (a háromjegyű előbb). */
-const multiAt = (t, i) => MULTI.find((m) => t.startsWith(m, i));
+export const multiAt = (t, i) => MULTI.find((m) => t.startsWith(m, i));
 
 /** Mondatban az írásjel nem betű (M-2). */
 const PUNCT = /[.?!,]/g;

@@ -64,6 +64,7 @@ const ASSETS = [
   'js/core/rewards.js',
   'js/core/list-identity.js',
   'js/core/lists.js',
+  'js/core/marks.js',
   'js/core/mastery.js',
   'js/core/practice-log.js',
   'js/core/round.js',
