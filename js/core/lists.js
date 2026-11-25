@@ -17,10 +17,13 @@
 // lista első betöltéskor ki legyen-e jelölve (F-L1d).
 //
 // A tételek tisztítása és a listanevek ellenőrzése mindkét forrásnál ugyanaz (F-L3–F-L5).
+// A nagybetű jelölése (`{m}i-ki`, docs/megjelenes-specifikacio.md NB-1–NB-5) itt válik le: a lista
+// tétele a zárójelek nélküli alak, a jelölés a lista `marks` térképébe kerül (csak ha van jelölés).
 // A listák névsorban (magyar ábécé, számok számként) kerülnek vissza, nem a forrás sorrendjében.
 
 import { cleanItem, maxLenOf, nameKey, art } from './items.js';
 import { parseCsv, colName } from './csv.js';
+import { parseMarks } from './marks.js';
 
 // Magyar ábécérend, a számokat számként kezeli (2. < 10. oldal).
 const byName = new Intl.Collator('hu', { numeric: true, sensitivity: 'base' }).compare;
@@ -47,7 +50,7 @@ function createBuilder() {
       const k = nameKey(name);
       if (names.has(k)) { problems.push(`${at}: a „${name}” csomag már szerepel, a második kimaradt.`); return; }
       names.add(k);
-      cur = { name, items: [] };
+      cur = /** @type {{name:string, items:string[], marks?:Map<string,{start:number,end:number}[]>}} */ ({ name, items: [] });
       lists.push(cur);
     },
     get open() { return cur !== null; },
@@ -58,8 +61,13 @@ function createBuilder() {
     items(text, at) {
       if (!cur) return;
       for (const part of text.split(',')) {
-        const item = cleanItem(part);           // M-6: a belső szóközök egyre vonva
-        if (!item) continue;
+        const clean = cleanItem(part);          // M-6: a belső szóközök egyre vonva
+        if (!clean) continue;
+        const { text: item, marks } = parseMarks(clean);   // NB-5: a zárójelek leválnak
+        if (item === null || marks === null) {               // NB-3
+          problems.push(`${at}: a „${clean}” jelölése hibás (a kapcsos zárójelbe egy szó első betűje kerülhet, kisbetűvel), kimaradt.`);
+          continue;
+        }
         if (item.startsWith('#')) {             // F-L5: #-tel kezdődő tétel nem lehet
           problems.push(`${at}: a „${item}” #-tel kezdődik, ezért kimaradt.`);
           continue;
@@ -70,6 +78,10 @@ function createBuilder() {
           continue;
         }
         cur.items.push(item);
+        if (marks.length) {                     // NB-5a: a lista első jelölt előfordulása
+          cur.marks ??= new Map();
+          if (!cur.marks.has(item)) cur.marks.set(item, marks);
+        }
       }
     },
     done(preset = []) {
@@ -82,7 +94,7 @@ function createBuilder() {
 /**
  * @param {string} text  a lists.txt tartalma
  * @returns {{
- *   lists: {name:string, items:string[]}[],  // items: a lista sorai, ismétlésekkel
+ *   lists: {name:string, items:string[], marks?:Map<string,{start:number,end:number}[]>}[],  // items: sorok ismétlésekkel, jelölés nélkül; marks: tételkulcs → nagybetű-jelölés (ha van)
  *   problems: string[],                      // a szülői felületen figyelmeztetésként jelenik meg
  *   preset: string[],                        // az alapból kijelölt listák neve (a lists.txt-ben mindig üres)
  * }}
@@ -131,7 +143,7 @@ export function presetFlag(cell) {
  * A teljesen üres oszlop (név és tétel nélkül) csendben kimarad; név nélküli, de tételes oszlop
  * figyelmeztetéssel. A név elején álló # jel(ek) elhagyhatók, mint a lists.txt-ben.
  * @param {string} csv
- * @returns {{ lists:{name:string, items:string[]}[], problems:string[], preset:string[] }}
+ * @returns {{ lists:{name:string, items:string[], marks?:Map<string,{start:number,end:number}[]>}[], problems:string[], preset:string[] }}
  */
 export function parseSheetCsv(csv) {
   const rows = parseCsv(csv).map((r) => r.map((c) => c.normalize('NFC').trim()));

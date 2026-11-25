@@ -40,6 +40,10 @@ ke-fe
 
 - A `#`-tel kezdődő sor egy új lista neve, alatta soronként egy tétel. Az üres sorok nem számítanak.
 - A tételek pontosan úgy jelennek meg, ahogy le vannak írva (kis- és nagybetű is).
+- Nagybetű jelölése: a szó első betűje kapcsos zárójelbe kerül, kisbetűvel: `{m}i-ki`, `{sz}é-ke`,
+  mondatban több is: `{l}a-li {m}a-mi.`. A program ettől nem írja nagybetűvel, csak a Megjelenés beállítása
+  szerint körvonalasan mutatja; a `{m}i-ki` és a `mi-ki` ugyanaz a tétel. Szó közepén (`mi-{k}i`) és
+  nagybetűvel (`{M}i-ki`) nem jelölhető, az ilyen tétel figyelmeztetéssel kimarad.
 - Egy tétel legfeljebb 20 karakter, mondat 40. A vessző elválaszt: az `a, á, e` sor három tétel.
 - Ami több szóból áll, az mondat (`a ló húz.`). Mondatba ezért nem kerülhet vessző. A mondatok a
   szavak után, külön jönnek; takarásnál szavanként takarhatók; a Keresd meg!-ben nem szerepelnek.
@@ -114,6 +118,7 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   round.js            a gyakorlókör állapotgépe (időzítés, szünet, navigáció)
   items.js            tételek tisztítása
   lists.js            a lists.txt és a táblázat értelmezése
+  marks.js            nagybetű-jelölés a listában ({m}i-ki): leválasztás és ellenőrzés
   csv.js              CSV-olvasó
   source.js           forrás: táblázat, tartalékként lists.txt
   tour.js             Első lépések: megjelenítési feltétel, célelem, szövegek, a buborék helye
