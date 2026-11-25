@@ -522,7 +522,8 @@ export function createAdmin(el, app, act) {
     if (!c) subOpen = null;
     el.tfPop.hidden = !c;
     el.tfBackdrop.hidden = !c || !PHONE.matches;
-    if (!c) { el.tfPop.replaceChildren(); return; }
+    // bezáráskor a tartalom és a rebuild kulcsa is törlődik, különben újranyitáskor üres maradna a lista
+    if (!c) { el.tfPop.replaceChildren(); built.delete(el.tfPop); return; }
     rebuild(el.tfPop, c.id + SEP + c.subs.map((s) => s.key).join(), () => {
       const h = document.createElement('p'); h.className = 'tf-pop-head'; h.textContent = `${c.name} részletei`;
       return [h, ...c.subs.map((s) => {

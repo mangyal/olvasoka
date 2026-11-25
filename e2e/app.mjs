@@ -2095,3 +2095,24 @@ test('Súgó: a 2. lépés a Megjelenés és a szűrő mondata (S-1, elfogadás 
   const steps = await page.locator('#dlgHelp .help-steps > li').allTextContents();
   assert.equal(steps[1], 'A Megjelenés résznél színezheted a betűket és jelölheted a nagybetűket, a Betűk, Szótagok, Szavak, Mondatok gombokkal pedig kiválaszthatod, mit gyakoroljatok.');
 });
+
+test('szűrő: a ▾ lista újranyitva is tartalmazza az altípusokat; Egyik sem után újra kijelölve is (hiba 2026-11-25)', async () => {
+  await mixedLists();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await only('Betűk');
+  const subs = () => page.locator('#tfPop .tf-sub-label').allTextContents();
+  await chip('Betűk').locator('.tf-caret').click();
+  assert.deepEqual(await subs(), ['Magánhangzók', 'Mássalhangzók']);
+  await page.keyboard.press('Escape');
+  await chip('Betűk').locator('.tf-caret').click();
+  assert.deepEqual(await subs(), ['Magánhangzók', 'Mássalhangzók'], 'újranyitva');
+  await page.keyboard.press('Escape');
+  // minden csomag ki, majd az első vissza: a chip újraépül, a lista nem üres
+  await page.locator('#navNone').click();
+  await navBtn('Betűk').click();
+  await chip('Betűk').locator('.tf-caret').click();
+  assert.deepEqual(await subs(), ['Magánhangzók', 'Mássalhangzók'], 'Egyik sem után');
+  assert.equal(await text('#listCount'), '3 tétel · 1 csomag', 'a felület többi része is frissül');
+  assert.deepEqual(errors, []);
+});
