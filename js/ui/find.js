@@ -3,6 +3,7 @@
 
 import { gridShape } from '../core/find.js';
 import { FONT_STACK } from '../font.js';
+import { fillHtml } from './glyphs.js';
 
 const PHONE = 500;                  // a rövidebb oldal ez alatt: telefon (F-K10, U-K2)
 
@@ -27,15 +28,18 @@ export function createFindView(el, { onMark }) {
   const measure = document.createElement('canvas').getContext('2d');
   let cards = [], shown = null, shapeN = 4;
 
-  /** A rács felépítése egy feladathoz; a beállított kártyaszám (n) adja az elrendezést (F-K12). */
-  function show(items, n) {
+  /**
+   * A rács felépítése egy feladathoz; a beállított kártyaszám (n) adja az elrendezést (F-K12).
+   * marks: tételkulcs → nagybetű-jelölés; a kártyák a Megjelenés szerint rajzolódnak (J-2).
+   */
+  function show(items, n, marks = new Map()) {
     shown = items; shapeN = n;
     cards = items.map((t, i) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'card';
       b.setAttribute('aria-pressed', 'false');
       b.setAttribute('aria-label', t);
-      const s = document.createElement('span'); s.className = 'card-text'; s.textContent = t;
+      const s = fillHtml(document.createElement('span'), t, marks.get(t)); s.className = 'card-text';
       s.setAttribute('aria-hidden', 'true');
       b.append(s);
       // egérrel ne vigye el a fókuszt (a Space a feladat léptetése, nem a fókuszált kártya)

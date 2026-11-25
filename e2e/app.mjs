@@ -1788,3 +1788,175 @@ test('lapozás húzással: egérrel húzva nem lapoz', async () => {
   assert.equal(await item(), first);
   await at(1, 5);
 });
+
+/* ---------- Megjelenés (docs/megjelenes-specifikacio.md) ---------- */
+const MARKED = [
+  'Jelölt,Más,Miki,Széke,Szavak2',
+  '{m}i-ki,mi-ki,{m}i-ki,{sz}é-ke,{m}i-ki',
+  '{sz}é-ke,a,,,{sz}é-ke',
+  'ma-ma,,,,ma-ma',
+  'tó,,,,',
+  'Ma,,,,',
+].join('\r\n');
+const RGB = { ink: 'rgb(30, 42, 50)', v: 'rgb(30, 79, 163)', d: 'rgb(198, 40, 40)', u: 'rgb(27, 94, 32)' };
+
+async function markedLists(p = page, c = ctx) {
+  await c.route(/docs\.google\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/csv', body: MARKED }));
+  await p.reload();
+  await p.locator('#listNav .nav-item').first().waitFor();
+}
+/** Megjelenés a szülői felületen: color 'none' | 'sound', mark 'none' | 'outline'. */
+async function setLook(color, mark) {
+  await page.locator(`#look input[name=lookColor][value=${color}]`).check();
+  await page.locator(`#look input[name=lookMark][value=${mark}]`).check();
+}
+/** A Felolvasás tételének darabjai: szöveg, kitöltés, körvonal, vastagság. */
+const glyphs = () => page.$$eval('#itemText tspan', (ts) => ts.map((t) => {
+  const c = getComputedStyle(t);
+  return { t: t.textContent, fill: c.fill, stroke: c.stroke, sw: parseFloat(c.strokeWidth) };
+}));
+/** Egy HTML-tétel darabjai: szöveg, szín, kitöltés, körvonal-vastagság (a span nélküli karakter a szülőé). */
+/** sel: CSS-választó; text: ha megvan, az első olyan elem, amelynek a teljes szövege ez. */
+const htmlGlyphs = (sel, text) => page.$$eval(sel, (els, t) => {
+  const found = t == null ? els[0] : els.find((x) => x.textContent === t);
+  const el = found.querySelector(':scope > .g-w') || found;   // chip, minta: a darabok a belső .g-w-ben
+  return [...el.childNodes].map((n) => {
+    const e = n.nodeType === 1 ? n : el, c = getComputedStyle(e);
+    return { t: n.textContent, color: c.color, fill: c.webkitTextFillColor, sw: parseFloat(c.webkitTextStrokeWidth) || 0 };
+  });
+}, text);
+
+test('Megjelenés: alapból Nincs / Nincs; a választás megmarad újratöltés után is (MJ-1–MJ-3, elfogadás 10)', async () => {
+  assert.equal(await page.locator('#look input[name=lookColor][value=none]').isChecked(), true);
+  assert.equal(await page.locator('#look input[name=lookMark][value=none]').isChecked(), true);
+  assert.deepEqual(await page.evaluate(() => [...document.documentElement.classList].filter((c) => c.startsWith('look-'))), []);
+  await setLook('sound', 'outline');
+  await page.reload();
+  await page.locator('#listNav .nav-item').first().waitFor();
+  assert.equal(await page.locator('#look input[name=lookColor][value=sound]').isChecked(), true);
+  assert.equal(await page.locator('#look input[name=lookMark][value=outline]').isChecked(), true);
+  assert.deepEqual(await page.evaluate(() => [...document.documentElement.classList].filter((c) => c.startsWith('look-')).sort()), ['look-color', 'look-mark']);
+});
+
+test('Megjelenés: {m}i-ki a Felolvasásban, a négy kombináció; {sz}é-ke egészben (elfogadás 1, 3; J-1, NB-7, NB-8)', async () => {
+  await markedLists();
+  const round = async (list) => {
+    await startRound({ flash: 0, count: 1, list });
+    const g = await glyphs();
+    const size = +(await page.getAttribute('#itemText', 'font-size'));
+    await page.keyboard.press('Escape');
+    await page.locator('#admin').waitFor({ state: 'visible' });
+    return { g, w: Math.max(0.8, size * 0.025) };
+  };
+  // Nincs / Nincs: sima szöveg, tspan nélkül (a betűköz nem változik)
+  let r = await round('Miki');
+  assert.deepEqual(r.g, []);
+  assert.equal(await page.$eval('#itemText', (t) => getComputedStyle(t).fill), RGB.ink);
+
+  await setLook('sound', 'none');
+  r = await round('Miki');
+  assert.deepEqual(r.g.map((x) => [x.t, x.fill]), [['m', RGB.d], ['i', RGB.v], ['-', RGB.ink], ['k', RGB.u], ['i', RGB.v]]);
+  assert.ok(r.g.every((x) => x.stroke === 'none'), 'körvonal nincs');
+
+  await setLook('none', 'outline');
+  r = await round('Miki');
+  assert.deepEqual(r.g.map((x) => [x.t, x.fill, x.stroke]), [['m', 'none', RGB.ink], ['i', RGB.ink, 'none'], ['-', RGB.ink, 'none'], ['k', RGB.ink, 'none'], ['i', RGB.ink, 'none']]);
+  assert.ok(Math.abs(r.g[0].sw - r.w) < 0.05, `vonalvastagság ${r.g[0].sw} ≈ ${r.w}`);
+
+  await setLook('sound', 'outline');
+  r = await round('Miki');
+  assert.deepEqual(r.g.map((x) => [x.t, x.fill, x.stroke]), [['m', 'none', RGB.d], ['i', RGB.v, 'none'], ['-', RGB.ink, 'none'], ['k', RGB.u, 'none'], ['i', RGB.v, 'none']]);
+  r = await round('Széke');
+  assert.deepEqual(r.g.slice(0, 2).map((x) => [x.t, x.fill, x.stroke]), [['sz', 'none', RGB.u], ['é', RGB.v, 'none']], 'a teljes sz körvonalas, zöld');
+});
+
+test('Megjelenés: takarás színezett, jelölt tételen is a szótagra kerül (F-P22, J-1)', async () => {
+  await markedLists();
+  await setLook('sound', 'outline');
+  await startRound({ flash: 0, count: 1, list: 'Miki' });
+  await page.keyboard.press('ArrowDown');
+  // ↓: csak az 1. szótag látszik, a vonalzó a „ki”-t takarja: a kötőjel után kezdődik, a k-nál nem később
+  const { ruler, hy, k } = await page.evaluate(() => {
+    const t = document.getElementById('itemText');
+    const r = document.querySelector('#stage .ruler-body').getBBox();
+    return { ruler: r.x, hy: t.getStartPositionOfChar(2).x, k: t.getStartPositionOfChar(3).x };
+  });
+  assert.equal(await page.locator('#stage .ruler').count(), 1);
+  assert.ok(ruler > hy && ruler <= k + 0.5, `a vonalzó a második szótagon: ${hy} < ${ruler} ≤ ${k}`);
+});
+
+test('Megjelenés: előnézet – ma-ma, tó, Ma színei; {m}i-ki és mi-ki egy tétel, mindenhol jelölt alakban (elfogadás 2, 5; NB-5a)', async () => {
+  await markedLists();
+  await only('Jelölt');
+  await navBtn('Más').click();
+  assert.equal(await text('#listCount'), '6 különböző tétel · 2 csomag', 'a {m}i-ki és a mi-ki egy tétel');
+  assert.deepEqual(await chips(), ['mi-ki', 'szé-ke', 'ma-ma', 'tó', 'Ma', 'mi-ki', 'a']);
+  assert.equal(await page.locator('#listBody .chip .g-mark').count(), 3, 'a Más csomag mi-ki-je is jelölt (NB-5a)');
+  await setLook('sound', 'outline');
+    const chip = (t) => htmlGlyphs('#listBody .chip', t);
+  assert.deepEqual((await chip('ma-ma')).map((x) => [x.t, x.color]), [['m', RGB.d], ['a', RGB.v], ['-', RGB.ink], ['m', RGB.d], ['a', RGB.v]]);
+  assert.deepEqual((await chip('tó')).map((x) => [x.t, x.color]), [['t', RGB.u], ['ó', RGB.v]]);
+  assert.deepEqual((await chip('Ma')).map((x) => [x.t, x.color]), [['M', RGB.d], ['a', RGB.v]]);
+  const m = (await chip('mi-ki'))[0];
+  assert.deepEqual([m.t, m.color, m.fill], ['m', RGB.d, 'rgba(0, 0, 0, 0)'], 'körvonalas, piros');
+  assert.ok(m.sw >= 0.8, `körvonal ${m.sw}`);
+  // színezés nélkül a körvonal tintaszínű (NB-8), a többi betű teli
+  await setLook('none', 'outline');
+  const g = await chip('mi-ki');
+  assert.deepEqual([g[0].color, g[0].fill], [RGB.ink, 'rgba(0, 0, 0, 0)']);
+  assert.equal(g[1].fill, RGB.ink);
+  await setLook('none', 'none');
+  assert.equal((await chip('mi-ki'))[0].sw, 0, 'Nincs: sima kisbetű (NB-6)');
+});
+
+test('Megjelenés: jelmagyarázat csak színezésnél, a tipp csak színezés + Körvonal esetén (L-1)', async () => {
+  const vis = () => Promise.all(['#lookLegend', '#lookTip'].map((s) => page.locator(s).isVisible()));
+  await setLook('none', 'none'); assert.deepEqual(await vis(), [false, false]);
+  await setLook('sound', 'none'); assert.deepEqual(await vis(), [true, false]);
+  await setLook('none', 'outline'); assert.deepEqual(await vis(), [false, false]);
+  await setLook('sound', 'outline'); assert.deepEqual(await vis(), [true, true]);
+  assert.equal((await text('#lookLegend')).replace(/\s+/g, ' ').trim(), 'a magánhangzó m zöngés t zöngétlen');
+  assert.equal(await text('#lookTip'), 'Színezésnél a körvonal a betű színét kapja.');
+});
+
+test('Megjelenés: a Minta a kijelölt csomagokból, típusonként az első; csomag nélkül nem látszik (MI-1–MI-3)', async () => {
+  await markedLists();
+  await only('Jelölt');
+  await navBtn('Más').click();
+  const sample = () => page.locator('#lookSample .look-card').allTextContents();
+  assert.deepEqual(await sample(), ['a', 'tó', 'mi-ki', 'szé-ke']);
+  assert.equal(await page.locator('#lookSample .look-card .g-mark').count(), 2);
+  await navBtn('Más').click();
+  assert.deepEqual(await sample(), ['tó', 'mi-ki', 'szé-ke'], 'a hiányzó típus kimarad');
+  await page.locator('#navNone').click();
+  assert.equal(await page.locator('#lookSample').isVisible(), false);
+  assert.equal(await page.locator('#lookSampleL').isVisible(), false);
+});
+
+test('Megjelenés: a Keresd meg! kártyái és mintája a Megjelenés szerint (MJ-4, J-2)', async () => {
+  await markedLists();
+  await only('Szavak2');
+  await setLook('sound', 'outline');
+  await page.locator('#tabFind').click();
+  await page.waitForSelector('#sample .sample-card');
+  assert.equal(await page.locator('#sample .sample-card .g-mark').count(), 2, 'a panel mintája is');
+  await page.waitForFunction(() => !document.getElementById('startBtn').disabled);
+  await page.locator('#startBtn').click();
+  await page.waitForSelector('#findGrid .card');
+  const card = page.locator('#findGrid .card[aria-label="mi-ki"] .card-text');
+  const m = (await htmlGlyphs('#findGrid .card[aria-label="mi-ki"] .card-text'))[0];
+  assert.deepEqual([m.t, m.color, m.fill], ['m', RGB.d, 'rgba(0, 0, 0, 0)']);
+  assert.equal(await card.textContent(), 'mi-ki');
+  // a megjelölt kártya stílusa változatlan, a betűk színe marad
+  await page.locator('#findGrid .card[aria-label="mi-ki"]').click();
+  assert.equal(await page.getAttribute('#findGrid .card[aria-label="mi-ki"]', 'aria-pressed'), 'true');
+  assert.equal((await htmlGlyphs('#findGrid .card[aria-label="mi-ki"] .card-text'))[1].color, RGB.v);
+});
+
+test('Megjelenés: hibás vagy elérhetetlen hangok.json mellett a beépített besorolással színez (D-5)', async () => {
+  await ctx.route(/hangok\.json/, (r) => r.abort());
+  await markedLists();
+  await only('Jelölt');
+  await setLook('sound', 'none');
+  assert.deepEqual((await htmlGlyphs('#listBody .chip', 'tó')).map((x) => x.color), [RGB.u, RGB.v]);
+});

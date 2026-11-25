@@ -1,0 +1,6 @@
+{
+  "_leiras": "A betűszínezés hangcsoportjai (Meixner-kódolás, docs/megjelenes-specifikacio.md SZ-1–SZ-3). Egy betű pontosan egy csoportban állhat, kisbetűvel; a többjegyű betű (cs, sz, dzs …) egy betű. A nem besorolt karakter (kötőjel, írásjel, idegen betű) tintaszínű. A párnélküli zöngés mássalhangzók (j, l, ly, m, n, ny, r) is a zöngések között vannak (D-1).",
+  "maganhangzo": ["a", "á", "e", "é", "i", "í", "o", "ó", "ö", "ő", "u", "ú", "ü", "ű"],
+  "zonges": ["b", "d", "dz", "dzs", "g", "gy", "j", "l", "ly", "m", "n", "ny", "r", "v", "z", "zs"],
+  "zongetlen": ["c", "cs", "f", "h", "k", "p", "s", "sz", "t", "ty"]
+}

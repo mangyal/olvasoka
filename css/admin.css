@@ -563,3 +563,63 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 @media (max-height:500px) and (orientation:landscape){
   .ctl-sample{display:none!important}
 }
+
+/* ================= Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6) =================
+   Asztalon kártya az előnézet fölött: bal oszlop a felirat (140 px), jobb a szegmensvezérlő (260 px); a feliratok
+   alapvonalra igazodnak. Álló tableten a két vezérlő egymás mellett, alattuk a Minta. Telefonon (és fekvő
+   telefonon) összecsukott sor a csomag gomb stílusában; koppintásra helyben nyílik, a sor lesz a kártya fejléce. */
+.look{container:look/inline-size;display:flex;flex-direction:column;background:var(--field);border:1px solid var(--line);border-radius:var(--r-card);padding:14px 16px 16px;min-width:0}
+.look-row{display:none}
+.look-body{display:flex;flex-direction:column;gap:10px;min-width:0}
+.look-grid{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px 14px;align-items:baseline;min-width:0}
+.look-label{font-size:14px;color:var(--ink)}
+.look-ctl{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;min-width:0}
+.look-seg{width:260px;max-width:100%;flex:none}
+.look-seg span{font-size:14px;white-space:nowrap}
+.look-note{font-size:13px;color:var(--ink-2)}
+.look-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
+.look-legend b{font:600 15px/1 var(--f-item)}
+.look-legend .g-v{color:var(--c-vowel)} .look-legend .g-d{color:var(--c-voiced)} .look-legend .g-u{color:var(--c-unvoiced)}
+.look-sample{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.look-card{display:inline-flex;font:400 26px/1.25 var(--f-item);border:1px solid var(--line);border-radius:6px;padding:2px 10px;background:var(--paper);white-space:pre;max-width:100%;overflow:hidden}
+.look-mini{font:400 20px/1.2 var(--f-item);white-space:pre;flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis}
+
+@media (max-width:899px){
+  .look{margin-top:16px}
+  .look-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;align-items:start}
+  .look-grid>:nth-child(1){grid-column:1;grid-row:1}
+  .look-grid>:nth-child(2){grid-column:1;grid-row:2}
+  .look-grid>:nth-child(3){grid-column:2;grid-row:1}
+  .look-grid>:nth-child(4){grid-column:2;grid-row:2}
+  .look-grid>:nth-child(5){grid-column:1/-1;grid-row:3;margin-top:8px}
+  .look-grid>:nth-child(6){grid-column:1/-1;grid-row:4}
+  .look-ctl{flex-direction:column;align-items:stretch}
+  .look-seg{width:100%}
+}
+/* telefon álló és fekvő: összecsukott sor (L-4, L-6) */
+@media (max-width:600px),(max-height:500px) and (orientation:landscape){
+  .look{padding:0;margin-top:12px;flex:none}
+  .look-row{display:flex;width:100%;min-height:52px;align-items:center;gap:12px;padding:6px 6px 6px 14px;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;border-radius:var(--r-card)}
+  .look-row-text{flex:1;min-width:0;display:flex;flex-direction:column}
+  .look-row-label{font-size:12px;color:var(--ink-2)}
+  .look-row-sum{font-weight:600;overflow-wrap:anywhere}
+  .look-row .icon{width:20px;height:20px;color:var(--ink-2);flex:none;margin-right:8px}
+  .look-body{display:none;padding:0 14px 14px}
+  .look-body h2{display:none}
+  .look.open .look-body{display:flex}
+  .look.open .look-row-label{font-size:16px;line-height:22px;font-weight:600;color:var(--ink)}
+  .look.open .look-row-sum,.look.open .look-mini{display:none}
+  .look.open .look-row .icon{transform:rotate(180deg)}
+  .look-grid{grid-template-columns:minmax(0,1fr);gap:6px}
+  .look-grid>:nth-child(n){grid-column:1;grid-row:auto}
+  .look-grid>:nth-child(3),.look-grid>:nth-child(5){margin-top:8px}
+  .look-card{font-size:22px;padding:1px 8px}
+}
+/* keskeny asztali középső oszlop (pl. 1024 px-es ablak): a 140 + 260 px-es sor nem fér el, a felirat a vezérlő fölé kerül */
+@container look (max-width:446px){
+  .look-grid{grid-template-columns:minmax(0,1fr);gap:6px}
+  .look-grid>:nth-child(n){grid-column:1;grid-row:auto}
+  .look-grid>:nth-child(3),.look-grid>:nth-child(5){margin-top:8px}
+  .look-ctl{flex-direction:column;align-items:stretch}
+  .look-seg{width:100%}
+}

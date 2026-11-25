@@ -4,10 +4,13 @@
 import { loadLists, TXT_URL } from '../core/source.js';
 import { validateConfig, compileConfig } from '../core/grid.js';
 import { validate as validateProgress } from '../core/haladas-config.js';
+import { validateSounds, compileSounds } from '../core/hangok.js';
 
 export const PAIRS_URL = 'parok.json';
 export const PROGRESS_URL = 'haladas.json';
-const label = (url) => (url === TXT_URL ? 'A lists.txt' : url === PAIRS_URL ? 'A parok.json' : url === PROGRESS_URL ? 'A haladas.json' : 'A táblázat');
+export const SOUNDS_URL = 'hangok.json';
+const label = (url) => (url === TXT_URL ? 'A lists.txt' : url === PAIRS_URL ? 'A parok.json' : url === PROGRESS_URL ? 'A haladas.json'
+  : url === SOUNDS_URL ? 'A hangok.json' : 'A táblázat');
 
 /** Egy cím letöltése időkorláttal; hibánál a felhasználónak szóló üzenettel dob. */
 export async function get(url, timeoutMs = 8000) {
@@ -41,6 +44,9 @@ async function fetchJson(url, validate) {
 
 /** A Keresd meg! konfigurációja (parok.json), ellenőrizve és futásra készen; hibánál dob. */
 export const fetchPairs = async () => compileConfig(await fetchJson(PAIRS_URL, validateConfig));
+
+/** A betűszínezés hangcsoportjai (hangok.json), ellenőrizve, futásra készen; hibánál dob (a hívó a beépítettel fut, D-5). */
+export const fetchSounds = async () => compileSounds(await fetchJson(SOUNDS_URL, validateSounds));
 
 /** A Haladás küszöbei (haladas.json), ellenőrizve; hibánál dob (a hívó az alapértékekkel fut tovább). */
 export const fetchProgressConfig = () => fetchJson(PROGRESS_URL, validateProgress);

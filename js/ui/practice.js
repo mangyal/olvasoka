@@ -15,6 +15,7 @@ import { forcedReward } from '../core/rewards.js';
 import { createChooser } from './chooser.js';
 import { startFind as newFind, step as findStep, canPrev as findCanPrev } from '../core/find.js';
 import { createFindView } from './find.js';
+import { fillSvg } from './glyphs.js';
 
 const KID_KEYS = { Space: 'SPACE', ArrowRight: 'NEXT', ArrowLeft: 'PREV', KeyP: 'PAUSE', ArrowDown: 'COVER_DOWN' };
 // Keresd meg! (4a.4): P és ↓ itt nem csinál semmit; a Tab és az Enter a kártyák között natív
@@ -48,6 +49,8 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   }
   function letSleep() { if (wake) { wake.release().catch(() => {}); wake = null; } }
   let st = null, items = [], timer = 0, uiTimer = 0, lastPt = null;
+  // Megjelenés (J-1): a kör jelölései (tételkulcs → jelölés) és beállítása; a kör alatt nem változik
+  let marks = new Map(), look = { color: 'none', mark: 'none' }, shownKey = '';
   let touch = false;                // F-P10: volt már érintés/toll → a ✕ végig látszik
   const lay = { barW: 0, barY: Infinity, size: 0, top: 0, bottom: 0 };
   let layouts = null, curLayout = null;   // M-7: a kör két elrendezése és az épp használt
@@ -76,10 +79,14 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   }
 
   /* ---------- kör ---------- */
-  /** @param {{ listNames?: string[], undoMs?: number }} [opt]  a Haladás naplójához */
-  /** roundItems: a kör sorai, ismétlésekkel (2.14); settings.mixed: „Kevert sorrend” (F-8, F-9) */
-  function start(roundItems, settings, ev, { listNames = [], undoMs } = {}) {
+  /**
+   * roundItems: a kör sorai, ismétlésekkel (2.14); settings.mixed: „Kevert sorrend” (F-8, F-9)
+   * @param {{ listNames?: string[], undoMs?: number, marks?: Map<string, {start:number,end:number}[]>, look?: {color:string, mark:string} }} [opt]
+   *   listNames, undoMs: a Haladás naplójához; marks, look: a Megjelenés (J-1)
+   */
+  function start(roundItems, settings, ev, { listNames = [], undoMs, marks: m = new Map(), look: lk = look } = {}) {
     items = roundItems;
+    marks = m; look = lk; shownKey = '';
     const seq = buildReadSequence(items, settings.count, { mixed: settings.mixed });
     showStage('practice', ev);
     lastPt = ev && ev.clientX != null && ev.detail ? { x: ev.clientX, y: ev.clientY } : null;
@@ -95,7 +102,9 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
 
   /* ---------- Keresd meg! kör (4a.) ---------- */
   /** @param {string[][]} tasks  a kör feladatai; @param {number} cards  a beállított (F-K10 utáni) kártyaszám */
-  function startFind(tasks, cards, ev) {
+  /** @param {{ marks?: Map<string, {start:number,end:number}[]> }} [opt]  a Megjelenés jelölései (J-2) */
+  function startFind(tasks, cards, ev, { marks: m = new Map() } = {}) {
+    marks = m;
     showStage('find', ev);
     fst = newFind(tasks);
     findCards = cards;
@@ -117,7 +126,7 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
   }
 
   function renderFind(newTask) {
-    if (newTask) findView.show(fst.tasks[fst.index], findCards);
+    if (newTask) findView.show(fst.tasks[fst.index], findCards, marks);
     findView.mark(fst.marked);
     const m = progressModel(fst.index, fst.tasks.length, 'feladat');
     el.findGrid.setAttribute('aria-label', m.label);
@@ -178,7 +187,7 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
     findView.clear(); el.findGrid.hidden = true;
     el.cPrev.setAttribute('aria-label', 'Előző'); el.cNext.setAttribute('aria-label', 'Következő');
     letSleep();
-    el.itemText.textContent = ''; coverG.replaceChildren(); geo = null;
+    el.itemText.textContent = ''; shownKey = ''; coverG.replaceChildren(); geo = null;
     el.progress.replaceChildren(); prog = null;
     el.stage.hidden = true; el.stage.className = 'stage'; el.stage.dataset.mode = 'practice';
     onExit();
@@ -205,6 +214,7 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
     if (!L || L === curLayout) return;
     curLayout = L;
     el.itemText.setAttribute('font-size', L.size);
+    el.itemText.style.setProperty('--mark-w', `${Math.max(0.8, L.size * 0.025).toFixed(2)}px`);   // NB-7
     lay.size = L.size; lay.top = L.top; lay.bottom = L.bottom;
     lay.barW = L.barW; lay.barY = L.barY;
     geo = null;
@@ -218,7 +228,8 @@ export function createPractice(el, { onExit, progress = null, onRoundEnd = () =>
     const showing = practice && st.phase === 'showing';
     const text = showing ? items[st.seq[st.index]] : '';
     if (text) applyLayout(text);    // M-7: a szünetben (üres szöveg) a méret marad
-    if (el.itemText.textContent !== text) { el.itemText.textContent = text; geo = null; }
+    // J-1: a tétel a kör Megjelenése szerint; csak tételváltáskor rajzolódik újra
+    if (shownKey !== text) { fillSvg(el.itemText, text, marks.get(text) || [], look); shownKey = text; geo = null; }
     drawCovers();
     if (practice) renderProgress(progressModel(st.index, st.seq.length));
     el.pauseInd.classList.toggle('on', practice && st.paused);

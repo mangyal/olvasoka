@@ -14,6 +14,14 @@ html:has(#stage:not([hidden])[data-mode="practice"]),html:has(#stage:not([hidden
 .stage.sky .deco,.stage.sky .vignette{opacity:0}
 .item-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .item-svg text{fill:var(--ink);font-family:var(--f-item);font-weight:400;white-space:pre}
+/* Megjelenés a Felolvasásban (J-1): tspan-onként színezve; a jelölt betű kitöltés nélkül, körvonallal (NB-7, NB-8).
+   A --mark-w-t a practice.js állítja a betűméretből. */
+.item-svg .g{--gc:var(--ink)}
+.look-color .item-svg .g-v{--gc:var(--c-vowel)}
+.look-color .item-svg .g-d{--gc:var(--c-voiced)}
+.look-color .item-svg .g-u{--gc:var(--c-unvoiced)}
+.item-svg .g{fill:var(--gc)}
+.look-mark .item-svg .g-mark{fill:none;stroke:var(--gc);stroke-width:var(--mark-w,1px)}
 #barTrack{fill:var(--line)}
 #barFill{fill:var(--accent);opacity:.75}
 /* F-P22, U-P9: szótag-takaró vonalzó; megjelenése azonnali */
