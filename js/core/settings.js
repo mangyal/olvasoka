@@ -117,7 +117,7 @@ export const fmtNum = (x) => String(x).replace('.', ',');
  * Kézi léptetésnél time = 'kézi léptetés'; 60 mp fölött percekkel („kb. 1 perc 20 mp”).
  */
 export function estimate(s) {
-  const count = `${s.count} tétel`;
+  const count = `${s.count} kártya`;
   if (s.flashMs === 0) return { count, time: 'kézi léptetés' };
   const total = Math.round(s.count * (s.flashMs + s.gapMs) / 1000);
   const time = total < 60 ? `kb. ${total} mp`

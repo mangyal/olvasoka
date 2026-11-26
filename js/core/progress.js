@@ -4,12 +4,12 @@
 export const DOT_MAX = 20;
 
 /**
- * index: az aktuális tétel (0-tól), total: a kör hossza, noun: amit számol („tétel”, Keresd meg!-ben „feladat”).
+ * index: az aktuális tétel (0-tól), total: a kör hossza, noun: amit számol („kártya”, Keresd meg!-ben „feladat”).
  * → { kind: 'dots'|'bar', total, current, label, text, fraction }
- *   label: akadálymentes felirat („4. tétel a 10-ből”), text: a sáv melletti „4/10”,
+ *   label: akadálymentes felirat („4. kártya a 10-ből”), text: a sáv melletti „4/10”,
  *   fraction: a sáv kitöltése (a kész és az aktuális tétel együtt).
  */
-export function progressModel(index, total, noun = 'tétel') {
+export function progressModel(index, total, noun = 'kártya') {
   const n = Math.max(1, Math.floor(total) || 1);
   const i = Math.min(n - 1, Math.max(0, Math.floor(index) || 0));
   return {

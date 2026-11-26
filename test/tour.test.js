@@ -102,10 +102,10 @@ test('stepContent: felirat, cím, gomb és haladásjelző lépésenként', () =>
 
 test('stepContent: az 1. lépés a célelem és az eszköz szerint (docs/kartyacsomagok-specifikacio.md, 5.)', () => {
   const s = (o) => plainText(stepContent(1, o).lines);
-  assert.equal(s({ target: 'sidebar', touch: false }), 'Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban.');
-  assert.equal(s({ target: 'sidebar', touch: true }), 'Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban.');
-  assert.equal(s({ target: 'listChecks', touch: true }), 'Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő.');
-  assert.equal(s({ target: 'listsBtn', touch: true }), 'Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban.');
+  assert.equal(s({ target: 'sidebar', touch: false }), 'Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely kártyák jöhetnek elő a játékban.');
+  assert.equal(s({ target: 'sidebar', touch: true }), 'Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely kártyák jöhetnek elő a játékban.');
+  assert.equal(s({ target: 'listChecks', touch: true }), 'Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek kártyái jöhetnek elő.');
+  assert.equal(s({ target: 'listsBtn', touch: true }), 'Koppints ide, és pipáld be a csomagokat. Alatta látod, mely kártyák jöhetnek elő a játékban.');
   // a módosító billentyű + kattintás szövegrész megszűnt
   for (const touch of [false, true]) assert.ok(!stepContent(1, { target: 'sidebar', touch }).lines.flat().some((p) => p.kbd), 'nincs <kbd>');
   assert.doesNotMatch(s({ target: 'sidebar' }), /lista|Ctrl|⌘/);
@@ -116,8 +116,8 @@ test('stepContent: a 2. lépés három sora, félkövér játéknevekkel', () =>
   assert.equal(lines.length, 3);
   assert.deepEqual(lines[0][0], { b: 'Felolvasás' });
   assert.deepEqual(lines[1][0], { b: 'Keresd meg!' });
-  assert.equal(plainText(lines), 'Felolvasás: a gyerek felolvassa a felvillanó tételt, te pedig ellenőrzöd.\n'
-    + 'Keresd meg!: te mondasz egy tételt, ő megkeresi.\nAlatta beállíthatod a körök számát.');
+  assert.equal(plainText(lines), 'Felolvasás: a gyerek felolvassa a felvillanó kártyát, te pedig ellenőrzöd.\n'
+    + 'Keresd meg!: te mondasz egy kártyát, ő megkeresi.\nAlatta beállíthatod a körök számát.');
 });
 
 test('stepContent: a 3. lépés a napszámot a beállításból veszi', () => {
