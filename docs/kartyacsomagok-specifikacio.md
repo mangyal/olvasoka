@@ -33,7 +33,7 @@ A három oszlop elrendezése a mostani marad (nincs új keret, kártya vagy marg
 | Oszlop | Cím |
 |---|---|
 | Bal (csomagok) | Kártyacsomagok |
-| Közép (előnézet) | Ezekkel játszotok |
+| Közép (előnézet) | Ezekkel játszotok (2026-11-26 óta „Kártyák”, lásd `kartyak-oszlop-specifikacio.md`) |
 | Jobb (játék) | Játékok |
 
 Stílus: 18 px, 600-as vastagság, sötét szöveg (`--ink`), sor-magasság 26 px (2026-11-18: az eredeti 20 px / 650 túl erős volt). A régi kis „LISTÁK” felirat megszűnik.
@@ -61,7 +61,7 @@ Kijelölés:
 
 ### 3.2 Középső oszlop (előnézet)
 
-1. Cím: **Ezekkel játszotok**, jobbra `{k} különböző tétel · {n} csomag`.
+1. Cím: **Ezekkel játszotok**, jobbra `{k} különböző tétel · {n} csomag`. (Ma: „Kártyák”, `90 kártya · 3 csomag`, a Megjelenés fölött; `kartyak-oszlop-specifikacio.md`.)
 2. Alatta információs ikonnal egy sor: „A játékban csak ezek a tételek jöhetnek elő, semmi más.”
 3. A kijelölt csomagok tételei csomagonként csoportosítva (mint most). Összesnél minden csomag.
 4. Ha nincs kijelölt csomag: szaggatott keretes üres állapot: „Jelölj ki legalább egy csomagot bal oldalt.”
@@ -161,7 +161,7 @@ Szabályok:
 
 ## 8. Elfogadási feltételek
 
-1. ≥ 900 px: a három cím (Kártyacsomagok, Ezekkel játszotok, Játékok) azonos stílusú és egy vonalban van; a jobb panelen nincs Tételek mező; nincs „Listák szerkesztése” link.
+1. ≥ 900 px: a három cím (Kártyacsomagok, Ezekkel játszotok [ma: Kártyák], Játékok) azonos stílusú és egy vonalban van; a jobb panelen nincs Tételek mező; nincs „Listák szerkesztése” link.
 2. Kattintás egy csomagra csak azt váltja; végighúzás egérrel több csomagot jelöl ki vagy vesz ki; Shift + kattintás tartományt; érintéssel a végighúzás görget.
 3. Összesben egy csomag kivétele Kijelöltre vált, a többi kijelölve marad; a kapcsolóval visszaváltva a legutóbbi saját kijelölés jön vissza.
 4. Első betöltéskor a táblázat szerinti alapkijelölés érvényes, mint eddig.

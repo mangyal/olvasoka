@@ -1805,8 +1805,10 @@ async function markedLists(p = page, c = ctx) {
   await p.reload();
   await p.locator('#listNav .nav-item').first().waitFor();
 }
-/** Megjelenés a szülői felületen: color 'none' | 'sound', mark 'none' | 'outline'. */
+/** Megjelenés a szülői felületen: color 'none' | 'sound', mark 'none' | 'outline'. A sor csukva indul (kartyak-oszlop
+ *  ÖM-3), ezért ha kell, előbb kinyitja; nyitva hagyja. */
 async function setLook(color, mark) {
+  if (await page.getAttribute('#lookRow', 'aria-expanded') !== 'true') await page.click('#lookRow');
   await page.locator(`#look input[name=lookColor][value=${color}]`).check();
   await page.locator(`#look input[name=lookMark][value=${mark}]`).check();
 }

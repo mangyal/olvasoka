@@ -439,13 +439,22 @@ export function createAdmin(el, app, act) {
     renderEstimateEmpty(!!st.emptyFilter);
   }
 
-  /* ---------- Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6, MI-1–MI-3) ---------- */
-  let lookOpen = false;             // telefonon: a Megjelenés sor kinyitva (L-4)
-  /** A blokk helye: keskeny nézetben a csomagválasztó (és a telefonos csomag gomb) alatt, máshol az előnézet fölött. */
-  function placeLook() {
-    const narrow = NARROW.matches;
-    if (narrow && el.look.parentElement !== el.picker) el.listsBtn.after(el.look);
-    else if (!narrow && el.look.parentElement !== el.edInner) el.edInner.prepend(el.look);
+  /* ---------- Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6, MI-1–MI-3; kartyak-oszlop ÖM-1–ÖM-8) ---------- */
+  // a Megjelenés sor kinyitva; minden nézetben csukva indul, nem tárolódik, és a nézetváltás nem csukja be (ÖM-3)
+  let lookOpen = false;
+  /** A középső oszlop sorrendje (docs/kartyak-oszlop-specifikacio.md, FK-2, FK-4, FK-6): „Kártyák” cím + számláló,
+   *  Megjelenés, tapadó rész (mondat, szűrő). Asztalon a cím és a Megjelenés az oszlop elején, a tapadó rész az előnézet
+   *  tetején (hogy a lista tetejére tapadjon); keskeny nézetben mind a csomagválasztó (és a telefonos csomag gomb) után. */
+  function placeCards() {
+    if (NARROW.matches) {
+      if (el.listsBtn.nextElementSibling !== el.cardsHead) el.listsBtn.after(el.cardsHead);
+      if (el.cardsHead.nextElementSibling !== el.look) el.cardsHead.after(el.look);
+      if (el.look.nextElementSibling !== el.playHead) el.look.after(el.playHead);
+    } else {
+      if (el.edInner.firstElementChild !== el.cardsHead) el.edInner.prepend(el.cardsHead);
+      if (el.cardsHead.nextElementSibling !== el.look) el.cardsHead.after(el.look);
+      if (el.previewOnly.firstElementChild !== el.playHead) el.previewOnly.prepend(el.playHead);
+    }
   }
   function renderLook() {
     const look = app.look;
@@ -467,11 +476,6 @@ export function createAdmin(el, app, act) {
 
   /* ---------- Tételszűrő (SZR-1–SZR-8, L-2–L-5) ---------- */
   let subOpen = null;               // a nyitott altípus-lista chipjének azonosítója
-  /** A fejléc helye: keskeny nézetben a Megjelenés alatt, máshol az előnézet tetején. */
-  function placeHead() {
-    if (NARROW.matches) { if (el.look.nextElementSibling !== el.playHead) el.look.after(el.playHead); }
-    else if (el.previewOnly.firstElementChild !== el.playHead) el.previewOnly.prepend(el.playHead);
-  }
   const caretSvg = () => {
     const svg = document.createElementNS(SVG, 'svg'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
     svg.classList.add('icon');
@@ -566,7 +570,7 @@ export function createAdmin(el, app, act) {
 
   function render(force = false) {
     if (force) glyphVer++;
-    placeLook(); renderLook(); placeHead(); renderFilter();
+    placeCards(); renderLook(); renderFilter();
     renderWarnings(); renderNav(); renderList(); renderSource(); renderMode(); renderSettings();
     if (findMode()) renderFind();
     renderStart();
@@ -598,7 +602,7 @@ export function createAdmin(el, app, act) {
   for (const r of el.look.querySelectorAll('input[name=lookColor]')) r.addEventListener('change', () => { if (r.checked) act.look({ color: r.value }); });
   for (const r of el.look.querySelectorAll('input[name=lookMark]')) r.addEventListener('change', () => { if (r.checked) act.look({ mark: r.value }); });
   el.lookRow.addEventListener('click', () => { lookOpen = !lookOpen; renderLook(); });
-  NARROW.addEventListener('change', () => { placeLook(); placeHead(); });
+  NARROW.addEventListener('change', placeCards);
   PHONE.addEventListener('change', () => closeSubs());
   // az altípus-lista: kívülre koppintás vagy Esc zárja (L-5)
   document.addEventListener('pointerdown', (e) => {
