@@ -87,13 +87,13 @@ CV szótagok (`fa`), egyéb szótagok, a szavak szótagszám szerint, végül a 
 a betűk, szótagok és szavak összekeverve jönnek. Ugyanaz a tétel sosem jön kétszer egymás után.
 A Keresd meg! egy feladata mindig csak egy csoport tételeiből áll.
 
-A **Megjelenés** résznél (asztalon az előnézet fölött, telefonon a csomag gomb alatti sorban) a betűk
+A **Megjelenés** sorban (a „Kártyák” cím alatt, minden nézetben összecsukva; kattintásra nyílik) a betűk
 Meixner-féle színezése (magánhangzó kék, zöngés mássalhangzó piros, zöngétlen zöld; a besorolás a
 `hangok.json`-ban) és a listában `{m}i-ki` alakban jelölt nagybetűk körvonalas jelölése kapcsolható be.
 Mindkét játékra és az előnézetre érvényes, és megmarad. Hogy éppen mit mutat, azt a Minta sor
 mutatja a kijelölt csomagok tételeivel.
 
-Az „Ezekkel játszotok” alatti **Betűk · Szótagok · Szavak · Mondatok** gombokkal (a ▾ alatt magánhangzók /
+A „Kártyák” oszlop **Betűk · Szótagok · Szavak · Mondatok** gombjaival (a ▾ alatt magánhangzók /
 mássalhangzók, illetve CV, VC és egyéb szótagok) kiválasztható, mely tételtípusok jöhetnek elő a kijelölt
 csomagokból. Csak a csomagokban meglévő típusok gombja látszik. A szűrő mindkét játékra érvényes, megmarad, és
 a felület minden száma (csomagok, előnézet, számláló) a szűrés utáni tételeket számolja.
