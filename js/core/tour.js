@@ -52,21 +52,21 @@ export function stepContent(step, { target = 'sidebar', touch = false, minDays =
   if (step === 1) {
     // docs/kartyacsomagok-specifikacio.md, 5.
     title = 'Válassz kártyacsomagot';
-    if (target === 'listChecks') lines = [[t('Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek tételei jöhetnek elő.')]];
-    else if (target === 'listsBtn') lines = [[t('Koppints ide, és pipáld be a csomagokat. Alatta látod, mely tételek jöhetnek elő a játékban.')]];
-    else if (touch) lines = [[t('Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely tételek jöhetnek elő a játékban.')]];
-    else lines = [[t('Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely tételek jöhetnek elő a játékban.')]];
+    if (target === 'listChecks') lines = [[t('Pipáld be a csomagokat, amelyekkel játszotok. A játékban csak ezek kártyái jöhetnek elő.')]];
+    else if (target === 'listsBtn') lines = [[t('Koppints ide, és pipáld be a csomagokat. Alatta látod, mely kártyák jöhetnek elő a játékban.')]];
+    else if (touch) lines = [[t('Koppints a csomagokra, amelyekkel játszotok. Középen látod, mely kártyák jöhetnek elő a játékban.')]];
+    else lines = [[t('Válaszd ki a kártyacsomagokat, amelyekkel játszotok. Egérrel végighúzva többet is kijelölhetsz. Középen látod, mely kártyák jöhetnek elő a játékban.')]];
   } else if (step === 2) {
     title = 'Válassz játékot';
     lines = [
-      [{ b: 'Felolvasás' }, t(': a gyerek felolvassa a felvillanó tételt, te pedig ellenőrzöd.')],
-      [{ b: 'Keresd meg!' }, t(': te mondasz egy tételt, ő megkeresi.')],
+      [{ b: 'Felolvasás' }, t(': a gyerek felolvassa a felvillanó kártyát, te pedig ellenőrzöd.')],
+      [{ b: 'Keresd meg!' }, t(': te mondasz egy kártyát, ő megkeresi.')],
       [t('Alatta beállíthatod a körök számát.')],
     ];
   } else if (step === 3) {
     title = 'Itt látod a haladást';
     lines = [[t('Az Olvasóka megjegyzi, mit olvasott a gyerek, és megmutatja, mi megy már és mit érdemes még gyakorolni. '
-      + `Egy tételről akkor tud mondani valamit, ha legalább ${minDays} különböző napon olvasta.`)]];
+      + `Egy kártyáról akkor tud mondani valamit, ha legalább ${minDays} különböző napon olvasta.`)]];
   } else if (step === 4) {
     title = 'Kezdődhet a közös olvasás';
     lines = [[t(touch

@@ -2,6 +2,8 @@
 
 Verzió: **2.16** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
+> **Megjegyzés (2026-11-26):** a felületen a „tétel” szó helyett mindenhol „kártya” áll ([kartya-szo-specifikacio.md](kartya-szo-specifikacio.md)). Ez a dokumentum a régi szót használja; a benne idézett felületi szövegekben „tétel” helyett „kártya” értendő, helyes ragozással (pl. „Egy kártyáról csak akkor…”, „Megy: 5 kártya”). A kódbeli nevek és a tárolt adat nem változott.
+
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
 10. fejezet döntési naplója mondja meg, mi és miért.

@@ -84,4 +84,4 @@ export function toggleSub(off, key) {
 
 /** A számláló (SZR-8): szűrés nélkül „62 tétel · 3 csomag”, szűréssel „34 / 62 tétel · 3 csomag”. */
 export const countText = (shown, total, packs) =>
-  `${shown === total ? total : `${shown} / ${total}`} tétel · ${packs} csomag`;
+  `${shown === total ? total : `${shown} / ${total}`} kártya · ${packs} csomag`;

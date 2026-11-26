@@ -20,7 +20,7 @@ const NARROW = matchMedia('(max-width:899px), (max-height:500px) and (orientatio
 const PHONE = matchMedia('(max-width:600px), (max-height:500px) and (orientation:landscape)');
 const flashLabel = (ms) => (ms === 0 ? 'kézi' : `${fmtNum(ms / 1000)} mp`);
 const DESC = {
-  read: 'A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.',
+  read: 'A gyerek hangosan felolvassa a felvillanó kártyát, te figyeled a kiejtést.',
   find: 'Te kimondasz egy kártyát, a gyerek megkeresi és rámutat.',
 };
 const HOW_TITLE = { read: 'Felolvasás – így játsszátok', find: 'Keresd meg! – így játsszátok' };
@@ -143,7 +143,7 @@ export function createAdmin(el, app, act) {
     const all = allMode();
     const k = all ? app.lists.length : selected().length;
     if (!roundRowsAll().length) {
-      return { enabled: false, msg: all ? 'Egyik csomagban sincs tétel.' : !k ? 'Jelölj ki legalább egy csomagot.' : k > 1 ? 'A kijelölt csomagokban nincs tétel.' : 'A csomagban nincs tétel.' };
+      return { enabled: false, msg: all ? 'Egyik csomagban sincs kártya.' : !k ? 'Jelölj ki legalább egy csomagot.' : k > 1 ? 'A kijelölt csomagokban nincs kártya.' : 'A csomagban nincs kártya.' };
     }
     // SZR-7: a szűrő mindent kizárt; a becslés helyén mondjuk meg, a lista helyén a teendőt
     if (!roundItems().length) return { enabled: false, msg: '', emptyFilter: true };
@@ -152,7 +152,7 @@ export function createAdmin(el, app, act) {
     if (findMode() && !canFind(roundItems())) {
       return { enabled: false, msg: onlySentences(roundItems())
         ? 'A Keresd meg!-ben mondatok nem szerepelnek. Válassz betűt, szótagot vagy szót is.'
-        : 'A Keresd meg!-hez legalább két különböző tétel kell.' };
+        : 'A Keresd meg!-hez legalább két különböző kártya kell.' };
     }
     // a gomb alatt csak hiba vagy figyelmeztetés (a csomag- és tételszámot az előnézet mutatja)
     const fontWarn = app.font.state === 'failed';
@@ -216,7 +216,7 @@ export function createAdmin(el, app, act) {
     el.picker.hidden = !app.lists.length;
     el.pickSum.textContent = sum.text;
     // telefon: csomag gomb (4.1)
-    el.listsBtnLabel.textContent = `${all ? 'Összes csomag' : 'Kijelölt csomagok'} · ${sum.n} tétel`;
+    el.listsBtnLabel.textContent = `${all ? 'Összes csomag' : 'Kijelölt csomagok'} · ${sum.n} kártya`;
     el.listsBtnNames.textContent = all ? `Mind a ${app.lists.length} csomag` : (sum.names || 'Nincs kijelölt csomag');
     if (el.dlgLists.open) renderListsSheet();
   }
@@ -227,7 +227,7 @@ export function createAdmin(el, app, act) {
     const n = selectedItems().length;
     const all = allMode();
     const head = all ? `Mind a ${app.lists.length} csomag` : `${sel.length} csomag kijelölve`;
-    const text = sel.length ? `${all ? head : `${sel.length} csomag`} · ${n} tétel` : 'Nincs kijelölt csomag';
+    const text = sel.length ? `${all ? head : `${sel.length} csomag`} · ${n} kártya` : 'Nincs kijelölt csomag';
     return { k: sel.length, n, head, text, names: sel.map((l) => l.name).join(', ') };
   }
 
@@ -240,7 +240,7 @@ export function createAdmin(el, app, act) {
     const sum = selectionSummary();
     el.listsCount.textContent = sum.head;
     el.listsNone.hidden = allMode() || !sum.k;
-    el.listsSum.textContent = sum.k ? `${sum.n} tétel` : 'Jelölj ki legalább egy csomagot.';
+    el.listsSum.textContent = sum.k ? `${sum.n} kártya` : 'Jelölj ki legalább egy csomagot.';
   }
   function openLists() {
     renderListsSheet();
@@ -268,12 +268,12 @@ export function createAdmin(el, app, act) {
     const g = document.createElement('section'); g.className = 'group';
     const h = document.createElement('div'); h.className = 'ed-head';
     const h3 = document.createElement('h3'); h3.textContent = x.name;
-    const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${shownItems(x).length} tétel`;
+    const n = document.createElement('span'); n.className = 'muted num'; n.textContent = `${shownItems(x).length} kártya`;
     h.append(h3, n);
     g.append(h, chipBox(shownItems(x)));
     return g;
   });
-  const EMPTY_FILTER = 'A szűrő minden tételt kizárt. Kapcsolj be legalább egy típust.';
+  const EMPTY_FILTER = 'A szűrő minden kártyát kizárt. Kapcsolj be legalább egy típust.';
 
   /** Előnézet (3.2): „Ezekkel játszotok”, a kijelölt csomagok tételei csomagonként. */
   function renderList() {
@@ -307,7 +307,7 @@ export function createAdmin(el, app, act) {
     const items = selectedItems();
     el.phonePreview.classList.toggle('open', pvOpen);
     el.pvMore.hidden = !items.length;
-    el.pvMore.textContent = pvOpen ? 'Kevesebb' : `Mind a ${items.length} tétel megtekintése`;
+    el.pvMore.textContent = pvOpen ? 'Kevesebb' : `Mind a ${items.length} kártya megtekintése`;
     el.pvMore.setAttribute('aria-expanded', String(pvOpen));
     const key = (pvOpen ? 'o' : 'c') + SEP2 + previewKey(sel);
     rebuild(el.pvBody, key, () => {
@@ -363,7 +363,7 @@ export function createAdmin(el, app, act) {
   /** SZR-7: üres szűrőnél a becslés helyén ez áll (mindkét játéknál). */
   function renderEstimateEmpty(empty) {
     el.estimate.classList.toggle('empty', empty);
-    if (empty) { el.estCount.textContent = 'Nincs tétel a szűrőben'; el.estTime.textContent = ''; }
+    if (empty) { el.estCount.textContent = 'Nincs kártya a szűrőben'; el.estTime.textContent = ''; }
   }
 
   /* ---------- játékfülek és a Keresd meg! beállításai (U-A8) ---------- */

@@ -162,6 +162,6 @@ export function parseSheetCsv(csv) {
     for (const r of cells) b.items(rows[r][c], cellAt(c, r));
   }
 
-  if (!b.lists.length) b.problems.push('A táblázatban nincs csomag. Az első sorba kerül a csomag neve, alá a tételek, oszloponként.');
+  if (!b.lists.length) b.problems.push('A táblázatban nincs csomag. Az első sorba kerül a csomag neve, alá a kártyák, oszloponként.');
   return b.done(preset);
 }

@@ -3,6 +3,8 @@
 Verzió: 1.9 · 2026. november 16.
 Jóváhagyott design: https://claude.ai/artifact/N4rE1aqK15kpWbLvWXtcAr (vászon: „Olvasóka – egyszerűsített Haladás nézet”). Ha a design és ez a dokumentum ellentmond egymásnak, a design a mérvadó (lásd 8. fejezet).
 
+> **Megjegyzés (2026-11-26):** a felületen a „tétel” szó helyett mindenhol „kártya” áll ([kartya-szo-specifikacio.md](kartya-szo-specifikacio.md)). Ez a dokumentum a régi szót használja; a benne idézett felületi szövegekben „tétel” helyett „kártya” értendő, helyes ragozással (pl. „Egy kártyáról csak akkor…”, „Megy: 5 kártya”). A kódbeli nevek és a tárolt adat nem változott.
+
 ## 0. Változások
 
 ### 1.9 (az 1.8-hoz képest): a kör sorrendjének módja

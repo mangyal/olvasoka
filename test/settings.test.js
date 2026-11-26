@@ -60,10 +60,10 @@ test('állapot: v4 séma, a v3 adatai megmaradnak', () => {
 });
 
 test('becslés: „N tétel · kb. X mp”, percekkel 60 mp fölött, kézi léptetés', () => {
-  assert.deepEqual(estimate({ count: 10, flashMs: 4000, gapMs: 0 }), { count: '10 tétel', time: 'kb. 40 mp' });
-  assert.deepEqual(estimate({ count: 10, flashMs: 10000, gapMs: 0 }), { count: '10 tétel', time: 'kb. 1 perc 40 mp' });
-  assert.deepEqual(estimate({ count: 6, flashMs: 9000, gapMs: 1000 }), { count: '6 tétel', time: 'kb. 1 perc' });
-  assert.deepEqual(estimate({ count: 10, flashMs: 0, gapMs: 1000 }), { count: '10 tétel', time: 'kézi léptetés' });
+  assert.deepEqual(estimate({ count: 10, flashMs: 4000, gapMs: 0 }), { count: '10 kártya', time: 'kb. 40 mp' });
+  assert.deepEqual(estimate({ count: 10, flashMs: 10000, gapMs: 0 }), { count: '10 kártya', time: 'kb. 1 perc 40 mp' });
+  assert.deepEqual(estimate({ count: 6, flashMs: 9000, gapMs: 1000 }), { count: '6 kártya', time: 'kb. 1 perc' });
+  assert.deepEqual(estimate({ count: 10, flashMs: 0, gapMs: 1000 }), { count: '10 kártya', time: 'kézi léptetés' });
 });
 
 test('Kevert sorrend (2.14, F-1, F-2): alapból ki; csak a true kapcsol be; a v marad 4', () => {

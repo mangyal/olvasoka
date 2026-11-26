@@ -71,7 +71,7 @@ test('szűrés: a sorok ismétlésekkel maradnak; csak magánhangzó → a kör 
 });
 
 test('számláló (SZR-8)', () => {
-  assert.equal(countText(62, 62, 3), '62 tétel · 3 csomag');
-  assert.equal(countText(34, 62, 3), '34 / 62 tétel · 3 csomag');
-  assert.equal(countText(0, 62, 1), '0 / 62 tétel · 1 csomag');
+  assert.equal(countText(62, 62, 3), '62 kártya · 3 csomag');
+  assert.equal(countText(34, 62, 3), '34 / 62 kártya · 3 csomag');
+  assert.equal(countText(0, 62, 1), '0 / 62 kártya · 1 csomag');
 });
