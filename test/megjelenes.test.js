@@ -99,8 +99,10 @@ test('mini minta és összegzés (L-4)', () => {
   assert.equal(miniSample(['a', 'ma-ma']), 'ma-ma');
   assert.equal(miniSample(['a', 'ma']), 'a');
   assert.equal(miniSample([]), '');
-  assert.equal(lookSummary({ color: 'sound', mark: 'outline' }), 'Hangok szerint · Nagybetű: körvonal');
-  assert.equal(lookSummary({ color: 'none', mark: 'none' }), 'Nincs színezés · Nagybetű: nincs');
+  assert.equal(lookSummary({ color: 'none', mark: 'none' }), 'Színezés: nincs, nagybetű-jelölés: nincs');
+  assert.equal(lookSummary({ color: 'sound', mark: 'none' }), 'Színezés: hangok szerint, nagybetű-jelölés: nincs');
+  assert.equal(lookSummary({ color: 'none', mark: 'outline' }), 'Színezés: nincs, nagybetű-jelölés: körvonalas');
+  assert.equal(lookSummary({ color: 'sound', mark: 'outline' }), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
 });
 
 test('beállítás: alapérték Nincs / Nincs, érvénytelen bemenetre is; tárolódik (MJ-1–MJ-3)', () => {

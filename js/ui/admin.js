@@ -462,7 +462,12 @@ export function createAdmin(el, app, act) {
     for (const r of el.look.querySelectorAll('input[name=lookMark]')) r.checked = r.value === look.mark;
     el.lookLegend.hidden = look.color !== 'sound';
     el.lookTip.hidden = !(look.color === 'sound' && look.mark === 'outline');
-    el.lookRowSum.textContent = lookSummary(look);
+    // a kötőjeles szót („nagybetű-jelölés:”) nem törjük a kötőjelnél: magyarul ott a kötőjelet az új sor elején is ki
+    // kellene írni (D-18)
+    el.lookRowSum.replaceChildren(...lookSummary(look).split(/(\S+-\S+)/).filter(Boolean).map((t) => {
+      if (!t.includes('-')) return t;
+      const nw = document.createElement('span'); nw.className = 'nw'; nw.textContent = t; return nw;
+    }));
     el.look.classList.toggle('open', lookOpen);
     el.lookRow.setAttribute('aria-expanded', String(lookOpen));
     // MI-1–MI-3: a kijelölt csomagok tételeiből, típusonként az első; tétel nélkül a sor nem látszik
