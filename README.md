@@ -40,6 +40,10 @@ ke-fe
 
 - A `#`-tel kezdődő sor egy új lista neve, alatta soronként egy tétel. Az üres sorok nem számítanak.
 - A tételek pontosan úgy jelennek meg, ahogy le vannak írva (kis- és nagybetű is).
+- Nagybetű jelölése: a szó első betűje kapcsos zárójelbe kerül, kisbetűvel: `{m}i-ki`, `{sz}é-ke`,
+  mondatban több is: `{l}a-li {m}a-mi.`. A program ettől nem írja nagybetűvel, csak a Megjelenés beállítása
+  szerint körvonalasan mutatja; a `{m}i-ki` és a `mi-ki` ugyanaz a tétel. Szó közepén (`mi-{k}i`) és
+  nagybetűvel (`{M}i-ki`) nem jelölhető, az ilyen tétel figyelmeztetéssel kimarad.
 - Egy tétel legfeljebb 20 karakter, mondat 40. A vessző elválaszt: az `a, á, e` sor három tétel.
 - Ami több szóból áll, az mondat (`a ló húz.`). Mondatba ezért nem kerülhet vessző. A mondatok a
   szavak után, külön jönnek; takarásnál szavanként takarhatók; a Keresd meg!-ben nem szerepelnek.
@@ -83,6 +87,17 @@ CV szótagok (`fa`), egyéb szótagok, a szavak szótagszám szerint, végül a 
 a betűk, szótagok és szavak összekeverve jönnek. Ugyanaz a tétel sosem jön kétszer egymás után.
 A Keresd meg! egy feladata mindig csak egy csoport tételeiből áll.
 
+A **Megjelenés** sorban (a „Kártyák” cím alatt, minden nézetben összecsukva; kattintásra nyílik) a betűk
+Meixner-féle színezése (magánhangzó kék, zöngés mássalhangzó piros, zöngétlen zöld; a besorolás a
+`hangok.json`-ban) és a listában `{m}i-ki` alakban jelölt nagybetűk körvonalas jelölése kapcsolható be.
+Mindkét játékra és az előnézetre érvényes, és megmarad. Hogy éppen mit mutat, azt a Minta sor
+mutatja a kijelölt csomagok tételeivel.
+
+A „Kártyák” oszlop **Betűk · Szótagok · Szavak · Mondatok** gombjaival (a ▾ alatt magánhangzók /
+mássalhangzók, illetve CV, VC és egyéb szótagok) kiválasztható, mely tételtípusok jöhetnek elő a kijelölt
+csomagokból. Csak a csomagokban meglévő típusok gombja látszik. A szűrő mindkét játékra érvényes, megmarad, és
+a felület minden száma (csomagok, előnézet, számláló) a szűrés utáni tételeket számolja.
+
 A felvillanási idő 0–25 mp; **0 = kézi léptetés**, a tétel addig látszik, amíg nem lépsz tovább. A tételek közti szünet 0, 0,5, 1, 2 vagy 3 mp.
 Kötőjellel tagolt tételnél (`ka-ta`) a szótagok egyenként letakarhatók: kattints vagy koppints a
 szótagra, vagy nyomd a `↓`-t (egész → csak az 1. szótag → … → csak az utolsó → egész). Az első takarás
@@ -105,6 +120,7 @@ Statikus oldal, build lépés és függőségek nélkül; natív ES modulok.
 index.html          markup
 lists.txt           a listák
 parok.json          Keresd meg!: hasonló betűpárok, költségek, nehézségi görbe (docs/keresd-meg-heurisztika.md)
+hangok.json         betűszínezés: magánhangzók, zöngés és zöngétlen mássalhangzók (docs/megjelenes-specifikacio.md SZ-3)
 haladas.json        Haladás: a szűrés és a csoportok küszöbei (docs/haladas-specifikacio.md, 7.)
 css/                tokens · szülői felület · gyakorló és jutalom nézet · Haladás · bemutató
 js/version.js       a program verziója (fejlécben látszik, kiadáskor léptetni)
@@ -114,6 +130,10 @@ js/core/            tiszta, DOM-mentes logika (Node-ban tesztelve)
   round.js            a gyakorlókör állapotgépe (időzítés, szünet, navigáció)
   items.js            tételek tisztítása
   lists.js            a lists.txt és a táblázat értelmezése
+  marks.js            nagybetű-jelölés a listában ({m}i-ki): leválasztás és ellenőrzés
+  hangok.js           betűszínezés: a hangok.json ellenőrzése, betűk és megjelenítési darabok
+  look.js             Megjelenés: a Minta tételei és a telefonos összegzés
+  type-filter.js      tételszűrő: típusok, chipek állapota, szűrés
   csv.js              CSV-olvasó
   source.js           forrás: táblázat, tartalékként lists.txt
   tour.js             Első lépések: megjelenítési feltétel, célelem, szövegek, a buborék helye

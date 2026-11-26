@@ -19,12 +19,6 @@ export default [
   // a böngészőben futó program
   { files: ['js/**/*.js'], languageOptions: { globals: globals.browser } },
   { files: ['sw.js'], languageOptions: { globals: globals.serviceworker } },
-  // Ismert, még javítatlan találatok a programkódban: itt csak figyelmeztetés, hogy ez a (main-be menő,
-  // infra) PR ne nyúljon a programhoz. A javításuk egy dev-be menő PR, ami ezt a blokkot törli is.
-  {
-    files: ['js/core/haladas-texts.js', 'js/core/source.js', 'js/data/remote.js'],
-    rules: { 'no-unused-vars': 'warn', 'preserve-caught-error': 'warn' },
-  },
   // Node alatt futó tesztek és szkriptek
   {
     files: ['test/**', 'e2e/**', '.github/scripts/**', 'eslint.config.js'],

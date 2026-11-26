@@ -1,5 +1,6 @@
 // A Haladás nézet minden felületi szövege egy helyen (docs/haladas-specifikacio.md, 8.). Tiszta modul.
-// Tegező forma, gondolatjel nélkül. A „tétel” szó ideiglenes: a TERM cseréjével mindenhol változik.
+// Tegező forma, gondolatjel nélkül. A felületen „kártya” a betű, szótag, szó vagy mondat neve, minden alakja a TERM-ből
+// jön. Szóvégre ragasztott toldalék nincs („kártyá-” tő!): új ragozott alak csak új TERM mezőként kerülhet be.
 // A szövegekben szereplő küszöbszámok a konfigurációból (haladas.json `allapot`) jönnek.
 //
 // A kiemelt részeket tartalmazó mondatok részek tömbjeként jönnek ([szöveg, kiemelt?]), így a felület
@@ -8,7 +9,9 @@
 import { fromSuffix, accSuffix, timesSuffix } from './progress.js';
 import { art } from './items.js';
 
-export const TERM = Object.freeze({ nom: 'tétel', acc: 'tételt', from: 'tételből', about: 'tételről', pl: 'tételek' });
+export const TERM = Object.freeze({
+  nom: 'kártya', acc: 'kártyát', from: 'kártyából', about: 'kártyáról', at: 'kártyánál', pl: 'kártyák', plAt: 'kártyáknál',
+});
 
 export const T = Object.freeze({
   open: 'Haladás',
@@ -16,7 +19,7 @@ export const T = Object.freeze({
   back: '← Vissza',
   backToOverview: '← Vissza az áttekintéshez',
   statTitle: 'Ez csak statisztika',
-  statFirst: `Többet számít, amit te látsz, és amit a gyereked érez egy-egy ${TERM.nom}nél.`,
+  statFirst: `Többet számít, amit te látsz, és amit a gyereked érez egy-egy ${TERM.at}.`,
   statRest: `Ha szerinted egy ${TERM.nom} már megy, akkor valószínűleg megy, bármit mutat itt a program. Használd segítségnek, de ne hagyatkozz rá teljesen, és ne a számokat akard javítani: az a cél, hogy szívesen olvasson. Egy ${TERM.nom} csoportja idővel változhat, ez természetes.`,
   more: 'Bővebben ▾',
   less: 'Kevesebb ▴',
@@ -26,7 +29,7 @@ export const T = Object.freeze({
   howTitle: 'Honnan tudja ezt az Olvasóka?',
   how: [
     'Az Olvasóka nem tudja a helyes válaszokat, ezt te hallod a gyerek mellett. Így csak azt figyeli, mennyi idő alatt lapoztok tovább, és kellett-e takarás vagy visszalépés.',
-    `A tempót mindig a gyereked saját tempójához méri, nem egy elvárt sebességhez. Csak azt nézi, hogy egy ${TERM.acc} nagyjából olyan gyorsan olvas-e, mint a többi betűt, szótagot vagy szót szokta. A hosszabb ${TERM.pl}nél a szótagok számával is számol. Más gyerekekhez nem hasonlítja.`,
+    `A tempót mindig a gyereked saját tempójához méri, nem egy elvárt sebességhez. Csak azt nézi, hogy egy ${TERM.acc} nagyjából olyan gyorsan olvas-e, mint a többi betűt, szótagot vagy szót szokta. A hosszabb ${TERM.plAt} a szótagok számával is számol. Más gyerekekhez nem hasonlítja.`,
   ],
   local: 'Az adatok csak ezen az eszközön vannak.',
   noStorage: 'Ezen az eszközön nem menthető a haladás, mert a böngésző nem engedi az adatok tárolását.',
@@ -41,7 +44,7 @@ export const T = Object.freeze({
   mixed: 'segítséggel és anélkül is',
   mixedShort: 'vegyesen',
   groupFoot: 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez.',
-  footStat: `Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a ${TERM.nom}nél.`,
+  footStat: `Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a ${TERM.at}.`,
 });
 
 /** A négy csoport neve és színe, a felületi sorrendben (8.2). */
@@ -53,8 +56,7 @@ export const CARDS = Object.freeze({
 });
 export const CARD_ORDER = Object.freeze(['fluent', 'unsure', 'practice', 'lowdata']);
 
-/** Szám a ragjával: „3-at”, „5-ször”. */
-const acc = (n) => `${n}-${accSuffix(n)}`;
+/** Szám a ragjával: „5-ször”. */
 const times = (n) => `${n}-${timesSuffix(n)}`;
 /** „a 76-ból”, „az 5-ből” */
 const from = (n) => `${art(n)} ${n}-${fromSuffix(n)}`;

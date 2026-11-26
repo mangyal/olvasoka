@@ -79,7 +79,7 @@ h2.col-title,.ed-head h2.col-title{margin:0;font-size:18px;line-height:26px;font
 /* nincs kijelölt csomag (3.2) */
 .empty.dashed{margin-top:28px;padding:32px;border:1px dashed var(--line);border-radius:var(--r-card);justify-items:center;text-align:center}
 .empty.dashed p{font-size:15px;color:var(--ink-2)}
-/* Ezekkel játszotok (3.2) */
+/* Kártyák oszlop (3.2) */
 .preview-only{display:grid;gap:12px}
 .ed-head{align-items:baseline;flex-wrap:wrap;column-gap:16px}
 .ed-head h2.col-title{flex:1 0 auto}
@@ -367,7 +367,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   .lists-btn{display:flex}
   /* telefon (4.1): cím, csomag gomb, „csak ezek” mondat, előnézet; alatta a frissítés sora, majd a Játékok */
   .picker-title{display:block;margin-bottom:10px}
-  h2.col-title{font-size:16px;line-height:22px}
+  h2.col-title,.ed-head h2.col-title{font-size:16px;line-height:22px}
   .phone-preview{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}
   .editor{order:2}
   .panel{order:3}
@@ -414,7 +414,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
   /* bal oszlop (4.3): Kártyacsomagok cím, csomag gomb, „csak ezek” mondat, előnézet (legfeljebb 3 sor) */
   .picker{display:flex;flex-direction:column;grid-column:1;grid-row:3/-1;padding:4px 0 12px;order:0;min-height:0;overflow-y:auto}
   .picker-title{display:block;margin-bottom:8px}
-  h2.col-title{font-size:16px;line-height:22px}
+  h2.col-title,.ed-head h2.col-title{font-size:16px;line-height:22px}
   .narrow-pick{display:none}
   .lists-btn{display:flex}
   .phone-preview{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:10px}
@@ -562,4 +562,130 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 /* mobil fekvő (E10): a minta nem fér el, rejtve */
 @media (max-height:500px) and (orientation:landscape){
   .ctl-sample{display:none!important}
+}
+
+/* ================= Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6; kartyak-oszlop ÖM-1–ÖM-8) =================
+   Minden nézetben összecsukott sor a kártya tetején (felirat, összegzés, mini minta, ▾); kattintásra helyben nyílik,
+   és a sor lesz a kártya fejléce. Kinyitva asztalon a rács: bal oszlop a felirat (140 px), jobb a szegmensvezérlő
+   (260 px), a feliratok alapvonalra igazodnak; álló tableten a két vezérlő egymás mellett, alattuk a Minta; telefonon
+   egymás alatt. */
+.look{container:look/inline-size;display:flex;flex-direction:column;flex:none;background:var(--field);border:1px solid var(--line);border-radius:var(--r-card);min-width:0}
+.look-row{display:flex;width:100%;min-height:52px;align-items:center;gap:12px;padding:6px 6px 6px 14px;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;border-radius:var(--r-card)}
+.look-row-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.look-row-label{font-size:12px;color:var(--ink-2)}
+.look-row-sum{font-weight:600;overflow-wrap:anywhere}
+.look-row-sum .nw{white-space:nowrap}
+.look-row .icon{width:20px;height:20px;color:var(--ink-2);flex:none;margin-right:8px}
+.look-body{display:none;flex-direction:column;gap:10px;min-width:0;padding:2px 16px 16px}
+.look.open .look-body{display:flex}
+.look.open .look-row-label{font-size:15px;line-height:22px;font-weight:600;color:var(--ink)}
+.look.open .look-row-sum,.look.open .look-mini{display:none}
+.look.open .look-row .icon{transform:rotate(180deg)}
+.look-grid{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px 14px;align-items:baseline;min-width:0}
+.look-label{font-size:14px;color:var(--ink)}
+.look-ctl{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;min-width:0}
+.look-seg{width:260px;max-width:100%;flex:none}
+.look-seg span{font-size:14px;white-space:nowrap}
+.look-note{font-size:13px;color:var(--ink-2)}
+.look-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
+.look-legend b{font:600 15px/1 var(--f-item)}
+.look-legend .g-v{color:var(--c-vowel)} .look-legend .g-d{color:var(--c-voiced)} .look-legend .g-u{color:var(--c-unvoiced)}
+.look-sample{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.look-card{display:inline-flex;font:400 26px/1.25 var(--f-item);border:1px solid var(--line);border-radius:6px;padding:2px 10px;background:var(--paper);white-space:pre;max-width:100%;overflow:hidden}
+.look-mini{font:400 20px/1.2 var(--f-item);white-space:pre;flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis}
+
+/* keskeny nézet (FK-4): a csomagválasztó után „Kártyák” cím + számláló, alatta a Megjelenés sora */
+@media (max-width:899px),(max-height:500px) and (orientation:landscape){
+  .cards-head{margin-top:20px}
+  .look{margin-top:12px}
+}
+/* álló tablet (L-3): kinyitva a két vezérlő egymás mellett, alattuk a Minta */
+@media (max-width:899px){
+  .look-body{padding:0 14px 14px}
+  .look-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;align-items:start}
+  .look-grid>:nth-child(1){grid-column:1;grid-row:1}
+  .look-grid>:nth-child(2){grid-column:1;grid-row:2}
+  .look-grid>:nth-child(3){grid-column:2;grid-row:1}
+  .look-grid>:nth-child(4){grid-column:2;grid-row:2}
+  .look-grid>:nth-child(5){grid-column:1/-1;grid-row:3;margin-top:8px}
+  .look-grid>:nth-child(6){grid-column:1/-1;grid-row:4}
+  .look-ctl{flex-direction:column;align-items:stretch}
+  .look-seg{width:100%}
+}
+/* telefon álló és fekvő (L-4, L-6): kinyitva a vezérlők egymás alatt; a fejléc felirata 16 px */
+@media (max-width:600px),(max-height:500px) and (orientation:landscape){
+  .cards-head{margin-top:16px}
+  .look{margin-top:10px}
+  .look.open .look-row-label{font-size:16px}
+  .look-grid{grid-template-columns:minmax(0,1fr);gap:6px}
+  .look-grid>:nth-child(n){grid-column:1;grid-row:auto}
+  .look-grid>:nth-child(3),.look-grid>:nth-child(5){margin-top:8px}
+  .look-card{font-size:22px;padding:1px 8px}
+}
+/* keskeny asztali középső oszlop (pl. 1024 px-es ablak): a 140 + 260 px-es sor nem fér el, a felirat a vezérlő fölé kerül */
+@container look (max-width:446px){
+  .look-grid{grid-template-columns:minmax(0,1fr);gap:6px}
+  .look-grid>:nth-child(n){grid-column:1;grid-row:auto}
+  .look-grid>:nth-child(3),.look-grid>:nth-child(5){margin-top:8px}
+  .look-ctl{flex-direction:column;align-items:stretch}
+  .look-seg{width:100%}
+}
+
+/* ================= „Csak ezek” mondat és tételszűrő (docs/megjelenes-specifikacio.md, SZR, L-2–L-5; kartyak-oszlop TA-1) =================
+   Asztalon az előnézet tetején, görgetéskor a lista tetejére tapad (a „Kártyák” cím és a számláló nem). Keskeny
+   nézetben a Megjelenés alatt: álló tableten tördelt chipek és egy mondat, telefonon vízszintesen görgethető chipsor. */
+.play-head{display:grid;gap:12px;min-width:0}
+.tf-note{display:none;margin:0;font-size:14px}
+.tf{position:relative;min-width:0}
+.tf-row{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.tf-chip{position:relative;display:inline-flex;align-items:stretch;flex:none;border:1px solid var(--line);border-radius:22px;background:var(--field);margin:1px}
+.tf-chip[data-state=on],.tf-chip[data-state=part]{border:2px solid var(--accent);margin:0}
+.tf-main{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px 0 12px;border:0;border-radius:22px;background:none;color:var(--ink-2);font:inherit;font-size:14px;white-space:nowrap;cursor:pointer}
+.tf-chip:has(.tf-caret) .tf-main{padding-right:8px;border-radius:22px 0 0 22px}
+.tf-chip[data-state=on] .tf-main,.tf-chip[data-state=part] .tf-main{color:var(--ink);font-weight:600}
+.tf-tick{width:16px;height:16px;flex:none;border-radius:4px;border:1.5px solid var(--ink-2);display:grid;place-items:center}
+.tf-tick svg{width:12px;height:12px;fill:none;stroke:var(--on-accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
+.tf-chip[data-state=on] .tf-tick,.tf-chip[data-state=part] .tf-tick{background:var(--accent);border-color:var(--accent)}
+.tf-chip[data-state=on] .tf-tick svg,.tf-chip[data-state=part] .tf-tick svg{visibility:visible}
+.tf-n{color:var(--ink-2);font-weight:400}
+.tf-caret{display:grid;place-items:center;padding:0 10px;border:0;border-left:1px solid var(--line);border-radius:0 22px 22px 0;background:none;color:var(--ink-2);cursor:pointer}
+.tf-caret .icon{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.tf-caret[aria-expanded=true] .icon{transform:rotate(180deg)}
+.tf-main:hover,.tf-caret:hover{background:var(--paper)}
+.tf-pop{position:absolute;left:var(--pop-left,0);top:var(--pop-top,calc(100% + 6px));z-index:5;min-width:220px;display:flex;flex-direction:column;gap:2px;padding:8px;background:var(--field);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(30,42,50,.16)}
+.tf-pop-head{display:none;margin:0;padding:6px 10px 2px;font-size:13px;color:var(--ink-2)}
+.tf-sub{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;font-size:14px;cursor:pointer}
+.tf-sub:hover{background:var(--paper)}
+.tf-sub input{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:none}
+.tf-sub-label{flex:1}
+.tf-backdrop{position:fixed;inset:0;z-index:20;background:rgba(30,42,50,.12)}
+@media (hover:none) and (pointer:coarse){.tf-main,.tf-caret{min-height:44px}}
+
+/* asztal: a mondat és a chipsor tapad a lista tetejére (L-2, TA-1) */
+@media (min-width:900px){
+  /* a negatív felső margó és a belső margó kiegyenlíti egymást: helyben ugyanott áll, letapadva 12 px marad fölötte;
+     a top a szerkesztő 20 px-es felső belső margóját ellensúlyozza (a tapadás a tartalom széléhez mér) */
+  .play-head{position:sticky;top:-20px;z-index:3;margin-top:-12px;padding-top:12px;padding-bottom:10px;background:var(--paper);border-bottom:1px solid var(--paper-2)}
+}
+@media (min-width:900px) and (max-height:500px) and (orientation:landscape){
+  .play-head{position:static;margin-top:0;padding-top:0;border-bottom:0}
+}
+/* keskeny nézet: a szűrő a Megjelenés alatt; nincs „csak ezek” mondat (telefonon a pv-note, tableten a tf-note) */
+@media (max-width:899px),(max-height:500px) and (orientation:landscape){
+  .play-head{margin-top:16px;gap:10px}
+  .play-head .only-note{display:none}
+  .tf-note{display:block}
+  .tf-main,.tf-caret{min-height:44px}
+}
+/* telefon (álló és fekvő): egy görgethető chipsor; az altípusok lebegő listában a chipsor alatt (L-4, L-5) */
+@media (max-width:600px),(max-height:500px) and (orientation:landscape){
+  .play-head{margin-top:14px}
+  .tf-note{display:none}
+  .tf-row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:1px 0;overscroll-behavior-x:contain}
+  .tf-row::-webkit-scrollbar{display:none}
+  .tf-pop{position:fixed;left:var(--pop-x,16px);width:var(--pop-w,calc(100% - 32px));top:var(--pop-fixed,50%);z-index:21;border-radius:12px;box-shadow:0 12px 32px rgba(30,42,50,.18);max-height:calc(100dvh - 16px);overflow-y:auto}
+  .cards-head .num{font-size:14px}
+  .tf-pop-head{display:block}
+  .tf-sub{min-height:48px;padding:0 10px;font-size:15px;gap:12px}
+  .tf-sub input{width:22px;height:22px}
 }

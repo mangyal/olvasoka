@@ -13,7 +13,7 @@
 // - Ismeretlen (újabb) verziójú gyökeret nem írunk felül: a napló ilyenkor csak memóriában él.
 
 import { transitionEvents } from '../core/practice-log.js';
-import { roundExposures, dailyRecords, mergeDaily, dayOf, listHash, keepEnds, flashDwellOf } from '../core/exposures.js';
+import { roundExposures, dailyRecords, dailyId, mergeDaily, dayOf, listHash, keepEnds, flashDwellOf } from '../core/exposures.js';
 import { reconcileLists } from '../core/list-identity.js';
 import { itemKey, nameKey } from '../core/items.js';
 import { DEFAULTS } from '../core/haladas-config.js';
@@ -129,7 +129,7 @@ export function createProgressLog({ key, storage = probe(), now = () => Date.now
       if (r.mode !== 'read' || !(r.flashMs > 0) || !complete(xs)) continue;
       const groups = new Map();
       for (const e of roundExposures(r, xs, cfg.szures).exposures) {
-        const id = `${root.deviceId}|${root.child}|${e.item}|${e.day}`;
+        const id = dailyId(root.deviceId, root.child, e.item, e.day);
         if (!groups.has(id)) groups.set(id, []);
         groups.get(id).push(e);
       }

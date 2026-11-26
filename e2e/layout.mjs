@@ -96,13 +96,13 @@ test('beállítások: ugyanúgy mentődnek és töltődnek vissza; becslés mind
   const { page, ctx } = await open(DESKTOP, { settings: { flashMs: 4000, gapMs: 2500, count: 10 } });
   assert.equal(await page.isChecked('#gap2000'), true, 'a régi 2,5 mp → 2 mp');
   assert.deepEqual(await page.$$eval('#gapOpts span', (s) => s.map((x) => x.textContent)), ['0', '0,5', '1', '2', '3']);
-  assert.equal(await page.textContent('#estimate'), '10 tétel · kb. 1 perc');
+  assert.equal(await page.textContent('#estimate'), '10 kártya · kb. 1 perc');
   await page.click('label:has(#gap1000)');
   await page.click('#countInc');
   await page.click('#sidebar label:has(input[value="all"])');
-  assert.equal(await page.textContent('#estimate'), '11 tétel · kb. 55 mp');
+  assert.equal(await page.textContent('#estimate'), '11 kártya · kb. 55 mp');
   await page.$eval('#flashIn', (e) => { e.value = '0'; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change')); });
-  assert.equal(await page.textContent('#estimate'), '11 tétel · kézi léptetés');
+  assert.equal(await page.textContent('#estimate'), '11 kártya · kézi léptetés');
   const s = await stored(page);
   assert.equal(s.v, 4);
   assert.equal(s.mode, 'read');
@@ -131,11 +131,11 @@ test('Ctrl+Enter indít; pöttysor a számláló helyett, visszalépésre vissza
   assert.equal(await page.$('#counter'), null);
   assert.equal(await page.$$eval('#progress .dot', (d) => d.length), 10);
   await page.keyboard.press('Space'); await page.keyboard.press('Space');
-  assert.equal(await page.getAttribute('#progress', 'aria-label'), '3. tétel a 10-ből');
+  assert.equal(await page.getAttribute('#progress', 'aria-label'), '3. kártya a 10-ből');
   assert.equal(await page.$$eval('#progress .dot.is-done', (d) => d.length), 2);
   assert.equal(await page.$$eval('#progress .dot.is-current', (d) => d.length), 1);
   await page.keyboard.press('ArrowLeft');
-  assert.equal(await page.getAttribute('#progress', 'aria-label'), '2. tétel a 10-ből');
+  assert.equal(await page.getAttribute('#progress', 'aria-label'), '2. kártya a 10-ből');
   await page.keyboard.press('Escape');
   await page.waitForSelector('#admin:not([hidden])');
   await ctx.close();
@@ -262,9 +262,9 @@ test('álló tablet: chip-sor összesítővel, a súgó alsó lap, az Indítás 
   const { page, ctx } = await open(TABLET, { lastLists: [] });
   assert.ok(await page.isVisible('#listChecks'));
   assert.equal(await page.isVisible('#listsBtn'), false);
-  assert.match(await page.textContent('#pickSum'), /^1 csomag · \d+ tétel$/);
+  assert.match(await page.textContent('#pickSum'), /^1 csomag · \d+ kártya$/);
   await page.tap('#listChecks label:nth-child(2)');
-  assert.match(await page.textContent('#pickSum'), /^2 csomag · \d+ tétel$/);
+  assert.match(await page.textContent('#pickSum'), /^2 csomag · \d+ kártya$/);
   // 4.2: a chip-sor fölött a kapcsoló, a legend „Kártyacsomagok”; előnézet nincs, a frissítés sora marad
   assert.equal((await page.textContent('#listPick legend')).trim(), 'Kártyacsomagok');
   const [sw, chips] = await Promise.all(['#listPick .src-switch', '#listChecks'].map((q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON())));
@@ -353,19 +353,19 @@ test('mobil: lenyíló + alsó lap; a pipálás azonnal frissít, üres kijelöl
   assert.equal(await page.isEnabled('#listsDone'), true, 'üres kijelölésnél a Kész aktív');
   await page.tap('#listsRows label:nth-child(1)');
   await page.tap('#listsRows label:nth-child(2)');
-  assert.match(await page.textContent('#listsSum'), /^\d+ különböző tétel$/);
+  assert.match(await page.textContent('#listsSum'), /^\d+ kártya$/);
   assert.equal(await page.textContent('#listsCount'), '2 csomag kijelölve');
   assert.equal(await page.isEnabled('#startBtn'), true);
   assert.ok(await page.$$eval('#listsRows .ls-row', (r) => r.every((x) => x.getBoundingClientRect().height >= 48)), 'a sorok legalább 48 px magasak');
   await page.tap('#listsDone');
   assert.equal(await page.$eval('#dlgLists', (d) => d.open), false);
-  assert.match(await page.textContent('#listsBtnLabel'), /^Kijelölt csomagok · \d+ tétel$/);
+  assert.match(await page.textContent('#listsBtnLabel'), /^Kijelölt csomagok · \d+ kártya$/);
   assert.match(await page.textContent('#listsBtnNames'), /, /);
   // a Mind gombot az Összes csomag váltja ki
   await page.tap('#listsBtn'); await page.tap('#dlgLists label:has(input[value="all"])');
   assert.equal(await page.$$eval('#listsRows input', (c) => c.every((x) => x.checked)), true, 'Összes csomag');
   assert.equal(await page.textContent('#listsCount'), `Mind a ${await page.locator('#listsRows .ls-row').count()} csomag`);
-  assert.match(await page.textContent('#listsBtnLabel'), /^Összes csomag · \d+ tétel$/);
+  assert.match(await page.textContent('#listsBtnLabel'), /^Összes csomag · \d+ kártya$/);
   await page.keyboard.press('Escape');
   assert.equal(await page.$eval('#dlgLists', (d) => d.open), false, 'Esc zár');
   await ctx.close();
@@ -482,7 +482,7 @@ for (const [w, h] of [[320, 568], [360, 800]]) {
 }
 
 // ---------- Súgó: Adatvédelem rész, Betűteszt a gombsorban (docs/analitika-specifikacio.md 5.) ----------
-const PRIVACY = 'A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.';
+const PRIVACY = 'A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a kártyákról és a haladásról semmi nem hagyja el ezt a készüléket.';
 const rect = (page, q) => page.$eval(q, (e) => e.getBoundingClientRect().toJSON());
 /** Megnyitja a Súgót a fejléc gombjával (érintőn koppintással). */
 async function openHelp(page, touch) {
@@ -863,21 +863,35 @@ test('egérrel az oldalsáv (3.1): kattintás vált, Shift tartomány, végighú
   await ctx.close();
 });
 
-test('asztali elrendezés (3.): a három cím azonos stílusú és egy vonalban, nincs Tételek mező és szerkesztő link', async () => {
-  for (const opts of [DESKTOP, SMALL]) {
+test('asztali elrendezés (3., kartyak-oszlop FK-1–FK-3, T-1): Kártyacsomagok → Kártyák → Játékok, azonos stílus, egy vonalban; a Kártyák alatt a Megjelenés', async () => {
+  for (const opts of [{ viewport: { width: 1440, height: 900 } }, DESKTOP, SMALL]) {
     const { page, ctx } = await open(opts);
-    const t = await page.$$eval('#packsH, #previewH, #gamesH', (hs) => hs.map((h) => {
+    const t = await page.$$eval('main h2.col-title', (hs) => hs.filter((h) => h.getBoundingClientRect().height > 0).map((h) => {
       const c = getComputedStyle(h), r = h.getBoundingClientRect();
-      return { text: h.textContent.trim(), font: [c.fontSize, c.fontWeight, c.lineHeight, c.color].join(' '), top: r.top, h: r.height };
+      return { text: h.textContent.trim(), font: [c.fontSize, c.fontWeight, c.lineHeight, c.color].join(' '), top: r.top, bottom: r.bottom, h: r.height };
     }));
-    assert.deepEqual(t.map((x) => x.text), ['Kártyacsomagok', 'Ezekkel játszotok', 'Játékok']);
+    assert.deepEqual(t.map((x) => x.text), ['Kártyacsomagok', 'Kártyák', 'Játékok']);
     assert.equal(t[0].font, '18px 600 26px rgb(30, 42, 50)');
-    assert.ok(t.every((x) => x.font === t[0].font), 'azonos stílus');
-    assert.ok(t.every((x) => Math.abs(x.top - t[0].top) < 1 && x.h <= 27), `egy vonalban, egy sorban: ${t.map((x) => x.top)}`);
+    assert.ok(t.every((x) => x.font === t[0].font && x.h <= 27), 'azonos stílus, egy sorban');
+    assert.ok(Math.max(...t.map((x) => x.top)) - Math.min(...t.map((x) => x.top)) <= 1, `a három cím egy vonalban: ${t.map((x) => x.top)}`);
+    // a „Kártyák” a középső oszlop legelső eleme, a számláló a sorában; alatta a Megjelenés
+    const g = await page.evaluate(() => {
+      const inner = document.getElementById('edInner'), head = document.getElementById('cardsHead'), look = document.getElementById('look');
+      const base = (el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().bottom; };
+      return {
+        first: inner.firstElementChild === head && head.nextElementSibling === look,
+        countRight: document.getElementById('listCount').getBoundingClientRect().left > document.getElementById('previewH').getBoundingClientRect().left,
+        countBase: Math.abs(base(document.getElementById('listCount')) - base(document.getElementById('previewH'))),
+        below: head.getBoundingClientRect().bottom <= look.getBoundingClientRect().top,
+      };
+    });
+    assert.deepEqual({ ...g, countBase: g.countBase < 4 }, { first: true, countRight: true, countBase: true, below: true });
+    assert.equal(await page.locator('#lookH, h2:has-text("Megjelenés")').count(), 0, 'a Megjelenés nem oszlopcím');
+    assert.equal(await page.locator('text=Ezekkel játszotok').count(), 0);
     assert.equal(await page.locator('#srcList, #srcAll, #srcListF, #srcAllF, .seg-src, #editLink, #listsEdit, #navHint[hidden] + .label').count(), 0);
     assert.equal(await page.locator('.sidebar .label').count(), 0, 'nincs régi LISTÁK felirat');
-    assert.match(await page.textContent('#listCount'), /^\d+ különböző tétel · \d+ csomag$/);
-    assert.equal((await page.textContent('.only-note')).trim(), 'A játékban csak ezek a tételek jöhetnek elő, semmi más.');
+    assert.match(await page.textContent('#listCount'), /^\d+ kártya · \d+ csomag$/);
+    assert.equal((await page.textContent('.only-note')).trim(), 'A játékban csak ezek a kártyák jöhetnek elő, semmi más.');
     assert.match(await page.textContent('#sourceInfo'), /^Frissítve: \d\d:\d\d$/);
     await ctx.close();
   }
@@ -894,7 +908,7 @@ test('telefon (4.1): „csak ezek” mondat, két sor előnézet; a „Mind a �
       return r.bottom <= b.bottom + 0.5;
     }).map((c) => Math.round(c.getBoundingClientRect().top))).size);
     assert.equal(await rows(), opts === PHONE ? 2 : 3, 'összecsukva két (fekve három) sor látszik');
-    const n = (await page.textContent('#pvMore')).match(/^Mind a (\d+) tétel megtekintése$/);
+    const n = (await page.textContent('#pvMore')).match(/^Mind a (\d+) kártya megtekintése$/);
     assert.ok(n, await page.textContent('#pvMore'));
     await page.tap('#pvMore');
     assert.equal(await page.textContent('#pvMore'), 'Kevesebb');
@@ -1041,20 +1055,20 @@ test('Haladás asztali 1280×800: sorrend, négy kártya, Kevés adat teljes sz�
   const { page, ctx, errors } = await openProgress(DESKTOP);
   assert.equal(await page.isVisible('#admin'), false, 'a szülői felület helyére lép');
   const order = await page.$$eval('.hl-wrap > *', (es) => es.map((e) => e.className || e.tagName));
-  assert.deepEqual(order, ['hl-top', 'hl-cards', 'hl-lists', 'hl-how', 'hl-foot'], 'van csoportba sorolt tétel: nincs információs doboz');
+  assert.deepEqual(order, ['hl-top', 'hl-cards', 'hl-lists', 'hl-how', 'hl-foot'], 'van csoportba sorolt kártya: nincs információs doboz');
   assert.equal(await page.textContent('#haladas h1'), 'Hogy halad az olvasás?');
   assert.equal(await page.textContent('.hl-sum'),
-    'Eddig 19 tételt olvasott a 124-ből. 16 már csoportba került: 8 megy, 3 még bizonytalan, 5-öt még gyakorolni kell. A többi 108 tételről még kevés az adat.');
-  assert.deepEqual(await page.$$eval('.hl-sum strong', (s) => s.map((x) => x.textContent)), ['19 tételt', '124', '16', '8', '3', '5', '108']);
+    'Eddig 19 kártyát olvasott a 124-ből. 16 már csoportba került: 8 megy, 3 még bizonytalan, 5-öt még gyakorolni kell. A többi 108 kártyáról még kevés az adat.');
+  assert.deepEqual(await page.$$eval('.hl-sum strong', (s) => s.map((x) => x.textContent)), ['19 kártyát', '124', '16', '8', '3', '5', '108']);
   assert.equal(await page.isVisible('.hl-stat-btn'), false, 'asztalon a statisztika doboz nem csukható');
-  assert.ok(await page.isVisible('.hl-stat >> text=Egy tétel csoportja idővel változhat, ez természetes.'));
+  assert.ok(await page.isVisible('.hl-stat >> text=Egy kártya csoportja idővel változhat, ez természetes.'));
   assert.deepEqual(await cardTitles(page), ['Megy', 'Még bizonytalan', 'Még gyakorolni kell', 'Kevés adat']);
   assert.deepEqual(await page.$$eval('.hl-count', (c) => c.map((x) => x.textContent)), ['8', '3', '5', '108']);
   assert.deepEqual(await page.$$eval('.hl-means', (c) => c.map((x) => x.textContent)), [
     'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.',
     'Már olvasta segítség nélkül is, de néha még nehezen megy.',
-    'Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi tételt.',
-    'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.',
+    'Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi kártyát.',
+    'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.',
   ]);
   assert.deepEqual(await tileCounts(page), [6, 3, 5, 0], 'asztalon legfeljebb 6 csempe; a Kevés adat kártyán nincs');
   const cards = await rects(page, '.hl-card');
@@ -1069,10 +1083,10 @@ test('Haladás asztali 1280×800: sorrend, négy kártya, Kevés adat teljes sz�
   const [lowText] = await rects(page, '.hl-low-text');
   assert.ok(all[3].left > lowText.right && Math.abs((all[3].top + all[3].bottom) / 2 - (lowText.top + lowText.bottom) / 2) < 4, 'a Kevés adat linkje jobbra, középen');
   assert.deepEqual(await page.$$eval('.hl-all', (a) => a.map((x) => [x.textContent, x.getAttribute('aria-label'), x.getAttribute('href')])), [
-    ['Mutasd mindet', 'Megy: mind a 8 tétel', '#haladas/csoport/fluent'],
-    ['Mutasd mindet', 'Még bizonytalan: mind a 3 tétel', '#haladas/csoport/unsure'],
-    ['Mutasd mindet', 'Még gyakorolni kell: mind az 5 tétel', '#haladas/csoport/practice'],
-    ['Mutasd mindet', 'Kevés adat: mind a 108 tétel', '#haladas/csoport/lowdata'],
+    ['Mutasd mindet', 'Megy: mind a 8 kártya', '#haladas/csoport/fluent'],
+    ['Mutasd mindet', 'Még bizonytalan: mind a 3 kártya', '#haladas/csoport/unsure'],
+    ['Mutasd mindet', 'Még gyakorolni kell: mind az 5 kártya', '#haladas/csoport/practice'],
+    ['Mutasd mindet', 'Kevés adat: mind a 108 kártya', '#haladas/csoport/lowdata'],
   ]);
   assert.deepEqual(await page.$$eval('.hl-card', (cs) => cs.map((c) => getComputedStyle(c).borderTopColor)),
     ['rgb(46, 107, 102)', 'rgb(141, 189, 182)', 'rgb(231, 185, 106)', 'rgb(189, 180, 164)']);
@@ -1083,13 +1097,13 @@ test('Haladás asztali 1280×800: sorrend, négy kártya, Kevés adat teljes sz�
   }));
   for (const b of bars) {
     assert.ok(Math.abs(b.fill - b.width) < 1.5, `${b.label}: ${b.fill} / ${b.width}`);
-    assert.match(b.label, /^.+: (\d+ megy, \d+ még bizonytalan, \d+ még gyakorolni kell, \d+ kevés adat, \d+ tételből|\d+ tételből mindegyikről kevés az adat)$/);
+    assert.match(b.label, /^.+: (\d+ megy, \d+ még bizonytalan, \d+ még gyakorolni kell, \d+ kevés adat, \d+ kártyából|\d+ kártyából mindegyikről kevés az adat)$/);
   }
   const p45 = bars.find((b) => b.label.startsWith('45. oldal'));
   assert.deepEqual(p45.parts, ['fluent', 'unsure', 'practice', 'lowdata']);
-  assert.equal(bars.find((b) => b.label.startsWith('Két szótagú')).label, 'Két szótagú szavak: 19 tételből mindegyikről kevés az adat');
+  assert.equal(bars.find((b) => b.label.startsWith('Két szótagú')).label, 'Két szótagú szavak: 19 kártyából mindegyikről kevés az adat');
   assert.deepEqual(bars.find((b) => b.label.startsWith('Két szótagú')).parts, ['lowdata'], 'a 0 darabos részek nincsenek');
-  assert.equal(await page.textContent('.hl-lists .hl-muted'), 'A szürke rész: erről a tételről még kevés az adat.');
+  assert.equal(await page.textContent('.hl-lists .hl-muted'), 'A szürke rész: erről a kártyáról még kevés az adat.');
   assert.equal(await page.$$eval('.hl-how p', (p) => p.length), 2);
   assert.match(await page.textContent('.hl-how'), /A tempót mindig a gyereked saját tempójához méri/);
   assert.doesNotMatch(await page.textContent('.hl-how'), /akkor „megy”/);
@@ -1110,8 +1124,8 @@ test('Haladás első nap: információs doboz; üres kártyák szaggatott kerett
   const { page, ctx, errors } = await openProgress(DESKTOP, '#haladas', seedRoot({ seenOnce: ['ma', 'mi', 'fa'], low: ['fe'] }));
   const order = await page.$$eval('.hl-wrap > *', (es) => es.map((e) => e.className || e.tagName));
   assert.deepEqual(order, ['hl-top', 'hl-info', 'hl-cards', 'hl-lists', 'hl-how', 'hl-foot']);
-  assert.equal(await page.textContent('.hl-sum'), 'Eddig 4 tételt olvasott a 124-ből. Még mind a 124 tételről kevés az adat.');
-  assert.equal(await page.textContent('.hl-info'), 'Az első tételek legkorábban a 3. napon kerülnek csoportba.');
+  assert.equal(await page.textContent('.hl-sum'), 'Eddig 4 kártyát olvasott a 124-ből. Még mind a 124 kártyáról kevés az adat.');
+  assert.equal(await page.textContent('.hl-info'), 'Az első kártyák legkorábban a 3. napon kerülnek csoportba.');
   assert.equal(await page.getAttribute('.hl-info', 'role'), 'status');
   assert.ok(await page.$eval('.hl-info svg', (s) => s.getAttribute('aria-hidden') === 'true'));
   assert.equal(await page.$eval('.hl-info', (e) => getComputedStyle(e).color), await page.$eval('.hl-sum', (e) => getComputedStyle(e).color), 'nem figyelmeztetés-színű');
@@ -1121,10 +1135,10 @@ test('Haladás első nap: információs doboz; üres kártyák szaggatott kerett
   }));
   assert.deepEqual(empty.map((e) => e.g), ['fluent', 'unsure', 'practice']);
   for (const e of empty) {
-    assert.deepEqual([e.border, e.top, e.bg, e.opacity, e.weight, e.none, e.link], ['dashed', 'solid', 'rgba(0, 0, 0, 0)', '1', '400', 'Még nincs ilyen tétel.', false], e.g);
+    assert.deepEqual([e.border, e.top, e.bg, e.opacity, e.weight, e.none, e.link], ['dashed', 'solid', 'rgba(0, 0, 0, 0)', '1', '400', 'Még nincs ilyen kártya.', false], e.g);
   }
   assert.equal(await page.textContent('.hl-low .hl-count'), '124');
-  assert.equal(await page.getAttribute('.hl-low .hl-all', 'aria-label'), 'Kevés adat: mind a 124 tétel');
+  assert.equal(await page.getAttribute('.hl-low .hl-all', 'aria-label'), 'Kevés adat: mind a 124 kártya');
   assert.deepEqual(await smallTargets(page), []);
   assert.deepEqual(await lowContrast(page), []);
   assert.deepEqual(errors, []);
@@ -1151,7 +1165,7 @@ test('Haladás álló telefon 390×844: a statisztika doboz csukva, billentyűve
   await page.keyboard.press('Enter');
   assert.equal(await btn.getAttribute('aria-expanded'), 'true');
   assert.equal(await page.isVisible('#hlStatMore'), true);
-  assert.match(await page.textContent('#hlStatMore'), /Egy tétel csoportja idővel változhat, ez természetes\.$/);
+  assert.match(await page.textContent('#hlStatMore'), /Egy kártya csoportja idővel változhat, ez természetes\.$/);
   assert.deepEqual(await tileCounts(page), [4, 3, 4, 0]);
   const cards = await rects(page, '.hl-card');
   assert.deepEqual(await cardTitles(page), ['Megy', 'Még bizonytalan', 'Még gyakorolni kell', 'Kevés adat']);
@@ -1190,7 +1204,7 @@ test('Haladás csoport oldala (Megy, 40 tétel): cím, a kártya szövege, minde
     const { page, ctx, errors } = await openProgress(opts, '#haladas/csoport/fluent', seedRoot(MANY));
     assert.equal(await view(page), 'group');
     assert.equal(await page.textContent('.hl-back'), '← Vissza az áttekintéshez');
-    assert.equal(await page.textContent('#haladas h1'), 'Megy: 40 tétel');
+    assert.equal(await page.textContent('#haladas h1'), 'Megy: 40 kártya');
     assert.equal(await page.$eval('.hl-group', (e) => getComputedStyle(e).borderTopColor), 'rgb(46, 107, 102)');
     assert.equal(await page.textContent('.hl-group .hl-means'), 'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.');
     assert.deepEqual(await page.$$eval('.hl-group .hl-tile', (t) => t.map((x) => x.textContent)), MANY.fluent, 'mind, a listák sorrendjében (azonos utolsó nap)');
@@ -1206,7 +1220,7 @@ test('Haladás csoport oldala (Megy, 40 tétel): cím, a kártya szövege, minde
 
 test('Haladás csoport oldala (Kevés adat): két alcím a számokkal; üres résznek nincs alcíme', async () => {
   const { page, ctx } = await openProgress(DESKTOP, '#haladas/csoport/lowdata', seedRoot(MANY));
-  assert.equal(await page.textContent('#haladas h1'), 'Kevés adat: 24 tétel');
+  assert.equal(await page.textContent('#haladas h1'), 'Kevés adat: 24 kártya');
   assert.deepEqual(await page.$$eval('.hl-sub h2', (h) => h.map((x) => x.textContent)), ['Olvasta, még kevés napon (10)', 'Még nem olvasta (14)']);
   assert.deepEqual(await page.$$eval('.hl-sub', (s) => s.map((x) => x.querySelectorAll('.hl-tile').length)), [10, 14]);
   await ctx.close();
@@ -1269,7 +1283,7 @@ test('Haladás tétel részletei: fő mondat, tények, pöttyök alkalomszámmal
   assert.equal(await page.$$eval('.hl-dots li', (l) => l.length), 7);
   assert.equal(await page.$$eval('.hl-dots .hl-dot.helped', (l) => l.length), 6);
   assert.match(await page.getAttribute('.hl-dots li', 'aria-label'), /^[a-zá-ú]+\. \d+\., 1 alkalom, segítséggel$/);
-  assert.equal(await page.textContent('.hl-foot'), 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a tételnél.');
+  assert.equal(await page.textContent('.hl-foot'), 'Ez csak statisztika. Többet számít, amit te látsz, és amit a gyereked érez ennél a kártyánál.');
   assert.doesNotMatch(await page.textContent('#haladas'), /Szerepel|Mi segíthet|Még \d+ napon/);
   const [main, side] = await page.$$eval('.hl-main, .hl-side', (es) => es.map((e) => e.getBoundingClientRect().top));
   assert.ok(side > main, 'asztalon egymás alatt');
@@ -1309,7 +1323,7 @@ test('Haladás tétel részletei: segítséggel és anélkül is olvasott nap f�
 test('Haladás tétel részletei: Még bizonytalan és Kevés adat; még nem olvasott tétel', async () => {
   const cases = [
     ['fó-ka', 'Még bizonytalan', 'Már olvasta segítség nélkül is, de néha még kell hozzá segítség.', /^Eddig 4 alkalommal olvasta, 3 különböző napon\./],
-    ['te', 'Kevés adat', 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.', /^Eddig 3 alkalommal olvasta, 2 különböző napon\./],
+    ['te', 'Kevés adat', 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.', /^Eddig 3 alkalommal olvasta, 2 különböző napon\./],
     ['ma', 'Megy', 'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.', /^Eddig 6 alkalommal olvasta, 4 különböző napon\./],
   ];
   for (const [item, title, reason, fact] of cases) {
@@ -1477,4 +1491,467 @@ test('Keresd meg!: „Feladatok a körben” ugyanolyan stílusú, mint a „Té
     assert.ok(lg < 26, `a címke egy sorban (${lg} px)`);
     await ctx.close();
   }
+});
+
+/* ---------- Megjelenés (docs/megjelenes-specifikacio.md, L-1, L-3, L-4, L-6, L-7) ---------- */
+/** Az oldalon nincs vízszintes görgetés, és a Megjelenés egyik eleme sem lóg ki az ablakból. */
+const noOverflow = (page) => page.evaluate(() => {
+  const out = [...document.querySelectorAll('#look, #look *')].filter((e) => {
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && (r.left < -0.5 || r.right > innerWidth + 0.5);
+  }).map((e) => e.id || e.className);
+  return { scroll: document.documentElement.scrollWidth > innerWidth || document.body.scrollWidth > innerWidth, out };
+});
+
+test('Megjelenés asztali (L-1, ÖM-5): kinyitva kártya, 140 px-es felirat-oszlop, 260 px-es vezérlők, alapvonalra igazítva; 1024 px-en egymás alatt', async () => {
+  for (const opts of [DESKTOP, SMALL]) {
+    const { page, ctx, errors } = await open(opts, { look: { color: 'sound', mark: 'outline' } });
+    assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'false', 'csukva indul (ÖM-3)');
+    await page.click('#lookRow');
+    const g = await page.evaluate(() => {
+      const look = document.getElementById('look'), c = getComputedStyle(look);
+      // alapvonal: azonos betűnél és méretnél a szöveg sordobozának alja (a feliratok és a gombok 14 px-es UI-betűk)
+      const base = (el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().bottom; };
+      const labels = ['lookColorL', 'lookMarkL', 'lookSampleL'].map((id) => document.getElementById(id));
+      const ctl = [...document.querySelectorAll('#look .look-seg')];
+      return {
+        bg: c.backgroundColor, border: c.borderTopWidth + ' ' + c.borderTopColor, radius: c.borderTopLeftRadius,
+        label: labels.map((l) => [getComputedStyle(l).fontSize, getComputedStyle(l).color, Math.round(l.getBoundingClientRect().width)]),
+        seg: ctl.map((x) => Math.round(x.getBoundingClientRect().width)),
+        gap: labels.slice(0, 2).map((l, k) => Math.abs(base(l) - base(ctl[k].querySelector('span')))),
+        // a Minta (26 px-es tételbetű) a rács alapvonal-igazításával áll a felirat mellett
+        sample: getComputedStyle(document.querySelector('#look .look-grid')).alignItems === 'baseline'
+          && labels[2].getBoundingClientRect().top >= document.getElementById('lookSample').getBoundingClientRect().top
+          && labels[2].getBoundingClientRect().bottom <= document.getElementById('lookSample').getBoundingClientRect().bottom,
+        row: getComputedStyle(document.getElementById('lookRow')).display,
+        head: (({ fontSize, fontWeight, color }) => [fontSize, fontWeight, color])(getComputedStyle(document.getElementById('lookRowL'))),
+        grid: Math.round(document.querySelector('#look .look-grid').getBoundingClientRect().width),
+        stacked: labels.slice(0, 2).every((l, k) => l.getBoundingClientRect().bottom <= ctl[k].getBoundingClientRect().top),
+      };
+    });
+    assert.equal(g.bg, 'rgb(251, 248, 242)', '--field háttér');
+    assert.equal(g.border, '1px rgb(217, 207, 190)', '--line keret');
+    assert.equal(g.radius, '10px');
+    assert.deepEqual(g.label.map((x) => x.slice(0, 2)), Array(3).fill(['14px', 'rgb(30, 42, 50)']));
+    if (opts === DESKTOP) {
+      assert.ok(g.label.every((x) => x[2] <= 140), `felirat-oszlop: ${g.label.map((x) => x[2])}`);
+      assert.deepEqual(g.seg, [260, 260]);
+      assert.ok(g.gap.every((d) => d < 2), `alapvonal: ${g.gap}`);
+      assert.ok(g.sample, 'a Minta felirata a minta mellett, alapvonalra igazítva');
+    } else {
+      // 1024 px: a középső oszlopba nem fér a 140 + 260 px-es sor; a felirat a vezérlő fölött, a vezérlő teljes szélességű
+      assert.ok(g.stacked, 'a felirat a vezérlő fölött');
+      assert.ok(g.seg.every((w) => w === g.grid), `a vezérlő kitölti a kártyát: ${g.seg} / ${g.grid}`);
+    }
+    assert.equal(g.row, 'flex', 'asztalon is sor (ÖM-1)');
+    assert.deepEqual(g.head, ['15px', '600', 'rgb(30, 42, 50)'], 'kinyitva a sor a kártya fejléce (ÖM-5)');
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
+
+test('Megjelenés álló tablet (L-3, FK-4, ÖM-5): a csomagok és a Kártyák cím alatt összecsukott sor; kinyitva a két vezérlő egymás mellett, alattuk a Minta, 44 px-es gombok', async () => {
+  const { page, ctx } = await open(TABLET, { lastLists: ['45. oldal'] });
+  assert.equal(await page.isVisible('#lookBody'), false, 'csukva indul');
+  await page.tap('#lookRow');
+  const g = await page.evaluate(() => {
+    const r = (id) => document.getElementById(id).getBoundingClientRect();
+    const segs = [...document.querySelectorAll('#look .look-seg')].map((x) => x.getBoundingClientRect());
+    return {
+      parent: document.getElementById('look').parentElement.id,
+      order: [r('listPick').bottom <= r('cardsHead').top, r('cardsHead').bottom <= r('look').top, r('look').bottom <= r('playHead').top, r('playHead').bottom <= r('panel').top],
+      label: getComputedStyle(document.getElementById('lookRowL')).fontSize,
+      side: Math.abs(segs[0].top - segs[1].top) < 1 && segs[0].right <= segs[1].left,
+      sample: r('lookSample').top >= Math.max(segs[0].bottom, segs[1].bottom),
+      h: [...document.querySelectorAll('#look .look-seg span')].map((s) => s.getBoundingClientRect().height),
+      row: getComputedStyle(document.getElementById('lookRow')).display,
+    };
+  });
+  assert.equal(g.parent, 'picker');
+  assert.deepEqual(g.order, [true, true, true, true], 'Kártyacsomagok → Kártyák → Megjelenés → szűrő → Játékok');
+  assert.equal(g.label, '15px');
+  assert.ok(g.side, 'a két vezérlő egymás mellett');
+  assert.ok(g.sample, 'a Minta alattuk');
+  assert.ok(g.h.every((h) => h >= 44), `érintési cél: ${g.h}`);
+  assert.equal(g.row, 'flex');
+  assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+  await ctx.close();
+});
+
+for (const [name, opts] of [['álló 390×844', PHONE], ['álló 320×568', { viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }]]) {
+  test(`Megjelenés telefon ${name} (L-4, L-7): összecsukott sor a csomag gomb alatt; koppintásra helyben nyílik, ▴ csukja`, async () => {
+    const { page, ctx } = await open(opts, { lastLists: ['45. oldal'], look: { color: 'sound', mark: 'none' } });
+    const box = (id) => page.$eval(`#${id}`, (e) => e.getBoundingClientRect().toJSON());
+    const [btn, head, row, pv] = [await box('listsBtn'), await box('cardsHead'), await box('lookRow'), await box('phonePreview')];
+    assert.ok(btn.bottom <= head.top && head.bottom <= row.top && row.bottom <= pv.top, 'csomag gomb → Kártyák → Megjelenés → előnézet (FK-4)');
+    assert.ok(row.height >= 52, `sor magassága ${row.height}`);
+    assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: nincs');
+    assert.ok((await page.textContent('#lookMini')).length > 0, 'mini minta');
+    assert.equal(await page.isVisible('#lookBody'), false);
+    assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'false');
+    await page.tap('#lookRow');
+    assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'true');
+    assert.equal(await page.isVisible('#lookBody'), true);
+    assert.equal(await page.$eval('#lookRowL', (e) => getComputedStyle(e).fontSize), '16px', 'telefonon 16 px (ÖM-5)');
+    const segs = await page.$$eval('#look .look-seg', (xs) => xs.map((x) => x.getBoundingClientRect().toJSON()));
+    assert.ok(segs[0].bottom <= segs[1].top, 'a vezérlők egymás alatt');
+    assert.ok((await page.$$eval('#look .look-seg span', (xs) => xs.map((x) => x.getBoundingClientRect().height))).every((h) => h >= 44));
+    assert.ok(await page.isVisible('#lookSample'), 'a Minta alattuk');
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    // a választás az összegzésben is látszik; ▴ csukja
+    await page.locator('#look input[name=lookMark][value=outline]').check();
+    await page.tap('#lookRow');
+    assert.equal(await page.isVisible('#lookBody'), false);
+    assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
+    assert.ok(await inViewport(page, '#startBtn'));
+    await ctx.close();
+  });
+}
+
+for (const [w, h] of [[844, 390], [568, 320]]) {
+  test(`Megjelenés fekvő telefon ${w}×${h} (L-6): a bal oszlopban; kinyitva a bal oszlop görget, az Indítás látszik`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true }, { lastLists: ['45. oldal'] });
+    const g = await page.evaluate(() => {
+      const r = (id) => document.getElementById(id).getBoundingClientRect();
+      return { parent: document.getElementById('look').parentElement.id, left: r('look').right <= r('panelStart').left + 1, below: r('listsBtn').bottom <= r('cardsHead').top && r('cardsHead').bottom <= r('look').top };
+    });
+    assert.deepEqual(g, { parent: 'picker', left: true, below: true });
+    await page.tap('#lookRow');
+    await page.locator('#lookSample').scrollIntoViewIfNeeded();
+    assert.ok(await page.isVisible('#lookSample'));
+    assert.ok(await inViewport(page, '#startBtn'), 'az Indítás görgetés nélkül látszik');
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    await ctx.close();
+  });
+}
+
+for (const [name, opts] of [['320×256 érintő', { viewport: { width: 320, height: 256 }, hasTouch: true, isMobile: true }], ['320×256 desktop (400%)', { viewport: { width: 320, height: 256 } }]]) {
+  test(`Megjelenés ${name} (elfogadás 13): a sor és a kinyitott blokk sem lóg ki`, async () => {
+    const { page, ctx } = await open(opts, { lastLists: ['45. oldal'] });
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    await page.locator('#lookRow').click();
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    await ctx.close();
+  });
+}
+
+/* ---------- Kártyák oszlop: összecsukható Megjelenés (docs/kartyak-oszlop-specifikacio.md, T-2–T-7) ---------- */
+const VIEWS = [
+  ['1440×900', { viewport: { width: 1440, height: 900 } }],
+  ['1024×768', { viewport: { width: 1024, height: 768 } }],
+  ['768×1024', { viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true }],
+  ['390×844', PHONE],
+  ['844×390', PHONE_LAND],
+];
+for (const [name, opts] of VIEWS) {
+  test(`Megjelenés ${name} (T-2, ÖM-1, ÖM-2): betöltés után összecsukott sor összegzéssel és mini mintával, legalább 52 px`, async () => {
+    const { page, ctx, errors } = await open(opts, { lastLists: ['45. oldal'], look: { color: 'sound', mark: 'outline' } });
+    const g = await page.evaluate(() => {
+      const row = document.getElementById('lookRow'), look = document.getElementById('look'), c = getComputedStyle(look);
+      return {
+        expanded: row.getAttribute('aria-expanded'), controls: row.getAttribute('aria-controls'), tag: row.tagName,
+        label: document.getElementById(look.getAttribute('aria-labelledby'))?.textContent,
+        h: row.getBoundingClientRect().height,
+        card: [c.backgroundColor, c.borderTopWidth, c.borderTopColor, c.borderTopLeftRadius].join(' '),
+      };
+    });
+    assert.deepEqual({ ...g, h: g.h >= 52 }, {
+      expanded: 'false', controls: 'lookBody', tag: 'BUTTON', label: 'Megjelenés', h: true,
+      card: 'rgb(251, 248, 242) 1px rgb(217, 207, 190) 10px',
+    });
+    assert.equal(await page.isVisible('#lookBody'), false);
+    assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
+    assert.ok(await page.isVisible('#lookRowSum'));
+    assert.ok(await page.isVisible('#lookMini'));
+    assert.equal(await page.textContent('#lookMini'), 'ke-fe', 'jelölt kártya nincs, az első szó');
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+
+for (const [name, opts] of [['asztal 1440×900', { viewport: { width: 1440, height: 900 } }], ['telefon 390×844', PHONE]]) {
+  test(`Megjelenés ${name} (T-3, ÖM-4, ÖM-5): kattintás, Enter és Space nyitja-csukja; a fókusz a soron marad, a ▾ megfordul`, async () => {
+    const { page, ctx } = await open(opts, { lastLists: ['45. oldal'] });
+    const state = () => page.evaluate(() => {
+      const row = document.getElementById('lookRow');
+      return {
+        exp: row.getAttribute('aria-expanded'), body: getComputedStyle(document.getElementById('lookBody')).display !== 'none',
+        sum: getComputedStyle(document.getElementById('lookRowSum')).display !== 'none',
+        mini: getComputedStyle(document.getElementById('lookMini')).display !== 'none',
+        flip: getComputedStyle(row.querySelector('.icon')).transform !== 'none', focus: document.activeElement === row,
+      };
+    });
+    const closed = { exp: 'false', body: false, sum: true, mini: true, flip: false };
+    const opened = { exp: 'true', body: true, sum: false, mini: false, flip: true };
+    await page.click('#lookRow');
+    assert.deepEqual(await state(), { ...opened, focus: true }, 'kattintásra nyílik');
+    await page.click('#lookRow');
+    assert.deepEqual(await state(), { ...closed, focus: true }, 'újabb kattintásra csukódik');
+    await page.focus('#lookRow');
+    for (const key of ['Enter', 'Space']) {
+      await page.keyboard.press(key);
+      assert.deepEqual(await state(), { ...opened, focus: true }, `${key} nyitja`);
+      await page.keyboard.press(key);
+      assert.deepEqual(await state(), { ...closed, focus: true }, `${key} csukja`);
+    }
+    await ctx.close();
+  });
+}
+
+test('Megjelenés 320×568 (D-18): az összegzés tördelődik, de a „nagybetű-jelölés:” nem törik a kötőjelnél, és nem lóg ki', async () => {
+  const { page, ctx } = await open({ viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }, { lastLists: ['45. oldal'], look: { color: 'sound', mark: 'outline' } });
+  assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
+  const g = await page.evaluate(() => {
+    const sum = document.getElementById('lookRowSum'), nw = sum.querySelector('.nw'), row = document.getElementById('lookRow').getBoundingClientRect();
+    return { nw: nw.textContent, lines: nw.getClientRects().length, wrapped: sum.getClientRects()[0].height > 30, inside: sum.getBoundingClientRect().right <= row.right };
+  });
+  assert.deepEqual(g, { nw: 'nagybetű-jelölés:', lines: 1, wrapped: true, inside: true });
+  assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+  await ctx.close();
+});
+
+test('Megjelenés (T-4, ÖM-3): kinyitva újratöltés után csukva indul, a beállítás megmarad', async () => {
+  const { page, ctx } = await open({ viewport: { width: 1440, height: 900 } }, { lastLists: ['45. oldal'], look: { color: 'none', mark: 'none' } });
+  await page.click('#lookRow');
+  await page.locator('#look label:has(input[name=lookColor][value=sound])').click();
+  assert.equal(await page.isChecked('#look input[name=lookColor][value=sound]'), true);
+  await page.reload();
+  await page.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 15000 });
+  assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'false');
+  assert.equal(await page.isVisible('#lookBody'), false);
+  assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: nincs');
+  assert.equal((await stored(page)).look.color, 'sound');
+  await ctx.close();
+});
+
+test('Megjelenés (ÖM-3): a nézetváltás (álló tablet ↔ asztal) nem csukja be a kinyitott sort', async () => {
+  const { page, ctx } = await open({ viewport: { width: 1280, height: 800 } }, { lastLists: ['45. oldal'] });
+  await page.click('#lookRow');
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await page.waitForFunction(() => document.getElementById('look').parentElement.id === 'picker');
+  assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'true');
+  assert.ok(await page.isVisible('#lookBody'));
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForFunction(() => [...document.getElementById('edInner').children].slice(0, 2).map((c) => c.id).join() === 'cardsHead,look');
+  assert.ok(await page.isVisible('#lookBody'));
+  await ctx.close();
+});
+
+for (const [name, opts, pv] of [['390×844', PHONE, true], ['844×390', PHONE_LAND, true], ['768×1024', { viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true }, false]]) {
+  test(`keskeny nézet ${name} (T-5, FK-4): csomagválasztó < Kártyák cím < Megjelenés sor < szűrő chipek${pv ? ' < előnézet' : ''}`, async () => {
+    const { page, ctx } = await open(opts, { lastLists: ['36. oldal', '45. oldal'] });
+    const g = await page.evaluate(() => {
+      const top = (el) => el.getBoundingClientRect().top, bottom = (el) => el.getBoundingClientRect().bottom;
+      const picker = [document.getElementById('listsBtn'), document.getElementById('listPick')].find((e) => e.getBoundingClientRect().height > 0);
+      const $ = (id) => document.getElementById(id);
+      return {
+        seq: [bottom(picker) <= top($('cardsHead')), bottom($('cardsHead')) <= top($('lookRow')), bottom($('look')) <= top($('tfRow'))],
+        pv: bottom($('tfRow')) <= top($('phonePreview')), pvShown: $('phonePreview').getBoundingClientRect().height > 0,
+        count: /^\d+ kártya · \d+ csomag$/.test($('listCount').textContent),
+        font: ['pickerH', 'previewH'].map((id) => getComputedStyle($(id))).map((c) => c.fontSize + ' ' + c.lineHeight),
+      };
+    });
+    assert.deepEqual(g.seq, [true, true, true]);
+    assert.equal(g.pvShown, pv);
+    if (pv) {
+      assert.ok(g.pv, 'a chipek az előnézet fölött');
+      assert.deepEqual(g.font, ['16px 22px', '16px 22px'], 'telefonon a Kártyák cím olyan, mint a Kártyacsomagok (D-17)');
+    }
+    assert.ok(g.count, 'a számláló a cím sorában');
+    await ctx.close();
+  });
+}
+
+test('asztal alacsony fekvő ablak 1440×480 (TA-3): nincs tapadás', async () => {
+  const { page, ctx } = await open({ viewport: { width: 1440, height: 480 } }, { lastLists: ['36. oldal', '37. oldal', '39. oldal', '40. oldal', '45. oldal'] });
+  assert.equal(await page.$eval('#playHead', (e) => getComputedStyle(e).position), 'static');
+  await ctx.close();
+});
+
+test('Megjelenés (T-7, ÖM-6, ÖM-7): csukva is frissül a mini minta a csomagválasztásra; kijelölés nélkül a sor látszik, a minta üres', async () => {
+  const { page, ctx } = await open({ viewport: { width: 1440, height: 900 } }, { lastLists: ['45. oldal'] });
+  const nav = (name) => page.locator('#listNav .nav-item', { hasText: name });
+  assert.equal(await page.textContent('#lookMini'), 'ke-fe');
+  await page.locator('#navNone').click();
+  assert.ok(await page.isVisible('#lookRow'), 'kijelölés nélkül is látszik');
+  assert.equal(await page.textContent('#lookMini'), '', 'a mini minta helye üres');
+  assert.ok(await page.isVisible('#lookRowSum'));
+  await nav('Á-A-E').click();
+  assert.equal(await page.textContent('#lookMini'), 'á', 'szó nélkül az első kártya');
+  await nav('Á-A-E').click();
+  await nav('44. oldal').click();
+  assert.equal(await page.textContent('#lookMini'), 'pá-va', 'az új csomag első szava');
+  assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'false', 'végig csukva');
+  await ctx.close();
+});
+
+/* ---------- Tételszűrő (docs/megjelenes-specifikacio.md, L-2–L-5, L-7, elfogadás 13) ---------- */
+const TWO = { lastLists: ['36. oldal', '45. oldal'] };
+
+test('szűrő asztali (L-2, TA-1, T-6): a chipsor az „A játékban csak ezek…” mondat alatt, a lista fölött; görgetéskor csak a mondat és a chipek tapadnak', async () => {
+  const { page, ctx } = await open(DESKTOP, { lastLists: ['36. oldal', '37. oldal', '39. oldal', '40. oldal', '45. oldal'] });
+  const r = (id) => page.$eval(id, (e) => e.getBoundingClientRect().toJSON());
+  const [note, row, list] = [await r('.play-head .only-note'), await r('#tfRow'), await r('#listView')];
+  assert.ok(note.bottom <= row.top && row.bottom <= list.top, 'mondat → chipek → lista');
+  assert.equal(await page.isVisible('#tfNote'), false, 'asztalon a tablet mondata nem látszik');
+  await page.$eval('.editor', (e) => { e.scrollTop = e.scrollHeight; });
+  const [ed, head, note2, row2, title, look] = [await r('.editor'), await r('#playHead'), await r('.play-head .only-note'), await r('#tfRow'), await r('#cardsHead'), await r('#look')];
+  assert.ok(Math.abs(head.top - ed.top) < 1, `a mondat és a chipek tapadnak: ${head.top} / ${ed.top}`);
+  assert.ok(note2.top >= ed.top && row2.bottom <= head.bottom, 'a mondat és a chipek látszanak');
+  assert.ok(title.bottom <= ed.top && look.bottom <= ed.top, 'a Kártyák cím és a Megjelenés nem tapad');
+  const chipH = await page.$$eval('#tfRow .tf-main', (bs) => bs.map((b) => b.getBoundingClientRect().height));
+  assert.ok(chipH.every((h) => h >= 36), `${chipH}`);
+  await ctx.close();
+});
+
+test('szűrő álló tablet (L-3): számláló, tördelt chipek és a mondat a Megjelenés alatt; 44 px-es chipek', async () => {
+  const { page, ctx } = await open(TABLET, TWO);
+  const g = await page.evaluate(() => {
+    const r = (id) => document.getElementById(id).getBoundingClientRect();
+    return {
+      parent: document.getElementById('playHead').parentElement.id,
+      order: r('look').bottom <= r('playHead').top && r('playHead').bottom <= r('panel').top,
+      note: getComputedStyle(document.getElementById('tfNote')).display !== 'none' && document.getElementById('tfNote').textContent,
+      only: getComputedStyle(document.querySelector('.play-head .only-note')).display,
+      wrap: getComputedStyle(document.getElementById('tfRow')).flexWrap,
+      h: [...document.querySelectorAll('#tfRow .tf-main, #tfRow .tf-caret')].map((b) => b.getBoundingClientRect().height),
+    };
+  });
+  assert.equal(g.parent, 'picker');
+  assert.ok(g.order, 'Megjelenés → Kártyák → Játékok');
+  assert.equal(g.note, 'A játékban csak a bekapcsolt típusok kártyái jöhetnek elő.');
+  assert.equal(g.only, 'none');
+  assert.equal(g.wrap, 'wrap');
+  assert.ok(g.h.every((h) => h >= 44), `${g.h}`);
+  assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+  await ctx.close();
+});
+
+for (const [name, opts] of [['390×844', PHONE], ['320×568', { viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }]]) {
+  test(`szűrő telefon ${name} (L-4, L-5, L-7): egy görgethető chipsor; a ▾ lebegő listát nyit sötétített háttérrel, kívülre koppintás zár`, async () => {
+    const { page, ctx } = await open(opts, TWO);
+    const g = await page.evaluate(() => {
+      const row = document.getElementById('tfRow'), rs = [...row.querySelectorAll('.tf-chip')].map((c) => c.getBoundingClientRect());
+      const r = (id) => document.getElementById(id).getBoundingClientRect();
+      return {
+        oneLine: new Set(rs.map((x) => Math.round(x.top))).size === 1,
+        overflowX: getComputedStyle(row).overflowX,
+        h: [...row.querySelectorAll('.tf-main, .tf-caret')].map((b) => b.getBoundingClientRect().height),
+        order: r('look').bottom <= r('playHead').top && r('playHead').bottom <= r('phonePreview').top,
+        page: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    assert.ok(g.oneLine, 'egy sor');
+    assert.equal(g.overflowX, 'auto', 'a chipsor saját görgetése');
+    assert.ok(g.h.every((h) => h >= 44), `${g.h}`);
+    assert.ok(g.order, 'Megjelenés → Kártyák + chipek → előnézet');
+    assert.equal(g.page, false, 'az oldal nem görget vízszintesen');
+    await page.tap('#tfRow .tf-caret');
+    assert.ok(await page.isVisible('#tfBackdrop'), 'sötétített háttér');
+    const pop = await page.$eval('#tfPop', (p) => ({ r: p.getBoundingClientRect().toJSON(), rows: [...p.querySelectorAll('.tf-sub')].map((x) => x.getBoundingClientRect().height), head: p.querySelector('.tf-pop-head').textContent }));
+    assert.equal(pop.head, 'Betűk részletei');
+    assert.ok(pop.rows.every((h) => h >= 48), `${pop.rows}`);
+    assert.ok(pop.r.left >= 0 && pop.r.right <= opts.viewport.width && pop.r.bottom <= opts.viewport.height, 'a lista a képernyőn');
+    await page.tap('#tfPop .tf-sub:nth-of-type(2)');
+    assert.equal(await page.textContent('#tfRow .tf-chip:first-child .tf-label'), 'Betűk · 1/2');
+    await page.touchscreen.tap(opts.viewport.width / 2, 40);
+    assert.equal(await page.isVisible('#tfPop'), false);
+    assert.equal(await page.isVisible('#tfBackdrop'), false);
+    await ctx.close();
+  });
+}
+
+for (const [w, h] of [[844, 390], [568, 320]]) {
+  test(`szűrő fekvő telefon ${w}×${h} (L-6): a bal oszlopban; a lebegő lista a képernyőn, az Indítás látszik`, async () => {
+    const { page, ctx } = await open({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true }, TWO);
+    assert.equal(await page.$eval('#playHead', (e) => e.parentElement.id), 'picker');
+    await page.locator('#tfRow').scrollIntoViewIfNeeded();
+    await page.tap('#tfRow .tf-caret');
+    const r = await page.$eval('#tfPop', (p) => p.getBoundingClientRect().toJSON());
+    assert.ok(r.top >= 0 && r.bottom <= h && r.right <= page.viewportSize().width, `a lista a képernyőn: ${JSON.stringify(r)}`);
+    assert.ok(await inViewport(page, '#startBtn'));
+    assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+    await ctx.close();
+  });
+}
+
+for (const [name, opts] of [['320×256 érintő', { viewport: { width: 320, height: 256 }, hasTouch: true, isMobile: true }], ['320×256 desktop (400%)', { viewport: { width: 320, height: 256 } }]]) {
+  test(`szűrő ${name} (elfogadás 13): a fejléc és a chipsor nem lóg ki`, async () => {
+    const { page, ctx } = await open(opts, TWO);
+    const out = await page.evaluate(() => [...document.querySelectorAll('#playHead, #playHead .ed-head, #playHead .ed-head *')]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.left < -0.5 || r.right > innerWidth + 0.5); }).map((e) => e.id || e.className));
+    assert.deepEqual(out, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await ctx.close();
+  });
+}
+
+/* ---------- „tétel” → „kártya” (docs/kartya-szo-specifikacio.md, KE-12) ---------- */
+
+/** A DOM összes szövege és akadálymentes attribútuma (rejtett párbeszédablakokkal együtt), amelyben „tétel” áll. */
+const tetelLeft = (page) => page.evaluate(() => {
+  const bad = [];
+  const walk = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let n = walk.currentNode; n; n = walk.nextNode()) {
+    if (n.nodeType === Node.TEXT_NODE) {
+      if (!['SCRIPT', 'STYLE'].includes(n.parentElement?.tagName) && /tétel/i.test(n.data)) bad.push(n.data.trim());
+      continue;
+    }
+    for (const a of ['aria-label', 'aria-description', 'aria-valuetext', 'title', 'alt', 'placeholder', 'content']) {
+      const v = n.getAttribute(a);
+      if (v && /tétel/i.test(v)) bad.push(`${a}="${v}"`);
+    }
+  }
+  return bad;
+});
+
+test('kártya: a szülői felületen, a Súgóban, a bemutatóban, játék közben és a Haladásban nincs „tétel” (KE-12)', async () => {
+  const where = [];
+  const check = async (page, label) => { const b = await tetelLeft(page); if (b.length) where.push([label, b]); };
+
+  for (const opts of [DESKTOP, PHONE]) {
+    const name = opts === DESKTOP ? 'asztal' : 'telefon';
+    const { page, ctx, errors } = await open(opts, { hideHelp: false });
+    await page.waitForSelector('#dlgWelcome[open]');
+    await check(page, `${name}: üdvözlő ablak, Súgó és Így játsszátok (rejtve is)`);
+    await page.click('#welcomeTour');
+    await page.waitForSelector('.tour-bubble:not([hidden])');
+    for (let n = 1; n <= 4; n++) {
+      await page.waitForTimeout(260);
+      await check(page, `${name}: bemutató ${n}. lépés`);
+      if (n < 4) await page.click('#tourNext');
+    }
+    await page.click('#tourSkip').catch(() => page.keyboard.press('Escape'));
+    await page.waitForSelector('.tour-bubble', { state: 'hidden' }).catch(() => {});
+    if (opts === PHONE) { await page.tap('#listsBtn'); await check(page, `${name}: csomagválasztó lap`); await page.keyboard.press('Escape'); }
+    const caret = await page.$('#tfRow [aria-controls="tfPop"]');
+    if (caret && await caret.isVisible()) { await caret.click(); await check(page, `${name}: szűrő ▾ lista`); await page.keyboard.press('Escape'); }
+    await page.click('#tabFind');
+    await check(page, `${name}: Keresd meg! beállításai`);
+    await page.click('#tabRead');
+    await check(page, `${name}: Felolvasás beállításai`);
+    if (opts === DESKTOP) {
+      await page.keyboard.press('Control+Enter');
+      await page.waitForSelector('#stage:not([hidden])');
+      await page.keyboard.press('Space');
+      await check(page, `${name}: Felolvasás játék közben`);
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#admin:not([hidden])');
+    }
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+
+  for (const hash of ['#haladas', '#haladas/csoport/fluent', '#haladas/csoport/lowdata', '#haladas/tetel/fa-lu', '#haladas/tetel/te']) {
+    const { page, ctx } = await openProgress(DESKTOP, hash);
+    if (hash === '#haladas') await page.click('#hlStatMore').catch(() => {});
+    await check(page, `Haladás ${hash}`);
+    await ctx.close();
+  }
+  const { page, ctx } = await openProgress(DESKTOP, '#haladas', seedRoot({ fluent: [], unsure: [], practice: [], low: ['ma'] }));
+  await check(page, 'Haladás: első nap (információs doboz, üres kártyák)');
+  await ctx.close();
+
+  assert.deepEqual(where, []);
 });

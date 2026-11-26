@@ -13,7 +13,7 @@ test('haladás: 20 tételig pöttyök, fölötte sáv', () => {
 
 test('haladás: felirat, szöveg, kitöltés', () => {
   const m = progressModel(3, 10);
-  assert.equal(m.label, '4. tétel a 10-ből');
+  assert.equal(m.label, '4. kártya a 10-ből');
   assert.equal(m.text, '4/10');
   assert.equal(m.current, 3);
   assert.equal(m.fraction, 0.4);

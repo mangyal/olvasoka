@@ -2,6 +2,8 @@
 
 Verzió: **2.16** · Nyelv: magyar (UI és tartalom) · Célplatform: statikus weboldal GitHub Pagesen
 
+> **Megjegyzés (2026-11-26):** a felületen a „tétel” szó helyett mindenhol „kártya” áll ([kartya-szo-specifikacio.md](kartya-szo-specifikacio.md)). Ez a dokumentum a régi szót használja; a benne idézett felületi szövegekben „tétel” helyett „kártya” értendő, helyes ragozással (pl. „Egy kártyáról csak akkor…”, „Megy: 5 kártya”). A kódbeli nevek és a tárolt adat nem változott.
+
 Az 1.x változatok Claude.ai artifactra, egyetlen HTML-fájlra készültek. A 2.0 a GitHubra költözött,
 bontott változatot írja le. Ahol egy pont az 1.2-höz képest változott, a 0. fejezet táblázata és a
 10. fejezet döntési naplója mondja meg, mi és miért.
@@ -729,9 +731,10 @@ Nincs pontszám, idő, felirat (a számlálón kívül), hang, büntetés, újra
 
 ### 6.1 Betűtípus
 - **F-F1** A gyakorló betű **Arial** (`Arial, 'Arimo', Helvetica, sans-serif`). Ugyanez a tétel-előnézetben
-  és a betűtesztben, hogy a szülő ugyanazt az alakot lássa, mint a gyerek.
-- **F-F2 Betöltés-kapu:** ha a gépen van Arial (canvas-méréssel felismerve), az „Indítás” azonnal aktív.
-  Ha nincs, az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
+  és a betűtesztben, hogy a szülő ugyanazt az alakot lássa, mint a gyerek. Ligatúra (fi, fl) sehol: minden betű külön látszik.
+- **F-F2 Betöltés-kapu:** ha a gépen van Arial (canvas-méréssel felismerve: az m, W, a, i szélessége egyezik az Ariaéval,
+  mert Androidon az „Arial” név a Robotóra mutat), az „Indítás” azonnal aktív.
+  Ha nincs, a betűsor Arimo-elsőre vált (`'Arimo', Arial, …`), és az Ariallal azonos betűalakú **Arimo** töltődik a repóból (`fonts/`, OFL licenc); addig az „Indítás” inaktív,
   legfeljebb 5 mp-ig. Sikertelen betöltésnél aktív, figyelmeztetéssel: „A betűk alakja eltérhet.”
   Ha az Arimo később mégis megjön, a figyelmeztetés eltűnik.
 - **F-F3 Betűteszt** (a Súgó ablak gombsorában, balra; telefonon legalul): `a á e é i í o ó ö ő u ú ü ű` és nagybetűs párja 32 px-en,

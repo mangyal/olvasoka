@@ -56,6 +56,7 @@
   </header>
 
   <div id="warnings" class="warnings" aria-live="polite"></div>
+  <div class="tf-backdrop" id="tfBackdrop" hidden></div>
 
   <main class="work">
     <!-- MIT: a kártyacsomagok (docs/kartyacsomagok-specifikacio.md, 3.1); ≥ 900 px -->
@@ -93,27 +94,74 @@
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="phone-preview" id="phonePreview">
-        <p class="pv-note">A játékban csak ezek a tételek jöhetnek elő, semmi más:</p>
-        <div class="pv-body" id="pvBody" aria-label="A kijelölt csomagok tételei"></div>
+        <p class="pv-note">A játékban csak ezek a kártyák jöhetnek elő, semmi más:</p>
+        <div class="pv-body" id="pvBody" aria-label="A kijelölt csomagok kártyái"></div>
         <button type="button" class="btn-text pv-more" id="pvMore" aria-expanded="false" aria-controls="pvBody"></button>
       </div>
     </div>
 
     <!-- előnézet (3.2): a játékban csak ezek a tételek jöhetnek elő -->
     <section class="editor pad" aria-labelledby="previewH">
-      <div class="ed-inner">
-        <div class="preview-only">
-          <div class="ed-head">
-            <h2 class="col-title" id="previewH">Ezekkel játszotok</h2>
-            <span class="muted num" id="listCount"></span>
+      <div class="ed-inner" id="edInner">
+        <!-- A középső oszlop címe és számlálója (docs/kartyak-oszlop-specifikacio.md, FK-1–FK-4). Asztalon az oszlop
+             legelső eleme; keskeny nézetben a js a csomagválasztó után, a Megjelenés elé teszi. Nem tapad (TA-1). -->
+        <div class="ed-head cards-head" id="cardsHead">
+          <h2 class="col-title" id="previewH">Kártyák</h2>
+          <span class="muted num" id="listCount"></span>
+        </div>
+
+        <!-- Megjelenés (docs/megjelenes-specifikacio.md, docs/kartyak-oszlop-specifikacio.md, ÖM-1–ÖM-8). Minden nézetben
+             összecsukott sor, kattintásra helyben nyílik. Asztalon itt; keskeny nézetben (< 900 px, fekvő telefon) a js
+             a „Kártyák” cím alá teszi. -->
+        <section class="look" id="look" aria-labelledby="lookRowL">
+          <button type="button" class="look-row" id="lookRow" aria-expanded="false" aria-controls="lookBody">
+            <span class="look-row-text">
+              <span class="look-row-label" id="lookRowL">Megjelenés</span>
+              <span class="look-row-sum" id="lookRowSum"></span>
+            </span>
+            <span class="look-mini" id="lookMini" aria-hidden="true"></span>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="look-body" id="lookBody">
+            <div class="look-grid">
+              <span class="look-label" id="lookColorL">Betűk színezése</span>
+              <div class="look-ctl">
+                <div class="seg-opts look-seg" role="radiogroup" aria-labelledby="lookColorL">
+                  <label><input type="radio" name="lookColor" value="none"><span>Nincs</span></label>
+                  <label><input type="radio" name="lookColor" value="sound"><span>Hangok szerint</span></label>
+                </div>
+                <span class="look-note look-legend" id="lookLegend"><span><b class="g g-v">a</b> magánhangzó</span> <span><b class="g g-d">m</b> zöngés</span> <span><b class="g g-u">t</b> zöngétlen</span></span>
+              </div>
+              <span class="look-label" id="lookMarkL">Nagybetűk jelölése</span>
+              <div class="look-ctl">
+                <div class="seg-opts look-seg" role="radiogroup" aria-labelledby="lookMarkL">
+                  <label><input type="radio" name="lookMark" value="none"><span>Nincs</span></label>
+                  <label><input type="radio" name="lookMark" value="outline"><span>Körvonal</span></label>
+                </div>
+                <span class="look-note" id="lookTip">Színezésnél a körvonal a betű színét kapja.</span>
+              </div>
+              <span class="look-label look-sample-label" id="lookSampleL">Minta</span>
+              <div class="look-sample" id="lookSample" aria-labelledby="lookSampleL"></div>
+            </div>
           </div>
-          <p class="only-note">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>
-            A játékban csak ezek a tételek jöhetnek elő, semmi más.
-          </p>
-          <!-- fenntartott hely: később ide kerül a betűk / szótagok / szavak szűrő (3.2, 7.) -->
+        </section>
+
+        <div class="preview-only" id="previewOnly">
+          <!-- „Csak ezek” mondat és a tételszűrő (docs/megjelenes-specifikacio.md, SZR, L-2–L-5; kartyak-oszlop TA-1).
+               Asztalon itt, görgetéskor csak ez tapad a lista tetejére; keskeny nézetben a js a Megjelenés alá teszi. -->
+          <div class="play-head" id="playHead">
+            <p class="only-note">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>
+              A játékban csak ezek a kártyák jöhetnek elő, semmi más.
+            </p>
+            <div class="tf" id="typeFilter">
+              <div class="tf-row" id="tfRow" role="group" aria-label="Típusszűrő"></div>
+              <div class="tf-pop" id="tfPop" role="group" hidden></div>
+            </div>
+            <p class="tf-note muted" id="tfNote">A játékban csak a bekapcsolt típusok kártyái jöhetnek elő.</p>
+          </div>
           <div id="listView" hidden>
-            <div class="list-body" id="listBody" aria-label="A kijelölt csomagok tételei"></div>
+            <div class="list-body" id="listBody" aria-label="A kijelölt csomagok kártyái"></div>
           </div>
           <div class="empty" id="listEmpty"><p id="listEmptyText">Csomagok töltődnek…</p></div>
         </div>
@@ -147,7 +195,7 @@
         </div>
 
         <div class="mode-head">
-          <p class="mode-desc" id="modeDesc">A gyerek hangosan felolvassa a felvillanó tételt, te figyeled a kiejtést.</p>
+          <p class="mode-desc" id="modeDesc">A gyerek hangosan felolvassa a felvillanó kártyát, te figyeled a kiejtést.</p>
           <button type="button" class="how-btn" id="howBtn" aria-expanded="false" aria-controls="howPop">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.4M12 17h.01"/></svg>
             <span>Így játsszátok</span>
@@ -158,18 +206,18 @@
           <div class="ctl ctl-flash">
             <span class="ctl-head"><label for="flashIn">Felvillanás</label><output id="flashOut" for="flashIn" class="num"></output></span>
             <input type="range" id="flashIn" min="0" max="25" step="0.5" aria-describedby="flashHint">
-            <span class="hint" id="flashHint">0 = te lépteted a tételeket</span>
+            <span class="hint" id="flashHint">0 = te lépteted a kártyákat</span>
           </div>
           <fieldset class="seg seg-gap">
-            <legend>Szünet a tételek között (mp)</legend>
+            <legend>Szünet a kártyák között (mp)</legend>
             <span class="seg-opts" id="gapOpts"></span>
           </fieldset>
           <div class="ctl ctl-count">
-            <label for="countIn">Tételek a körben</label>
+            <label for="countIn">Kártyák a körben</label>
             <span class="stepper">
-              <button type="button" id="countDec" aria-label="Kevesebb tétel">−</button>
+              <button type="button" id="countDec" aria-label="Kevesebb kártya">−</button>
               <input type="number" id="countIn" min="1" max="50" step="1" inputmode="numeric">
-              <button type="button" id="countInc" aria-label="Több tétel">+</button>
+              <button type="button" id="countInc" aria-label="Több kártya">+</button>
             </span>
           </div>
           <!-- Kevert sorrend (2.14, F-1–F-3); a magyarázat a Nehézség információs dobozával azonos -->
@@ -227,16 +275,16 @@
             <button type="button" class="icon-btn how-x" id="howClose" aria-label="Bezárás"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
           <div class="how-read" id="howRead">
-            <p class="how-lead">Üljetek együtt a képernyő elé. A gyerek hangosan olvas, te figyelsz – nem kell minden tételt értékelned.</p>
+            <p class="how-lead">Üljetek együtt a képernyő elé. A gyerek hangosan olvas, te figyelsz – nem kell minden kártyát értékelned.</p>
             <div class="how-keys only-keys">
-              <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő tétel</span>
-              <span><kbd>←</kbd></span><span>előző tétel</span>
+              <span><kbd>Space</kbd> <kbd>→</kbd></span><span>következő kártya</span>
+              <span><kbd>←</kbd></span><span>előző kártya</span>
               <span><kbd>↓</kbd></span><span>szótagok letakarása sorban</span>
               <span><kbd>P</kbd></span><span>szünet</span>
               <span><kbd>←</kbd> <kbd>→</kbd></span><span>a kör végén jutalom választása, <kbd>Space</kbd> indít</span>
               <span><kbd>Esc</kbd></span><span>kilépés</span>
             </div>
-            <p class="how-touch">Érintőképernyőn: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles tételnél a szótagra koppintva letakarod. A kör végén a gyerek választ: lufipukkasztás vagy panda-ugrálás.</p>
+            <p class="how-touch">Érintőképernyőn: koppints bárhová a következőhöz, a lenti gombokkal visszaléphetsz vagy megállíthatod a kört. Kötőjeles szónál a szótagra koppintva letakarod. A kör végén a gyerek választ: lufipukkasztás vagy panda-ugrálás.</p>
           </div>
           <div class="how-find" id="howFind" hidden>
             <ol class="how-steps">
@@ -337,18 +385,19 @@
 
 <dialog id="dlgHelp" class="dlg-help" aria-labelledby="helpH">
   <h2 id="helpH">Olvasóka</h2>
-  <p>Olvasásgyakorló elsősöknek és szüleiknek, két játékkal. Felolvasás: a gyerek felolvassa a felvillanó tételt. Keresd meg!: te mondasz egy tételt, a gyerek megkeresi.</p>
+  <p>Olvasásgyakorló elsősöknek és szüleiknek, két játékkal. Felolvasás: a gyerek felolvassa a felvillanó kártyát. Keresd meg!: te mondasz egy kártyát, a gyerek megkeresi.</p>
   <h3>Így használd</h3>
   <ol class="help-steps">
     <li><span class="only-keys">Pipáld be a csomagokat bal oldalt. Egérrel végighúzva többet is kijelölhetsz, Shifttel egy tartományt.</span><span class="only-touch">Pipáld be a csomagokat, amelyekkel játszotok.</span></li>
-    <li><span class="only-wide">A jobb oldali panelen</span><span class="only-narrow">Lent</span> válaszd ki a játékot, és állítsd be a kört: hány tétel legyen, milyen gyors vagy milyen nehéz.</li>
+    <li>A Megjelenés résznél színezheted a betűket és jelölheted a nagybetűket, a Betűk, Szótagok, Szavak, Mondatok gombokkal pedig kiválaszthatod, mit gyakoroljatok.</li>
+    <li><span class="only-wide">A jobb oldali panelen</span><span class="only-narrow">Lent</span> válaszd ki a játékot, és állítsd be a kört: hány kártya legyen, milyen gyors vagy milyen nehéz.</li>
     <li>Üljetek le együtt a képernyő elé, és indítsd el a játékot!</li>
-    <li><span class="only-keys">Gyakorlás közben <kbd>Space</kbd> a következő tétel, <kbd>Esc</kbd> kilépés. A többi billentyűt az „Így játsszátok” gomb mutatja.</span><span class="only-touch">Felolvasáskor koppints bárhová a következő tételhez. Lent visszaléphetsz vagy megállhatsz, a bal felső ✕-szel kiléphetsz. Kötőjeles tételnél a szótagra koppintva letakarod, újabb koppintásra előjön.</span></li>
+    <li><span class="only-keys">Gyakorlás közben <kbd>Space</kbd> a következő kártya, <kbd>Esc</kbd> kilépés. A többi billentyűt az „Így játsszátok” gomb mutatja.</span><span class="only-touch">Felolvasáskor koppints bárhová a következő kártyához. Lent visszaléphetsz vagy megállhatsz, a bal felső ✕-szel kiléphetsz. Kötőjeles szónál a szótagra koppintva letakarod, újabb koppintásra előjön.</span></li>
     <li>A kör végén a gyerek választ: lufipukkasztás vagy panda-ugrálás (<span class="only-keys"><kbd>←</kbd> <kbd>→</kbd> választ, <kbd>Space</kbd> indít</span><span class="only-touch">rákoppint a képre</span>) – a panda nyílra vagy koppintásra ugrik!</li>
   </ol>
   <p class="muted help-install">Telepítve teljes képernyőn, internet nélkül is fut. iPhone/iPad: Safari › Megosztás › Főképernyőhöz adás. Android: Chrome › Telepítés.</p>
   <h3 id="helpPrivacyH">Adatvédelem</h3>
-  <p class="help-privacy">A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a tételekről és a haladásról semmi nem hagyja el ezt a készüléket.</p>
+  <p class="help-privacy">A program névtelen használati statisztikát küld, például hogy hány kört játszotok, melyik játékkal, melyik csomagokból, és mennyi idő után indul az első kör. Sütit nem használ, regisztráció nincs. A gyerekről, a kártyákról és a haladásról semmi nem hagyja el ezt a készüléket.</p>
   <div class="dlg-actions help-actions">
     <button type="button" class="btn-text help-font" id="fontBtn">Betűteszt</button>
     <button type="button" class="btn btn-secondary" id="tourAgain">Bemutató újra</button>

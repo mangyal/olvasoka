@@ -7,6 +7,8 @@
   --paper:#F5F0E6; --paper-2:#ECE5D6; --line:#D9CFBE; --field:#FBF8F2;
   --ink:#1E2A32; --ink-2:#5A6670; --accent:#2E6B66; --on-accent:#FFFFFF;
   --warn:#94560F; --all-tick:#8FA9A6; --error:#A23B2A; --sky:#DCE9EF;
+  /* Meixner-féle hangszínek (docs/megjelenes-specifikacio.md SZ-1): rögzítettek, a piros–zöld pár a módszer része */
+  --c-vowel:#1E4FA3; --c-voiced:#C62828; --c-unvoiced:#1B5E20;
   --ruler:#F4E3A1; --ruler-edge:#C9B26A; --ruler-tick:#8C7638; --ruler-bevel:#E6D18A;
   --f-item:Arial,'Arimo',Helvetica,sans-serif;
   --f-ui:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
@@ -15,6 +17,8 @@
   color-scheme:light;
 }
 html,body{height:100%}
+/* Olvasásgyakorlásban minden betű külön látszik: ligatúra (fi, fl) sehol, akkor sem, ha nem az Arial/Arimo jelenik meg */
+html{font-variant-ligatures:none;font-feature-settings:"liga" 0,"clig" 0}
 body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--f-ui);overflow:hidden}
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
@@ -24,3 +28,12 @@ body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.45 var(--
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--ink-2)}
 .wrn{color:var(--warn)} .err{color:var(--error)}
+
+/* ================= Megjelenés (docs/megjelenes-specifikacio.md): betűszínezés és nagybetű-jelölés =================
+   A tételek hangcsoport szerinti darabokból állnak (js/ui/glyphs.js: g-v, g-d, g-u, g-mark); a gyökérelem
+   look-color / look-mark osztálya dönti el, mi látszik. HTML-ben a körvonal a betű saját színét kapja (NB-8):
+   a kitöltés átlátszó, a színt (color) a körvonal használja. Vastagság: a betűméret 2,5%-a, legalább 0,8 px (NB-7). */
+.look-color .g-v{color:var(--c-vowel)}
+.look-color .g-d{color:var(--c-voiced)}
+.look-color .g-u{color:var(--c-unvoiced)}
+.look-mark .g-mark{-webkit-text-fill-color:transparent;-webkit-text-stroke:max(.8px,.025em) currentColor}

@@ -9,6 +9,7 @@
 
 import { itemKey, isSentence } from './items.js';
 import { groupOf } from './groups.js';
+import { shuffleInPlace, pickWeighted } from './random.js';
 
 const VOWELS = new Set([...'aáeéiíoóöőuúüű']);
 const DIGRAPHS = ['cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
@@ -18,9 +19,10 @@ const DIGRAPHS = ['cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
 /** Normalizált alak a betűkre bontáshoz: NFC, kisbetű, kötőjel nélkül. A tételek azonosságát nem ez, hanem az itemKey dönti el. */
 export const normalize = (s) => String(s).normalize('NFC').toLocaleLowerCase('hu').replace(/-/g, '').trim();
 
-const MULTI = ['dzs', ...DIGRAPHS];
+/** A többjegyű betűk (a háromjegyű előbb). */
+export const MULTI = ['dzs', ...DIGRAPHS];
 /** A t i. helyétől induló többjegyű betű, ha van (a háromjegyű előbb). */
-const multiAt = (t, i) => MULTI.find((m) => t.startsWith(m, i));
+export const multiAt = (t, i) => MULTI.find((m) => t.startsWith(m, i));
 
 /** Mondatban az írásjel nem betű (M-2). */
 const PUNCT = /[.?!,]/g;
@@ -278,22 +280,7 @@ function tiers(pool, a) {
 }
 
 /** Egy súlyozott húzás; ha minden súly 0, egyenletes. */
-function pickWeighted(cands, weights, rng) {
-  let sum = 0;
-  for (const w of weights) sum += w;
-  if (!(sum > 0)) return Math.floor(rng() * cands.length);
-  let r = rng() * sum;
-  for (let i = 0; i < cands.length; i++) { r -= weights[i]; if (r < 0) return i; }
-  return cands.length - 1;
-}
-
-function shuffle(a, rng) {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const pickAmong = (weights, rng) => pickWeighted(weights, rng, { uniformIfZero: true });
 
 /**
  * Egy rács a horgony indexével (a készletben). Belső használatra és a kalibráláshoz:
@@ -322,7 +309,7 @@ export function gridFrom(pool, a, n, s, rng) {
         const K2 = b && len > 1 ? (1 - b) * K + b * maxPre.get(x) / len : K;
         return Math.pow((1 - s) * T + s * K2, p);
       });
-      const k = pickWeighted(cands, weights, rng);
+      const k = pickAmong(weights, rng);
       const x = cands.splice(k, 1)[0];
       grid.push(x);
       for (const y of cands) {
@@ -350,10 +337,10 @@ export function buildGrid(pool, n, level, rng, o = {}) {
   if (!choices.length) return { anchor: '', items: [] };
   if (o.avoid && choices.length > 1) choices = choices.filter((i) => pool.entries[i].key !== o.avoid);
   // K-4: a horgony esélye arányos a sorai számával
-  const a = choices[pickWeighted(choices, choices.map((i) => pool.entries[i].weight), rng)];
+  const a = choices[pickAmong(choices.map((i) => pool.entries[i].weight), rng)];
   const s = innerRatio(level, pool.cc, n);
   const size = pool.groupSize.get(pool.entries[a].group);
-  const grid = shuffle(gridFrom(pool, a, Math.min(n, size), s, rng), rng);
+  const grid = shuffleInPlace(gridFrom(pool, a, Math.min(n, size), s, rng), rng);
   return { anchor: pool.entries[a].key, items: grid.map((i) => pool.entries[i].text) };
 }
 

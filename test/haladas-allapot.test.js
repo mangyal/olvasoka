@@ -225,7 +225,7 @@ test('a képernyőképek esetei (dev, napszabály-kapcsolóval)', () => {
   assert.equal(g('úl', [[1, { help: '1' }], [0, { help: '0' }]]), 'lowdata', '2 alkalom');
   assert.equal(g('pe-le', [[1, { help: '0' }], [0, { help: '00' }]]), 'fluent');
   const kele = cls('ke-le', days('ke-le', [[0, { help: '1' }]]), null, SKIP);
-  assert.equal(TX.reasonSentence(kele, SKIP.allapot), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
+  assert.equal(TX.reasonSentence(kele, SKIP.allapot), 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
   assert.doesNotMatch(TX.cardText('lowdata', SKIP.allapot), /\b0\b/, 'soha nem „legalább 0”');
 });
 
@@ -310,38 +310,38 @@ const sum = (seen, total, f, u, p, l) => join(TX.summary({ seen, total, grouped:
 
 test('összefoglaló: mind a négy csoport; 0 tagok kimaradnak; csoport nélkül; 0 Kevés adat; még semmi', () => {
   assert.equal(sum(100, 140, 5, 4, 3, 128),
-    'Eddig 100 tételt olvasott a 140-ből. 12 már csoportba került: 5 megy, 4 még bizonytalan, 3-at még gyakorolni kell. A többi 128 tételről még kevés az adat.');
+    'Eddig 100 kártyát olvasott a 140-ből. 12 már csoportba került: 5 megy, 4 még bizonytalan, 3-at még gyakorolni kell. A többi 128 kártyáról még kevés az adat.');
   assert.equal(sum(300, 340, 60, 90, 120, 70),
-    'Eddig 300 tételt olvasott a 340-ből. 270 már csoportba került: 60 megy, 90 még bizonytalan, 120-at még gyakorolni kell. A többi 70 tételről még kevés az adat.');
-  assert.equal(sum(10, 10, 5, 0, 5, 0), 'Eddig 10 tételt olvasott a 10-ből. 10 már csoportba került: 5 megy, 5-öt még gyakorolni kell.');
-  assert.equal(sum(4, 5, 0, 2, 0, 3), 'Eddig 4 tételt olvasott az 5-ből. 2 már csoportba került: 2 még bizonytalan. A többi 3 tételről még kevés az adat.');
-  assert.equal(sum(9, 140, 0, 0, 0, 140), 'Eddig 9 tételt olvasott a 140-ből. Még mind a 140 tételről kevés az adat.');
+    'Eddig 300 kártyát olvasott a 340-ből. 270 már csoportba került: 60 megy, 90 még bizonytalan, 120-at még gyakorolni kell. A többi 70 kártyáról még kevés az adat.');
+  assert.equal(sum(10, 10, 5, 0, 5, 0), 'Eddig 10 kártyát olvasott a 10-ből. 10 már csoportba került: 5 megy, 5-öt még gyakorolni kell.');
+  assert.equal(sum(4, 5, 0, 2, 0, 3), 'Eddig 4 kártyát olvasott az 5-ből. 2 már csoportba került: 2 még bizonytalan. A többi 3 kártyáról még kevés az adat.');
+  assert.equal(sum(9, 140, 0, 0, 0, 140), 'Eddig 9 kártyát olvasott a 140-ből. Még mind a 140 kártyáról kevés az adat.');
   assert.equal(sum(0, 140, 0, 0, 0, 140), 'Kezdd el használni a programot, hogy láthasd a haladást!');
   const bold = TX.summary({ seen: 100, total: 140, grouped: 12, counts: { fluent: 5, unsure: 4, practice: 3, lowdata: 128 } }).filter((p) => p[1]).map((p) => p[0]);
-  assert.deepEqual(bold, ['100 tételt', '140', '12', '5', '4', '3', '128']);
+  assert.deepEqual(bold, ['100 kártyát', '140', '12', '5', '4', '3', '128']);
 });
 
 test('kártyák: a szövegek a spec szerint, a számok a konfigurációból', () => {
   assert.deepEqual(TX.CARD_ORDER.map((k) => TX.cardText(k, A)), [
     'Az utóbbi 3 alkalommal takarás, megállítás és visszalépés nélkül olvasta, és nem akadt el rajta.',
     'Már olvasta segítség nélkül is, de néha még nehezen megy.',
-    'Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi tételt.',
-    'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.',
+    'Az utóbbi 5 alkalomból legalább 3-szor kellett segítség, vagy sokkal lassabban olvasta, mint a többi kártyát.',
+    'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.',
   ]);
   assert.deepEqual(TX.CARD_ORDER.map((k) => TX.CARDS[k].color), ['#2E6B66', '#8DBDB6', '#E7B96A', '#BDB4A4']);
   const a = { ...A, megy_utolso_n: 4, gyakorol_utolso_n: 6, gyakorol_segitseg_db: 5, min_nap: 2 };
   assert.match(TX.cardText('fluent', a), /utóbbi 4 alkalommal/);
   assert.match(TX.cardText('practice', a), /utóbbi 6 alkalomból legalább 5-ször/);
   assert.match(TX.cardText('lowdata', a), /legalább 2 különböző napon és összesen legalább 3-szor olvasta\./, 'a min_alkalom több, mint a min_nap');
-  assert.equal(TX.cardText('lowdata', SKIP.allapot), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
-  assert.equal(TX.lowdataText(A, 'count'), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
-  assert.equal(TX.lowdataText(A, 'days'), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
+  assert.equal(TX.cardText('lowdata', SKIP.allapot), 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
+  assert.equal(TX.lowdataText(A, 'count'), 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3-szor olvasta.');
+  assert.equal(TX.lowdataText(A, 'days'), 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
   assert.equal(TX.partRead(A), 'Olvasta, még kevés napon');
   assert.equal(TX.partRead(SKIP.allapot), 'Olvasta, még kevésszer');
-  assert.equal(TX.infoText(3), 'Az első tételek legkorábban a 3. napon kerülnek csoportba.');
-  assert.equal(TX.groupTitle('fluent', 60), 'Megy: 60 tétel');
-  assert.equal(TX.showAllAria('fluent', 60), 'Megy: mind a 60 tétel');
-  assert.equal(TX.showAllAria('lowdata', 5), 'Kevés adat: mind az 5 tétel');
+  assert.equal(TX.infoText(3), 'Az első kártyák legkorábban a 3. napon kerülnek csoportba.');
+  assert.equal(TX.groupTitle('fluent', 60), 'Megy: 60 kártya');
+  assert.equal(TX.showAllAria('fluent', 60), 'Megy: mind a 60 kártya');
+  assert.equal(TX.showAllAria('lowdata', 5), 'Kevés adat: mind az 5 kártya');
 });
 
 test('fő mondat mind a 7 esetben (a design szövegkatalógusa)', () => {
@@ -352,8 +352,8 @@ test('fő mondat mind a 7 esetben (a design szövegkatalógusa)', () => {
   assert.equal(s('practice', 'help', 'szó', 5, 3), 'Az utóbbi 5 alkalomból 3-szor kellett segítség.');
   assert.equal(s('practice', 'slow', 'szótag'), 'Lassabban olvasta, mint a többi szótagot.');
   assert.equal(s('practice', 'slow', 'betű'), 'Lassabban olvasta, mint a többi betűt.');
-  assert.equal(TX.reasonSentence({ group: 'lowdata', reason: null, need: 'days', type: 'szó' }, A), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
-  assert.equal(s('lowdata', null, 'szótag'), 'Egy tételről csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
+  assert.equal(TX.reasonSentence({ group: 'lowdata', reason: null, need: 'days', type: 'szó' }, A), 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
+  assert.equal(s('lowdata', null, 'szótag'), 'Egy kártyáról csak akkor tudjuk a haladást megállapítani, ha legalább 3 különböző napon olvasta.');
 });
 
 test('részletek szövegei: tények, dátum, pötty címkéje', () => {
@@ -368,19 +368,19 @@ test('listánként: szöveg és akadálymentes címke (mind a négy szám, vagy 
   assert.equal(TX.listText(2, 20), '2 megy a 20-ból');
   assert.equal(TX.listText(1, 5), '1 megy az 5-ből');
   assert.equal(TX.listAria({ name: 'Betűk', total: 20, fluent: 2, unsure: 1, practice: 1, lowdata: 16 }),
-    'Betűk: 2 megy, 1 még bizonytalan, 1 még gyakorolni kell, 16 kevés adat, 20 tételből');
-  assert.equal(TX.listAria({ name: 'Betűk', total: 20, fluent: 0, unsure: 0, practice: 0, lowdata: 20 }), 'Betűk: 20 tételből mindegyikről kevés az adat');
-  assert.equal(TX.T.grey, 'A szürke rész: erről a tételről még kevés az adat.');
+    'Betűk: 2 megy, 1 még bizonytalan, 1 még gyakorolni kell, 16 kevés adat, 20 kártyából');
+  assert.equal(TX.listAria({ name: 'Betűk', total: 20, fluent: 0, unsure: 0, practice: 0, lowdata: 20 }), 'Betűk: 20 kártyából mindegyikről kevés az adat');
+  assert.equal(TX.T.grey, 'A szürke rész: erről a kártyáról még kevés az adat.');
 });
 
-test('szövegek: nincs gondolatjel, a „tétel” szó egy helyről jön, és a régi szövegek eltűntek', () => {
+test('szövegek: nincs gondolatjel, a „kártya” szó egy helyről jön, és a régi szövegek eltűntek', () => {
   const all = [
     ...Object.values(TX.T).flat(), ...TX.CARD_ORDER.flatMap((k) => [TX.CARDS[k].title, TX.cardText(k, A)]),
     ...TX.summary({ seen: 1, total: 2, grouped: 1, counts: { fluent: 1, unsure: 1, practice: 1, lowdata: 1 } }).map((p) => p[0]),
     TX.infoText(3), TX.groupTitle('lowdata', 3), TX.showAllAria('unsure', 4),
   ];
   for (const s of all) assert.doesNotMatch(s, /[–—]/, s);
-  assert.equal(TX.TERM.nom, 'tétel');
+  assert.equal(TX.TERM.nom, 'kártya');
   for (const gone of ['emptyText', 'emptyAria', 'emptyCount', 'moreText', 'mayHelpText', 'cardNote', 'footLists', 'durationText', 'detailSentence']) {
     assert.equal(TX[gone], undefined, gone);
   }

@@ -1,12 +1,25 @@
 // Beállítások és a helyben tárolt állapot sémája. Tiszta modul.
 
 import { normalizeTour } from './tour.js';
+import { clampFilter } from './type-filter.js';
 
 /** A „Szünet a tételek között” választható értékei (ms). */
 export const GAPS = [0, 500, 1000, 2000, 3000];
 export const FLASH_MAX = 25000;
 // mixed: a Felolvasás „Kevert sorrend” kapcsolója (2.14, F-1, F-2); alapból csoportosított sorrend.
 export const DEFAULT_SETTINGS = Object.freeze({ flashMs: 10000, gapMs: 0, count: 10, source: 'list', mixed: false });
+
+/**
+ * Megjelenés (docs/megjelenes-specifikacio.md, MJ-1–MJ-3): betűszínezés és nagybetű-jelölés, mindkét játékra
+ * és a szülői felület előnézetére. color: 'none' | 'sound'; mark: 'none' | 'outline'.
+ */
+export const DEFAULT_LOOK = Object.freeze({ color: 'none', mark: 'none' });
+
+/** Bármilyen bemenetből érvényes Megjelenés; ismeretlen érték helyett az alapérték. */
+export function clampLook(l) {
+  l = l && typeof l === 'object' ? l : {};
+  return { color: l.color === 'sound' ? 'sound' : 'none', mark: l.mark === 'outline' ? 'outline' : 'none' };
+}
 
 /** A játékok: Felolvasás és Keresd meg!. */
 export const MODES = ['read', 'find'];
@@ -61,10 +74,12 @@ export const levelToDegree = (level, levels = [0, 0.25, 0.5, 0.75, 1]) =>
 export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ? m : 'read');
 
 /**
- * Helyi állapot: { v: 4, mode, settings, find, lastLists: string[], hideHelp: boolean, tour,
+ * Helyi állapot: { v: 4, mode, settings, find, look, lastLists: string[], hideHelp: boolean, tour,
  *                  cache: { text, fetchedAt, kind: 'sheet'|'txt' } | null }.
  * mode: a kiválasztott játék ('read' | 'find').
  * find: a Keresd meg! beállításai (clampFind); a mező csak hozzáadás, ezért a v marad 4.
+ * look: a Megjelenés (clampLook); szintén csak hozzáadás, hiányzó mezőnél mindkettő 'none'.
+ * typeFilter: a tételszűrő kikapcsolt típuskulcsai (type-filter.js, SZR-6); hiányzó mezőnél [] (nincs szűrés).
  * settings.mixed (2.14): szintén csak hozzáadás; hiányzó vagy érvénytelen érték: false.
  * hideHelp: a régi „Ne jelenjen meg újra” jelölő; már csak olvassuk (aki bepipálta, annak a bemutató sem indul magától).
  * tour: az Első lépések bemutató állapota (js/core/tour.js): null | { v, how: 'done'|'skipped', at };
@@ -75,7 +90,7 @@ export const normalizeMode = (m, active = ACTIVE_MODES) => (active.includes(m) ?
  * Ismeretlen vagy sérült bemenetnél alapállapot.
  */
 export function normalizeState(o) {
-  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), lastLists: [], hideHelp: false, tour: null, cache: null };
+  const base = { v: 4, mode: 'read', settings: clampSettings(null), find: clampFind(null), look: clampLook(null), typeFilter: [], lastLists: [], hideHelp: false, tour: null, cache: null };
   if (!o || typeof o !== 'object') return base;
   const lastLists = Array.isArray(o.lastLists) ? o.lastLists.filter((x) => typeof x === 'string')
     : typeof o.lastList === 'string' ? [o.lastList] : [];
@@ -84,6 +99,8 @@ export function normalizeState(o) {
     mode: normalizeMode(o.mode),
     settings: clampSettings(o.settings),
     find: clampFind(o.find),
+    look: clampLook(o.look),
+    typeFilter: clampFilter(o.typeFilter),
     lastLists,
     hideHelp: o.hideHelp === true,
     tour: normalizeTour(o.tour),
@@ -100,7 +117,7 @@ export const fmtNum = (x) => String(x).replace('.', ',');
  * Kézi léptetésnél time = 'kézi léptetés'; 60 mp fölött percekkel („kb. 1 perc 20 mp”).
  */
 export function estimate(s) {
-  const count = `${s.count} tétel`;
+  const count = `${s.count} kártya`;
   if (s.flashMs === 0) return { count, time: 'kézi léptetés' };
   const total = Math.round(s.count * (s.flashMs + s.gapMs) / 1000);
   const time = total < 60 ? `kb. ${total} mp`
