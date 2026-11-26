@@ -45,6 +45,6 @@ export function miniSample(items, marks = new Map()) {
   return items.find((x) => marks.has(x)) ?? items.find((x) => groupOf(x).key.startsWith('W:')) ?? items[0] ?? '';
 }
 
-/** A telefonos összecsukott sor összegzése (L-4): „Hangok szerint · Nagybetű: körvonal”. */
+/** Az összecsukott Megjelenés sor összegzése (kartyak-oszlop ÖM-1, D-18): „Színezés: hangok szerint, nagybetű-jelölés: körvonalas”. */
 export const lookSummary = (look) =>
-  `${look.color === 'sound' ? 'Hangok szerint' : 'Nincs színezés'} · Nagybetű: ${look.mark === 'outline' ? 'körvonal' : 'nincs'}`;
+  `Színezés: ${look.color === 'sound' ? 'hangok szerint' : 'nincs'}, nagybetű-jelölés: ${look.mark === 'outline' ? 'körvonalas' : 'nincs'}`;

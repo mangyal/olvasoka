@@ -19,7 +19,7 @@ Kapcsolódik: `docs/megjelenes-specifikacio.md` (L-1–L-6, D-8, D-9 módosul), 
 
 ## Megjelenés: összecsukható sor minden nézetben
 
-- **ÖM-1** A Megjelenés minden szélességben a mai telefonos összecsukott sor (L-4): felül kis felirat „Megjelenés” (12 px, `--ink-2`), alatta az összegzés (600): „Hangok szerint · Nagybetű: körvonal” vagy „Nincs színezés · Nagybetű: nincs” (a mai `lookSummary`); jobbra a mini minta (L-4 szabálya: a jelölt kártya, ha nincs, az első szó), majd ▾.
+- **ÖM-1** A Megjelenés minden szélességben a mai telefonos összecsukott sor (L-4): felül kis felirat „Megjelenés” (12 px, `--ink-2`), alatta az összegzés (600): „Színezés: hangok szerint, nagybetű-jelölés: körvonalas” (a négy változat: D-18; `lookSummary`); jobbra a mini minta (L-4 szabálya: a jelölt kártya, ha nincs, az első szó), majd ▾.
 - **ÖM-2** A sor a kártya teteje: `--field` háttér, `--line` keret, `--r-card` sarok, legalább 52 px magas, a teljes sor egy `button` (`aria-expanded`, `aria-controls="lookBody"`). Asztalon is ez a kártya-keret marad, nem egy keret nélküli sor.
 - **ÖM-3** Alapállapot: összecsukva. Minden betöltéskor összecsukva indul, a nyitott állapotot nem tároljuk (mint ma telefonon). A Megjelenés beállításai továbbra is tárolódnak.
 - **ÖM-4** Kattintásra / koppintásra / Enter vagy Space billentyűre helyben kinyílik, újabb kattintásra becsukódik. A fókusz a soron marad. Animáció nincs (vagy legfeljebb a mai `--d-fast`).
@@ -66,3 +66,4 @@ Kapcsolódik: `docs/megjelenes-specifikacio.md` (L-1–L-6, D-8, D-9 módosul), 
 - **D-15** A nyitott állapot a nézetváltást túléli (pl. tablet elforgatása, ablak átméretezése); csak újratöltéskor csukódik (ÖM-3). (2026-11-26)
 - **D-16** A mini minta: az első jelölt nagybetűs kártya, ha nincs, az első szó, ha az sincs, az első kártya (szűrés után, csomagsorrendben, nem véletlenszerűen); kártya nélkül üres. A mondatokat nem szűrjük ki (a hosszú mondat a sor 40%-ánál levágódik), ez külön döntés. (2026-11-26)
 - **D-17** Telefonon a „Kártyák” cím ugyanúgy 16 px, mint a „Kártyacsomagok” (eddig az `.ed-head` szabálya miatt 18 px maradt). (2026-11-26)
+- **D-18** Az összegzés szövege a beállítások neveit követi, vesszővel (a régi „Hangok szerint · Nagybetű: körvonal” helyett): „Színezés: nincs, nagybetű-jelölés: nincs”, „Színezés: hangok szerint, nagybetű-jelölés: nincs”, „Színezés: nincs, nagybetű-jelölés: körvonalas”, „Színezés: hangok szerint, nagybetű-jelölés: körvonalas”. A „nagybetű-jelölés” kötőjeles (háromtagú, hat szótagnál hosszabb összetétel). Telefonon két sorba tördelődhet (D-8). (2026-11-26)

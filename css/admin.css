@@ -574,6 +574,7 @@ dialog.sheet,.how:modal{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-
 .look-row-text{flex:1;min-width:0;display:flex;flex-direction:column}
 .look-row-label{font-size:12px;color:var(--ink-2)}
 .look-row-sum{font-weight:600;overflow-wrap:anywhere}
+.look-row-sum .nw{white-space:nowrap}
 .look-row .icon{width:20px;height:20px;color:var(--ink-2);flex:none;margin-right:8px}
 .look-body{display:none;flex-direction:column;gap:10px;min-width:0;padding:2px 16px 16px}
 .look.open .look-body{display:flex}

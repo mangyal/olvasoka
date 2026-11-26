@@ -1585,7 +1585,7 @@ for (const [name, opts] of [['álló 390×844', PHONE], ['álló 320×568', { vi
     const [btn, head, row, pv] = [await box('listsBtn'), await box('cardsHead'), await box('lookRow'), await box('phonePreview')];
     assert.ok(btn.bottom <= head.top && head.bottom <= row.top && row.bottom <= pv.top, 'csomag gomb → Kártyák → Megjelenés → előnézet (FK-4)');
     assert.ok(row.height >= 52, `sor magassága ${row.height}`);
-    assert.equal(await page.textContent('#lookRowSum'), 'Hangok szerint · Nagybetű: nincs');
+    assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: nincs');
     assert.ok((await page.textContent('#lookMini')).length > 0, 'mini minta');
     assert.equal(await page.isVisible('#lookBody'), false);
     assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'false');
@@ -1602,7 +1602,7 @@ for (const [name, opts] of [['álló 390×844', PHONE], ['álló 320×568', { vi
     await page.locator('#look input[name=lookMark][value=outline]').check();
     await page.tap('#lookRow');
     assert.equal(await page.isVisible('#lookBody'), false);
-    assert.equal(await page.textContent('#lookRowSum'), 'Hangok szerint · Nagybetű: körvonal');
+    assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
     assert.ok(await inViewport(page, '#startBtn'));
     await ctx.close();
   });
@@ -1660,7 +1660,7 @@ for (const [name, opts] of VIEWS) {
       card: 'rgb(251, 248, 242) 1px rgb(217, 207, 190) 10px',
     });
     assert.equal(await page.isVisible('#lookBody'), false);
-    assert.equal(await page.textContent('#lookRowSum'), 'Hangok szerint · Nagybetű: körvonal');
+    assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
     assert.ok(await page.isVisible('#lookRowSum'));
     assert.ok(await page.isVisible('#lookMini'));
     assert.equal(await page.textContent('#lookMini'), 'ke-fe', 'jelölt kártya nincs, az első szó');
@@ -1699,6 +1699,18 @@ for (const [name, opts] of [['asztal 1440×900', { viewport: { width: 1440, heig
   });
 }
 
+test('Megjelenés 320×568 (D-18): az összegzés tördelődik, de a „nagybetű-jelölés:” nem törik a kötőjelnél, és nem lóg ki', async () => {
+  const { page, ctx } = await open({ viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: true }, { lastLists: ['45. oldal'], look: { color: 'sound', mark: 'outline' } });
+  assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: körvonalas');
+  const g = await page.evaluate(() => {
+    const sum = document.getElementById('lookRowSum'), nw = sum.querySelector('.nw'), row = document.getElementById('lookRow').getBoundingClientRect();
+    return { nw: nw.textContent, lines: nw.getClientRects().length, wrapped: sum.getClientRects()[0].height > 30, inside: sum.getBoundingClientRect().right <= row.right };
+  });
+  assert.deepEqual(g, { nw: 'nagybetű-jelölés:', lines: 1, wrapped: true, inside: true });
+  assert.deepEqual(await noOverflow(page), { scroll: false, out: [] });
+  await ctx.close();
+});
+
 test('Megjelenés (T-4, ÖM-3): kinyitva újratöltés után csukva indul, a beállítás megmarad', async () => {
   const { page, ctx } = await open({ viewport: { width: 1440, height: 900 } }, { lastLists: ['45. oldal'], look: { color: 'none', mark: 'none' } });
   await page.click('#lookRow');
@@ -1708,7 +1720,7 @@ test('Megjelenés (T-4, ÖM-3): kinyitva újratöltés után csukva indul, a be�
   await page.waitForFunction(() => !document.getElementById('startBtn').disabled, null, { timeout: 15000 });
   assert.equal(await page.getAttribute('#lookRow', 'aria-expanded'), 'false');
   assert.equal(await page.isVisible('#lookBody'), false);
-  assert.equal(await page.textContent('#lookRowSum'), 'Hangok szerint · Nagybetű: nincs');
+  assert.equal(await page.textContent('#lookRowSum'), 'Színezés: hangok szerint, nagybetű-jelölés: nincs');
   assert.equal((await stored(page)).look.color, 'sound');
   await ctx.close();
 });
